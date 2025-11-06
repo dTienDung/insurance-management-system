@@ -1,0 +1,95 @@
+import React from 'react';
+import { DataGrid } from '@mui/x-data-grid';
+import { Box, Typography, CircularProgress } from '@mui/material';
+import { FileText as FileTextIcon } from '@mui/icons-material';
+
+const Table = ({ 
+  columns, 
+  data, 
+  onRowClick, 
+  loading, 
+  emptyMessage = 'Không có dữ liệu',
+  pageSize = 10,
+  ...props 
+}) => {
+  // Convert columns format if needed
+  const muiColumns = columns.map(col => ({
+    field: col.key || col.field,
+    headerName: col.label || col.headerName,
+    width: col.width || 150,
+    flex: col.flex,
+    sortable: col.sortable !== false,
+    renderCell: col.render ? (params) => col.render(params.row) : undefined,
+    ...col
+  }));
+
+  // Loading state
+  if (loading) {
+    return (
+      <Box 
+        display="flex" 
+        justifyContent="center" 
+        alignItems="center" 
+        minHeight={400}
+      >
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  // Empty state
+  if (!data || data.length === 0) {
+    return (
+      <Box 
+        display="flex" 
+        flexDirection="column"
+        alignItems="center" 
+        justifyContent="center"
+        minHeight={400}
+        color="text.secondary"
+      >
+        <FileTextIcon sx={{ fontSize: 64, mb: 2, opacity: 0.5 }} />
+        <Typography variant="body1">{emptyMessage}</Typography>
+      </Box>
+    );
+  }
+
+  return (
+    <DataGrid
+      rows={data}
+      columns={muiColumns}
+      loading={loading}
+      pageSizeOptions={[5, 10, 25, 50, 100]}
+      initialState={{
+        pagination: {
+          paginationModel: { pageSize }
+        }
+      }}
+      disableRowSelectionOnClick
+      onRowClick={(params) => onRowClick && onRowClick(params.row)}
+      autoHeight
+      sx={{
+        border: 'none',
+        '& .MuiDataGrid-cell:focus': {
+          outline: 'none',
+        },
+        '& .MuiDataGrid-row:hover': {
+          cursor: onRowClick ? 'pointer' : 'default',
+          bgcolor: 'action.hover',
+        },
+        ...props.sx
+      }}
+      localeText={{
+        noRowsLabel: emptyMessage,
+        MuiTablePagination: {
+          labelRowsPerPage: 'Số hàng mỗi trang:',
+          labelDisplayedRows: ({ from, to, count }) =>
+            `${from}-${to} của ${count !== -1 ? count : `hơn ${to}`}`,
+        },
+      }}
+      {...props}
+    />
+  );
+};
+
+export default Table;
