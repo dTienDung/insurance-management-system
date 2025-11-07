@@ -12,6 +12,15 @@ import Dashboard from './pages/Dashboard/Dashboard';
 import CustomerList from './pages/Customers/CustomerList';
 import CustomerForm from './pages/Customers/CustomerForm';
 import CustomerDetail from './pages/Customers/CustomerDetail';
+import VehicleList from './pages/Vehicles/VehicleList';
+import VehicleForm from './pages/Vehicles/VehicleForm';
+import VehicleDetail from './pages/Vehicles/VehicleDetail';
+import ContractList from './pages/Contracts/ContractList';
+import ContractForm from './pages/Contracts/ContractForm';
+import ContractDetail from './pages/Contracts/ContractDetail';
+import AssessmentList from './pages/Assesments/AssessmentList';
+import AssessmentForm from './pages/Assesments/AssessmentForm';
+import ReportDashboard from './pages/Reports/ReportDashboard';
 import { pjicoTheme } from './theme';
 import './App.css';
 
@@ -54,6 +63,27 @@ function AppRoutes() {
                 <Route path="/customers/new" element={<CustomerForm />} />
                 <Route path="/customers/edit/:id" element={<CustomerForm />} />
                 <Route path="/customers/:id" element={<CustomerDetail />} />
+
+                {/* Vehicle Routes */}
+                <Route path="/vehicles" element={<VehicleList />} />
+                <Route path="/vehicles/new" element={<VehicleForm />} />
+                <Route path="/vehicles/edit/:id" element={<VehicleForm />} />
+                <Route path="/vehicles/:id" element={<VehicleDetail />} />
+
+                {/* Contract Routes */}
+                <Route path="/contracts" element={<ContractList />} />
+                <Route path="/contracts/new" element={<ContractForm />} />
+                <Route path="/contracts/edit/:id" element={<ContractForm />} />
+                <Route path="/contracts/:id" element={<ContractDetail />} />
+
+                {/* Assessment Routes */}
+                <Route path="/assessments" element={<AssessmentList />} />
+                <Route path="/assessments/new" element={<AssessmentForm />} />
+                <Route path="/assessments/edit/:id" element={<AssessmentForm />} />
+                <Route path="/assessments/:id" element={<AssessmentForm />} />
+
+                {/* Reports */}
+                <Route path="/reports" element={<ReportDashboard />} />
                 
                 <Route path="/" element={<Navigate to="/dashboard" />} />
               </Routes>

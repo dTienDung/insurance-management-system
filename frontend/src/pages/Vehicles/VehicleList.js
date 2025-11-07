@@ -23,7 +23,7 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon
 } from '@mui/icons-material';
-import { vehicleAPI } from '../../services/api';
+import vehicleService from '../../services/vehicleService';
 import Table from '../../components/common/Table';
 import Button from '../../components/common/Button';
 import SearchBar from '../../components/common/SearchBar';
@@ -41,11 +41,27 @@ const VehicleList = () => {
   const fetchVehicles = async () => {
     try {
       setLoading(true);
-      const response = await vehicleAPI.getAll();
-      setVehicles(response.data.data || []);
+      const data = await vehicleService.getAll();
+
+      // Normalize different possible response shapes from backend / services.
+      // Accepts: Array, { data: Array }, { vehicles: Array }, { items: Array }
+      let list = [];
+      if (Array.isArray(data)) {
+        list = data;
+      } else if (data && Array.isArray(data.data)) {
+        list = data.data;
+      } else if (data && Array.isArray(data.vehicles)) {
+        list = data.vehicles;
+      } else if (data && Array.isArray(data.items)) {
+        list = data.items;
+      } else {
+        // unexpected shape: keep state as empty array and log for debugging
+        console.warn('Unexpected vehicles response shape, expected array-like but got:', data);
+      }
+
+      setVehicles(list);
     } catch (error) {
       console.error('Error:', error);
-      alert('Không thể tải danh sách phương tiện');
     } finally {
       setLoading(false);
     }
@@ -55,7 +71,7 @@ const VehicleList = () => {
     if (!window.confirm('Bạn có chắc chắn muốn xóa phương tiện này?')) return;
 
     try {
-      await vehicleAPI.delete(maXe);
+      await vehicleService.delete(maXe);
       alert('Xóa phương tiện thành công!');
       fetchVehicles();
     } catch (error) {

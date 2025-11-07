@@ -1,7 +1,7 @@
 import React from 'react';
 import { DataGrid } from '@mui/x-data-grid';
 import { Box, Typography, CircularProgress } from '@mui/material';
-import { FileText as FileTextIcon } from '@mui/icons-material';
+import { Description as FileTextIcon } from '@mui/icons-material';
 
 const Table = ({ 
   columns, 

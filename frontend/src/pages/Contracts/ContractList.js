@@ -35,10 +35,10 @@ const ContractList = () => {
   const fetchContracts = async () => {
     try {
       setLoading(true);
-      const response = await contractService.getAll({ 
+      const data = await contractService.getAll({ 
         status: filter !== 'all' ? filter : undefined 
       });
-      setContracts(response.data || []);
+      setContracts(data || []);
     } catch (error) {
       console.error('Error:', error);
     } finally {

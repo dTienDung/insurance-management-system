@@ -40,14 +40,34 @@ const ReportDashboard = () => {
   const fetchReports = async () => {
     try {
       setLoading(true);
-      
-      const [overview, revenue] = await Promise.all([
-        dashboardAPI.getOverview(dateRange),
-        dashboardAPI.getRevenueByMonth(dateRange)
-      ]);
+      // Try the preferred methods; fall back to available endpoints in api.js
+      let overviewResp, revenueResp;
+      try {
+        overviewResp = await dashboardAPI.getOverview(dateRange);
+        revenueResp = await dashboardAPI.getRevenueByMonth(dateRange);
+      } catch (err) {
+        // fallback to generic endpoints
+        try {
+          overviewResp = await dashboardAPI.getStats();
+        } catch (err2) {
+          console.warn('dashboardAPI.getStats failed', err2);
+          overviewResp = null;
+        }
+        try {
+          // attempt to call getRevenue with year extracted from dateRange.start
+          const year = new Date(dateRange.start).getFullYear();
+          revenueResp = await dashboardAPI.getRevenue(year);
+        } catch (err3) {
+          console.warn('dashboardAPI.getRevenue fallback failed', err3);
+          revenueResp = null;
+        }
+      }
 
-      setStats(overview.data.data || {});
-      setRevenueByMonth(revenue.data.data || []);
+      const overviewData = overviewResp?.data?.data || overviewResp?.data || overviewResp || {};
+      const revenueData = revenueResp?.data?.data || revenueResp?.data || revenueResp || [];
+
+      setStats(overviewData || {});
+      setRevenueByMonth(Array.isArray(revenueData) ? revenueData : (revenueData.months || []));
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -57,8 +77,16 @@ const ReportDashboard = () => {
 
   const handleExportReport = async (type) => {
     try {
-      const response = await exportAPI.exportReport(type, dateRange);
-      downloadExcel(response.data, `BaoCao_${type}_${new Date().toISOString().split('T')[0]}`);
+      let response;
+      try {
+        response = await exportAPI.exportReport(type, dateRange);
+      } catch (err) {
+        // fallback to generic exportAll
+        response = await exportAPI.exportAll(type);
+      }
+      // response may be blob or axios response with data
+      const blobData = response?.data || response;
+      downloadExcel(blobData, `BaoCao_${type}_${new Date().toISOString().split('T')[0]}`);
       alert('✅ Xuất báo cáo thành công!');
     } catch (error) {
       alert('❌ Không thể xuất báo cáo');

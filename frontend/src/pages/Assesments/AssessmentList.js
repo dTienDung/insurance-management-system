@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { assessmentAPI } from '../../services/api';
+import assessmentService from '../../services/assessmentService';
 import Table from '../../components/common/Table';
 import Button from '../../components/common/Button';
 import { format } from 'date-fns';
@@ -30,8 +30,23 @@ const AssessmentList = () => {
   const fetchAssessments = async () => {
     try {
       setLoading(true);
-      const response = await assessmentAPI.getAll();
-      setAssessments(response.data.data || []);
+      const data = await assessmentService.getAll();
+
+      // Normalize possible response shapes
+      let list = [];
+      if (Array.isArray(data)) {
+        list = data;
+      } else if (data && Array.isArray(data.data)) {
+        list = data.data;
+      } else if (data && Array.isArray(data.assessments)) {
+        list = data.assessments;
+      } else if (data && Array.isArray(data.items)) {
+        list = data.items;
+      } else {
+        console.warn('Unexpected assessments response shape, expected array-like but got:', data);
+      }
+
+      setAssessments(list);
     } catch (error) {
       console.error('Error:', error);
     } finally {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { assessmentService } from '../../services/assessmentService';
-import { contractService } from '../../services/contractService';
+import assessmentService from '../../services/assessmentService';
+import contractService from '../../services/contractService';
 import {
   Container,
   Box,
@@ -48,7 +48,15 @@ const AssessmentForm = () => {
       try {
         setLoadingContracts(true);
         const data = await contractService.getAll();
-        const activeContracts = data.filter(c => c.status === 'active');
+
+        // Normalize response (array or { data: [...] })
+        let list = [];
+        if (Array.isArray(data)) list = data;
+        else if (data && Array.isArray(data.data)) list = data.data;
+        else if (data && Array.isArray(data.contracts)) list = data.contracts;
+        else console.warn('Unexpected contracts response shape:', data);
+
+        const activeContracts = list.filter(c => (c.status === 'active' || c.TrangThai === 'Hiệu lực'));
         setContracts(activeContracts);
       } catch (err) {
         console.error('Error fetching contracts:', err);

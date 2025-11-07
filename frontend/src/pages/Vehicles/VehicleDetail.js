@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { vehicleService } from '../../services/vehicleService';
+import vehicleService from '../../services/vehicleService';
 import {
   Container,
   Box,

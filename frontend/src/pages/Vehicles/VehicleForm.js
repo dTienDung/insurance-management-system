@@ -19,8 +19,8 @@ import {
   Cancel as CancelIcon,
   Info as InfoIcon
 } from '@mui/icons-material';
-import { vehicleService } from '../../services/vehicleService';
-import { customerService } from '../../services/customerService';
+import vehicleService from '../../services/vehicleService';
+import customerService from '../../services/customerService';
 import Button from '../../components/common/Button';
 
 const VehicleForm = () => {
@@ -90,7 +90,22 @@ const VehicleForm = () => {
     try {
       setLoadingCustomers(true);
       const data = await customerService.getAll();
-      setCustomers(data);
+
+      // Normalize possible response shapes: Array, { data: [] }, { customers: [] }, { items: [] }
+      let list = [];
+      if (Array.isArray(data)) {
+        list = data;
+      } else if (data && Array.isArray(data.data)) {
+        list = data.data;
+      } else if (data && Array.isArray(data.customers)) {
+        list = data.customers;
+      } else if (data && Array.isArray(data.items)) {
+        list = data.items;
+      } else {
+        console.warn('Unexpected customers response shape, expected array-like but got:', data);
+      }
+
+      setCustomers(list);
     } catch (err) {
       console.error('Error fetching customers:', err);
       setError('Lỗi khi tải danh sách khách hàng');

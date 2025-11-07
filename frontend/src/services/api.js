@@ -136,3 +136,10 @@ export const contractAPI = {
   update: (id, data) => api.put(`/contracts/${id}`, data),
   delete: (id) => api.delete(`/contracts/${id}`),
 };
+
+export const exportAPI = {
+  exportContract: (id) => api.get(`/export/contract/${id}`, { responseType: 'blob' }),
+  exportVehicle: (id) => api.get(`/export/vehicle/${id}`, { responseType: 'blob' }),
+  exportCustomer: (id) => api.get(`/export/customer/${id}`, { responseType: 'blob' }),
+  exportAll: (type) => api.get(`/export/${type}/all`, { responseType: 'blob' }),
+};
