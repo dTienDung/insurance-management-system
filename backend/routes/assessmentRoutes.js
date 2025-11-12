@@ -8,7 +8,7 @@ router.use(authMiddleware);
 router.post('/calculate-risk', assessmentController.calculateRiskScore);
 
 router.get('/', assessmentController.getAll);
-router.get('/contract/:maHD', assessmentController.getByContract);
+router.get('/hoso/:maHS', assessmentController.getByHoSo);
 router.post('/', authorize('Admin', 'Thẩm định'), assessmentController.createAssessment);
 
 module.exports = router;

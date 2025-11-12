@@ -110,12 +110,12 @@ class DashboardController {
         .input('limit', sql.Int, parseInt(limit))
         .query(`
           SELECT TOP (@limit)
-            lb.TenLoai,
+            gb.TenGoi,
             COUNT(hd.MaHD) as SoHopDong,
             SUM(hd.PhiBaoHiem) as TongDoanhThu
-          FROM LoaiBaoHiem lb
-          LEFT JOIN HopDong hd ON lb.MaLB = hd.MaLB
-          GROUP BY lb.TenLoai
+          FROM GoiBaoHiem gb
+          LEFT JOIN HopDong hd ON gb.MaGoi = hd.MaGoi
+          GROUP BY gb.TenGoi
           ORDER BY COUNT(hd.MaHD) DESC
         `);
 
@@ -134,10 +134,10 @@ class DashboardController {
       const result = await pool.request()
         .query(`
           SELECT 
-            MucDoRuiRo,
+            RiskLevel,
             COUNT(*) as SoLuong
-          FROM ThamDinh
-          GROUP BY MucDoRuiRo
+          FROM HoSoThamDinh
+          GROUP BY RiskLevel
         `);
 
       res.json({
@@ -255,11 +255,13 @@ class DashboardController {
             hd.NgayTao,
             hd.TrangThai,
             kh.HoTen as TenKhachHang,
-            xe.BienSo,
+            bs.BienSo,
             nv.HoTen as NhanVienXuLy
           FROM HopDong hd
           LEFT JOIN KhachHang kh ON hd.MaKH = kh.MaKH
           LEFT JOIN Xe xe ON hd.MaXe = xe.MaXe
+          LEFT JOIN KhachHangXe khxe ON xe.MaXe = khxe.MaXe AND kh.MaKH = khxe.MaKH
+          LEFT JOIN BienSoXe bs ON khxe.MaKH = bs.MaKH AND bs.TrangThai = N'Đang sử dụng'
           LEFT JOIN NhanVien nv ON hd.MaNV = nv.MaNV
           ORDER BY hd.NgayTao DESC
         `);

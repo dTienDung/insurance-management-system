@@ -18,12 +18,12 @@ class CustomerController {
       const request = pool.request();
 
       if (search) {
-        query += ` AND (kh.HoTen LIKE @search OR kh.CMND_CCCD LIKE @search OR kh.SDT LIKE @search)`;
+        query += ` AND (kh.HoTen LIKE @search OR kh.CCCD LIKE @search OR kh.SDT LIKE @search)`;
         request.input('search', sql.NVarChar, `%${search}%`);
       }
 
       query += ` 
-        GROUP BY kh.MaKH, kh.HoTen, kh.CMND_CCCD, kh.NgaySinh, kh.DiaChi, kh.SDT, kh.Email
+        GROUP BY kh.MaKH, kh.HoTen, kh.CCCD, kh.NgaySinh, kh.DiaChi, kh.SDT, kh.Email
         ORDER BY kh.MaKH DESC
         OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY
       `;
@@ -34,7 +34,7 @@ class CustomerController {
       const result = await request.query(query);
 
       const countQuery = `SELECT COUNT(*) as total FROM KhachHang WHERE 1=1
-        ${search ? `AND (HoTen LIKE @search OR CMND_CCCD LIKE @search OR SDT LIKE @search)` : ''}`;
+        ${search ? `AND (HoTen LIKE @search OR CCCD LIKE @search OR SDT LIKE @search)` : ''}`;
       
       const countRequest = pool.request();
       if (search) {
@@ -66,7 +66,7 @@ class CustomerController {
         .query(`
           SELECT kh.*, 
                  (SELECT COUNT(*) FROM HopDong WHERE MaKH = kh.MaKH) as TongHopDong,
-                 (SELECT COUNT(*) FROM Xe WHERE MaKH = kh.MaKH) as TongXe
+                 (SELECT COUNT(*) FROM KhachHangXe WHERE MaKH = kh.MaKH) as TongXe
           FROM KhachHang kh
           WHERE kh.MaKH = @maKH
         `);
@@ -89,9 +89,9 @@ class CustomerController {
 
   async create(req, res, next) {
     try {
-      const { hoTen, cmndCccd, ngaySinh, diaChi, sdt, email } = req.body;
+      const { hoTen, cccd, ngaySinh, diaChi, sdt, email } = req.body;
 
-      if (!hoTen || !cmndCccd || !sdt) {
+      if (!hoTen || !cccd || !sdt) {
         return res.status(400).json({
           success: false,
           message: 'Vui lòng nhập đầy đủ thông tin bắt buộc'
@@ -101,13 +101,13 @@ class CustomerController {
       const pool = await getConnection();
       
       const checkExist = await pool.request()
-        .input('cmndCccd', sql.VarChar(12), cmndCccd)
-        .query('SELECT MaKH FROM KhachHang WHERE CMND_CCCD = @cmndCccd');
+        .input('cccd', sql.VarChar(12), cccd)
+        .query('SELECT MaKH FROM KhachHang WHERE CCCD = @cccd');
 
       if (checkExist.recordset.length > 0) {
         return res.status(400).json({
           success: false,
-          message: 'CMND/CCCD đã tồn tại trong hệ thống'
+          message: 'CCCD đã tồn tại trong hệ thống'
         });
       }
 
@@ -120,14 +120,14 @@ class CustomerController {
       await pool.request()
         .input('maKH', sql.VarChar(10), maKH)
         .input('hoTen', sql.NVarChar(60), hoTen)
-        .input('cmndCccd', sql.VarChar(12), cmndCccd)
+        .input('cccd', sql.VarChar(12), cccd)
         .input('ngaySinh', sql.Date, ngaySinh || null)
         .input('diaChi', sql.NVarChar(120), diaChi || null)
         .input('sdt', sql.VarChar(12), sdt)
         .input('email', sql.VarChar(80), email || null)
         .query(`
-          INSERT INTO KhachHang (MaKH, HoTen, CMND_CCCD, NgaySinh, DiaChi, SDT, Email)
-          VALUES (@maKH, @hoTen, @cmndCccd, @ngaySinh, @diaChi, @sdt, @email)
+          INSERT INTO KhachHang (MaKH, HoTen, CCCD, NgaySinh, DiaChi, SDT, Email)
+          VALUES (@maKH, @hoTen, @cccd, @ngaySinh, @diaChi, @sdt, @email)
         `);
 
       res.status(201).json({

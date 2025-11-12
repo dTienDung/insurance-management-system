@@ -9,21 +9,27 @@ class VehicleController {
       const pool = await getConnection();
       
       let query = `
-        SELECT xe.*, kh.HoTen as TenChuXe, kh.SDT as SDTChuXe
+        SELECT DISTINCT
+          xe.*,
+          kh.HoTen as TenChuXe,
+          kh.SDT as SDTChuXe,
+          bs.BienSo
         FROM Xe xe
-        LEFT JOIN KhachHang kh ON xe.MaKH = kh.MaKH
+        LEFT JOIN KhachHangXe kxe ON xe.MaXe = kxe.MaXe AND kxe.NgayKetThucSoHuu IS NULL
+        LEFT JOIN KhachHang kh ON kxe.MaKH = kh.MaKH
+        LEFT JOIN BienSoXe bs ON kh.MaKH = bs.MaKH AND bs.TrangThai = N'Hoạt động'
         WHERE 1=1
       `;
 
       const request = pool.request();
 
       if (search) {
-        query += ` AND (xe.BienSo LIKE @search OR xe.HangXe LIKE @search OR kh.HoTen LIKE @search)`;
+        query += ` AND (bs.BienSo LIKE @search OR xe.HangXe LIKE @search OR kh.HoTen LIKE @search)`;
         request.input('search', sql.NVarChar, `%${search}%`);
       }
 
       if (maKH) {
-        query += ` AND xe.MaKH = @maKH`;
+        query += ` AND kh.MaKH = @maKH`;
         request.input('maKH', sql.VarChar(10), maKH);
       }
 
@@ -37,9 +43,16 @@ class VehicleController {
 
       const result = await request.query(query);
 
-      let countQuery = `SELECT COUNT(*) as total FROM Xe xe LEFT JOIN KhachHang kh ON xe.MaKH = kh.MaKH WHERE 1=1`;
-      if (search) countQuery += ` AND (xe.BienSo LIKE @search OR xe.HangXe LIKE @search OR kh.HoTen LIKE @search)`;
-      if (maKH) countQuery += ` AND xe.MaKH = @maKH`;
+      let countQuery = `
+        SELECT COUNT(DISTINCT xe.MaXe) as total 
+        FROM Xe xe
+        LEFT JOIN KhachHangXe kxe ON xe.MaXe = kxe.MaXe AND kxe.NgayKetThucSoHuu IS NULL
+        LEFT JOIN KhachHang kh ON kxe.MaKH = kh.MaKH
+        LEFT JOIN BienSoXe bs ON kh.MaKH = bs.MaKH AND bs.TrangThai = N'Hoạt động'
+        WHERE 1=1
+      `;
+      if (search) countQuery += ` AND (bs.BienSo LIKE @search OR xe.HangXe LIKE @search OR kh.HoTen LIKE @search)`;
+      if (maKH) countQuery += ` AND kh.MaKH = @maKH`;
       
       const countRequest = pool.request();
       if (search) countRequest.input('search', sql.NVarChar, `%${search}%`);
@@ -68,9 +81,19 @@ class VehicleController {
       const result = await pool.request()
         .input('maXe', sql.VarChar(10), id)
         .query(`
-          SELECT xe.*, kh.HoTen as TenChuXe, kh.SDT as SDTChuXe, kh.DiaChi as DiaChiChuXe
+          SELECT 
+            xe.*,
+            kh.HoTen as TenChuXe, 
+            kh.SDT as SDTChuXe, 
+            kh.DiaChi as DiaChiChuXe,
+            kh.MaKH,
+            bs.BienSo,
+            bs.MaBienSo,
+            bs.TrangThai as TrangThaiBienSo
           FROM Xe xe
-          LEFT JOIN KhachHang kh ON xe.MaKH = kh.MaKH
+          LEFT JOIN KhachHangXe kxe ON xe.MaXe = kxe.MaXe AND kxe.NgayKetThucSoHuu IS NULL
+          LEFT JOIN KhachHang kh ON kxe.MaKH = kh.MaKH
+          LEFT JOIN BienSoXe bs ON kh.MaKH = bs.MaKH AND bs.TrangThai = N'Hoạt động'
           WHERE xe.MaXe = @maXe
         `);
 
@@ -93,11 +116,12 @@ class VehicleController {
   async create(req, res, next) {
     try {
       const { 
-        bienSo, hangXe, loaiXe, namSX, maKH, giaTriXe, 
-        mucDichSuDung, tinhTrangKT, tanSuatNam, tanSuatBaoDuong 
+        hangXe, loaiXe, namSX, maKH, giaTriXe, 
+        mucDichSuDung, tinhTrangKT, tanSuatNam, tanSuatBaoDuong,
+        bienSo // Thêm biển số từ request
       } = req.body;
 
-      if (!bienSo || !hangXe || !loaiXe || !namSX || !maKH || !giaTriXe) {
+      if (!hangXe || !loaiXe || !namSX || !maKH || !giaTriXe) {
         return res.status(400).json({
           success: false,
           message: 'Vui lòng nhập đầy đủ thông tin bắt buộc'
@@ -106,23 +130,25 @@ class VehicleController {
 
       const pool = await getConnection();
       
-      const checkExist = await pool.request()
-        .input('bienSo', sql.VarChar(10), bienSo)
-        .query('SELECT MaXe FROM Xe WHERE BienSo = @bienSo');
+      // Kiểm tra biển số đã tồn tại chưa (nếu có nhập)
+      if (bienSo) {
+        const checkBienSo = await pool.request()
+          .input('bienSo', sql.VarChar(15), bienSo)
+          .query('SELECT MaBienSo FROM BienSoXe WHERE BienSo = @bienSo');
 
-      if (checkExist.recordset.length > 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'Biển số xe đã tồn tại trong hệ thống'
-        });
+        if (checkBienSo.recordset.length > 0) {
+          return res.status(400).json({
+            success: false,
+            message: 'Biển số xe đã tồn tại trong hệ thống'
+          });
+        }
       }
 
+      // 1. Tạo xe (không có BienSo và MaKH)
       const request = pool.request()
-        .input('bienSo', sql.VarChar(10), bienSo)
         .input('hangXe', sql.NVarChar(30), hangXe)
         .input('loaiXe', sql.NVarChar(30), loaiXe)
         .input('namSX', sql.Int, namSX)
-        .input('maKH', sql.VarChar(10), maKH)
         .input('giaTriXe', sql.Decimal(18, 0), giaTriXe)
         .input('mucDichSuDung', sql.NVarChar(20), mucDichSuDung || null)
         .input('tinhTrangKT', sql.NVarChar(12), tinhTrangKT || null)
@@ -130,17 +156,39 @@ class VehicleController {
         .input('tanSuatBaoDuong', sql.NVarChar(20), tanSuatBaoDuong || null);
 
       const result = await request.query(`
-        INSERT INTO Xe (BienSo, HangXe, LoaiXe, NamSX, MaKH, GiaTriXe, 
+        INSERT INTO Xe (HangXe, LoaiXe, NamSX, GiaTriXe, 
                        MucDichSuDung, TinhTrangKT, TanSuatNam, TanSuatBaoDuong)
         OUTPUT INSERTED.MaXe
-        VALUES (@bienSo, @hangXe, @loaiXe, @namSX, @maKH, @giaTriXe,
+        VALUES (@hangXe, @loaiXe, @namSX, @giaTriXe,
                 @mucDichSuDung, @tinhTrangKT, @tanSuatNam, @tanSuatBaoDuong)
       `);
+
+      const maXe = result.recordset[0].MaXe;
+
+      // 2. Tạo quan hệ KhachHangXe
+      await pool.request()
+        .input('maKH', sql.VarChar(10), maKH)
+        .input('maXe', sql.VarChar(10), maXe)
+        .query(`
+          INSERT INTO KhachHangXe (MaKH, MaXe, NgayBatDauSoHuu)
+          VALUES (@maKH, @maXe, GETDATE())
+        `);
+
+      // 3. Tạo BienSoXe (nếu có)
+      if (bienSo) {
+        await pool.request()
+          .input('maKH', sql.VarChar(10), maKH)
+          .input('bienSo', sql.VarChar(15), bienSo)
+          .query(`
+            INSERT INTO BienSoXe (MaKH, BienSo, TrangThai)
+            VALUES (@maKH, @bienSo, N'Hoạt động')
+          `);
+      }
 
       res.status(201).json({
         success: true,
         message: 'Thêm phương tiện thành công',
-        data: { maXe: result.recordset[0].MaXe }
+        data: { maXe }
       });
     } catch (error) {
       next(error);
@@ -241,7 +289,7 @@ class VehicleController {
       const result = await pool.request()
         .input('maXe', sql.VarChar(10), id)
         .query(`
-          SELECT * FROM LichSuXe
+          SELECT * FROM LS_TaiNan
           WHERE MaXe = @maXe
           ORDER BY NgayXayRa DESC
         `);

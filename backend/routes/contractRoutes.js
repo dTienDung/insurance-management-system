@@ -22,9 +22,6 @@ router.post('/', authMiddleware, contractController.create);
 // UPDATE contract
 router.put('/:id', authMiddleware, contractController.update);
 
-// UPDATE payment status (NEW - cho payment feature)
-router.post('/:id/payment', authMiddleware, contractController.updatePaymentStatus);
-
 // CANCEL contract
 router.post('/:id/cancel', authMiddleware, contractController.cancel);
 

@@ -1,126 +1,81 @@
 const { getConnection, sql } = require('../config/database');
 
 class AssessmentController {
+  // Tính điểm thẩm định cho hồ sơ
   async calculateRiskScore(req, res, next) {
     try {
-      const { maXe, taiTuc } = req.body;
+      const { maHS } = req.body;
 
-      if (!maXe) {
+      if (!maHS) {
         return res.status(400).json({
           success: false,
-          message: 'Vui lòng cung cấp mã xe'
+          message: 'Vui lòng cung cấp mã hồ sơ'
         });
       }
 
       const pool = await getConnection();
       
-      const xeResult = await pool.request()
-        .input('maXe', sql.VarChar(10), maXe)
+      // Gọi SP tính điểm thẩm định
+      await pool.request()
+        .input('maHS', sql.VarChar(10), maHS)
+        .execute('sp_TinhDiemThamDinh');
+
+      // Lấy kết quả sau khi tính
+      const result = await pool.request()
+        .input('maHS', sql.VarChar(10), maHS)
         .query(`
-          SELECT xe.*, 
-                 (SELECT COUNT(*) FROM LichSuXe WHERE MaXe = xe.MaXe) as SoLanTaiNan
-          FROM Xe xe
-          WHERE xe.MaXe = @maXe
+          SELECT 
+            hs.MaHS,
+            hs.RiskLevel,
+            hs.KetQua,
+            hs.PhiDuKien,
+            kh.HoTen as TenKhach,
+            xe.HangXe,
+            xe.LoaiXe
+          FROM HoSoThamDinh hs
+          JOIN KhachHang kh ON hs.MaKH = kh.MaKH
+          JOIN Xe xe ON hs.MaXe = xe.MaXe
+          WHERE hs.MaHS = @maHS
         `);
 
-      if (xeResult.recordset.length === 0) {
+      if (result.recordset.length === 0) {
         return res.status(404).json({
           success: false,
-          message: 'Không tìm thấy xe'
+          message: 'Không tìm thấy hồ sơ'
         });
       }
 
-      const xe = xeResult.recordset[0];
-      
-      const decisionRules = await pool.request()
-        .query('SELECT * FROM DecisionTable');
+      const hoSo = result.recordset[0];
 
-      let totalScore = 0;
-      const appliedRules = [];
-
-      for (const rule of decisionRules.recordset) {
-        let isApplicable = false;
-        const tieuChi = rule.TieuChi;
-        const dieuKien = rule.DieuKien;
-
-        if (tieuChi.includes('Giá trị xe')) {
-          if (dieuKien.includes('> 1 tỷ') && xe.GiaTriXe > 1000000000) {
-            isApplicable = true;
-          } else if (dieuKien.includes('< 500 triệu') && xe.GiaTriXe < 500000000) {
-            isApplicable = true;
-          }
-        }
-
-        if (tieuChi.includes('Loại xe')) {
-          if (dieuKien.includes(xe.LoaiXe)) {
-            isApplicable = true;
-          }
-        }
-
-        if (tieuChi.includes('Năm sản xuất')) {
-          if (dieuKien.includes('< 2015') && xe.NamSX < 2015) {
-            isApplicable = true;
-          }
-        }
-
-        if (tieuChi.includes('Tần suất bảo dưỡng')) {
-          const tanSuat = parseInt(xe.TanSuatBaoDuong) || 0;
-          if (dieuKien.includes('Ít hơn 2') && tanSuat < 2) {
-            isApplicable = true;
-          } else if (dieuKien.includes('>= 2') && tanSuat >= 2) {
-            isApplicable = true;
-          }
-        }
-
-        if (tieuChi.includes('Tái tục')) {
-          if ((dieuKien.includes('Có') && taiTuc === true) || 
-              (dieuKien.includes('Không') && taiTuc === false)) {
-            isApplicable = true;
-          }
-        }
-
-        if (isApplicable) {
-          totalScore += rule.Diem;
-          appliedRules.push({
-            tieuChi: rule.TieuChi,
-            dieuKien: rule.DieuKien,
-            diem: rule.Diem,
-            ghiChu: rule.GhiChu
-          });
-        }
-      }
-
-      let mucDoRuiRo, ketQua, phiBoSung = 0;
-      if (totalScore <= -2) {
-        mucDoRuiRo = 'Thấp';
-        ketQua = 'Chấp nhận';
-        phiBoSung = 0;
-      } else if (totalScore >= -1 && totalScore <= 2) {
-        mucDoRuiRo = 'Trung bình';
-        ketQua = 'Chấp nhận có điều kiện';
-        phiBoSung = totalScore * 500000;
-      } else {
-        mucDoRuiRo = 'Cao';
-        ketQua = 'Từ chối hoặc yêu cầu phí cao';
-        phiBoSung = totalScore * 1000000;
-      }
+      // Lấy chi tiết điểm theo từng tiêu chí
+      const detailResult = await pool.request()
+        .input('maHS', sql.VarChar(10), maHS)
+        .query(`
+          SELECT 
+            mt.TieuChi,
+            mt.DieuKien,
+            hsc.GiaTri,
+            hsc.Diem
+          FROM HoSoThamDinh_ChiTiet hsc
+          JOIN MaTranThamDinh mt ON hsc.MaTieuChi = mt.ID
+          WHERE hsc.MaHS = @maHS
+        `);
 
       res.json({
         success: true,
         data: {
-          tongDiem: totalScore,
-          mucDoRuiRo,
-          ketQua,
-          phiBoSung,
-          appliedRules,
+          maHS: hoSo.MaHS,
+          riskLevel: hoSo.RiskLevel,
+          ketQua: hoSo.KetQua,
+          phiDuKien: hoSo.PhiDuKien,
+          thongTinKhach: {
+            tenKhach: hoSo.TenKhach
+          },
           thongTinXe: {
-            bienSo: xe.BienSo,
-            hangXe: xe.HangXe,
-            loaiXe: xe.LoaiXe,
-            namSX: xe.NamSX,
-            giaTriXe: xe.GiaTriXe,
-            soLanTaiNan: xe.SoLanTaiNan
-          }
+            hangXe: hoSo.HangXe,
+            loaiXe: hoSo.LoaiXe
+          },
+          chiTietDiem: detailResult.recordset
         }
       });
     } catch (error) {
@@ -128,11 +83,12 @@ class AssessmentController {
     }
   }
 
+  // Tạo bản ghi thẩm định (không còn dùng - dùng sp_TinhDiemThamDinh thay thế)
   async createAssessment(req, res, next) {
     try {
-      const { maHD, mucDoRuiRo, ketQua, ghiChu } = req.body;
+      const { maHS, ghiChu } = req.body;
 
-      if (!maHD || !mucDoRuiRo || !ketQua) {
+      if (!maHS) {
         return res.status(400).json({
           success: false,
           message: 'Vui lòng nhập đầy đủ thông tin'
@@ -141,45 +97,59 @@ class AssessmentController {
 
       const pool = await getConnection();
       
-      const request = pool.request()
-        .input('maHD', sql.VarChar(10), maHD)
-        .input('ngayThamDinh', sql.Date, new Date())
-        .input('mucDoRuiRo', sql.NVarChar(50), mucDoRuiRo)
-        .input('ketQua', sql.NVarChar(100), ketQua)
-        .input('ghiChu', sql.NVarChar(255), ghiChu || null);
+      // Gọi SP thẩm định
+      await pool.request()
+        .input('maHS', sql.VarChar(10), maHS)
+        .execute('sp_TinhDiemThamDinh');
 
-      const result = await request.query(`
-        INSERT INTO ThamDinh (MaHD, NgayThamDinh, MucDoRuiRo, KetQua, GhiChu)
-        OUTPUT INSERTED.MaTD
-        VALUES (@maHD, @ngayThamDinh, @mucDoRuiRo, @ketQua, @ghiChu)
-      `);
+      // Cập nhật ghi chú nếu có
+      if (ghiChu) {
+        await pool.request()
+          .input('maHS', sql.VarChar(10), maHS)
+          .input('ghiChu', sql.NVarChar(255), ghiChu)
+          .query('UPDATE HoSoThamDinh SET GhiChu = @ghiChu WHERE MaHS = @maHS');
+      }
 
       res.status(201).json({
         success: true,
-        message: 'Tạo thẩm định thành công',
-        data: { maTD: result.recordset[0].MaTD }
+        message: 'Thẩm định thành công',
+        data: { maHS }
       });
     } catch (error) {
       next(error);
     }
   }
 
-  async getByContract(req, res, next) {
+  // Lấy thông tin thẩm định theo hồ sơ
+  async getByHoSo(req, res, next) {
     try {
-      const { maHD } = req.params;
+      const { maHS } = req.params;
 
       const pool = await getConnection();
       const result = await pool.request()
-        .input('maHD', sql.VarChar(10), maHD)
+        .input('maHS', sql.VarChar(10), maHS)
         .query(`
-          SELECT * FROM ThamDinh
-          WHERE MaHD = @maHD
-          ORDER BY NgayThamDinh DESC
+          SELECT 
+            hs.*,
+            kh.HoTen as TenKhach,
+            xe.HangXe,
+            xe.LoaiXe
+          FROM HoSoThamDinh hs
+          JOIN KhachHang kh ON hs.MaKH = kh.MaKH
+          JOIN Xe xe ON hs.MaXe = xe.MaXe
+          WHERE hs.MaHS = @maHS
         `);
+
+      if (result.recordset.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Không tìm thấy hồ sơ thẩm định'
+        });
+      }
 
       res.json({
         success: true,
-        data: result.recordset
+        data: result.recordset[0]
       });
     } catch (error) {
       next(error);
@@ -188,42 +158,49 @@ class AssessmentController {
 
   async getAll(req, res, next) {
     try {
-      const { mucDoRuiRo, fromDate, toDate, page = 1, limit = 10 } = req.query;
+      const { riskLevel, fromDate, toDate, page = 1, limit = 10 } = req.query;
       const offset = (page - 1) * limit;
 
       const pool = await getConnection();
       
       let query = `
-        SELECT td.*, 
-               hd.MaHD, hd.NgayKy,
-               kh.HoTen as TenKhachHang,
-               xe.BienSo, xe.HangXe
-        FROM ThamDinh td
-        LEFT JOIN HopDong hd ON td.MaHD = hd.MaHD
-        LEFT JOIN KhachHang kh ON hd.MaKH = kh.MaKH
-        LEFT JOIN Xe xe ON hd.MaXe = xe.MaXe
+        SELECT 
+          hs.MaHS,
+          hs.NgayLap,
+          hs.TrangThai,
+          hs.RiskLevel,
+          hs.KetQua,
+          hs.PhiDuKien,
+          kh.HoTen as TenKhach,
+          xe.HangXe,
+          xe.LoaiXe,
+          nv.HoTen as NhanVienThamDinh
+        FROM HoSoThamDinh hs
+        LEFT JOIN KhachHang kh ON hs.MaKH = kh.MaKH
+        LEFT JOIN Xe xe ON hs.MaXe = xe.MaXe
+        LEFT JOIN NhanVien nv ON hs.MaNV_ThamDinh = nv.MaNV
         WHERE 1=1
       `;
 
       const request = pool.request();
 
-      if (mucDoRuiRo) {
-        query += ` AND td.MucDoRuiRo = @mucDoRuiRo`;
-        request.input('mucDoRuiRo', sql.NVarChar(50), mucDoRuiRo);
+      if (riskLevel) {
+        query += ` AND hs.RiskLevel = @riskLevel`;
+        request.input('riskLevel', sql.NVarChar(20), riskLevel);
       }
 
       if (fromDate) {
-        query += ` AND td.NgayThamDinh >= @fromDate`;
+        query += ` AND hs.NgayLap >= @fromDate`;
         request.input('fromDate', sql.Date, fromDate);
       }
 
       if (toDate) {
-        query += ` AND td.NgayThamDinh <= @toDate`;
+        query += ` AND hs.NgayLap <= @toDate`;
         request.input('toDate', sql.Date, toDate);
       }
 
       query += ` 
-        ORDER BY td.NgayThamDinh DESC
+        ORDER BY hs.NgayLap DESC
         OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY
       `;
 
@@ -232,13 +209,13 @@ class AssessmentController {
 
       const result = await request.query(query);
 
-      let countQuery = `SELECT COUNT(*) as total FROM ThamDinh td WHERE 1=1`;
-      if (mucDoRuiRo) countQuery += ` AND td.MucDoRuiRo = @mucDoRuiRo`;
-      if (fromDate) countQuery += ` AND td.NgayThamDinh >= @fromDate`;
-      if (toDate) countQuery += ` AND td.NgayThamDinh <= @toDate`;
+      let countQuery = `SELECT COUNT(*) as total FROM HoSoThamDinh hs WHERE 1=1`;
+      if (riskLevel) countQuery += ` AND hs.RiskLevel = @riskLevel`;
+      if (fromDate) countQuery += ` AND hs.NgayLap >= @fromDate`;
+      if (toDate) countQuery += ` AND hs.NgayLap <= @toDate`;
       
       const countRequest = pool.request();
-      if (mucDoRuiRo) countRequest.input('mucDoRuiRo', sql.NVarChar(50), mucDoRuiRo);
+      if (riskLevel) countRequest.input('riskLevel', sql.NVarChar(20), riskLevel);
       if (fromDate) countRequest.input('fromDate', sql.Date, fromDate);
       if (toDate) countRequest.input('toDate', sql.Date, toDate);
       const countResult = await countRequest.query(countQuery);

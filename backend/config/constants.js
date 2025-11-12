@@ -85,13 +85,60 @@ const MESSAGES = {
 // Status Codes
 const STATUS = {
   CONTRACT: {
-    ACTIVE: 'active',
-    EXPIRED: 'expired',
-    CANCELLED: 'cancelled',
+    DRAFT: 'DRAFT',
+    PENDING_PAYMENT: 'PENDING_PAYMENT',
+    ACTIVE: 'ACTIVE',
+    EXPIRED: 'EXPIRED',
+    CANCELLED: 'CANCELLED',
+    TERMINATED: 'TERMINATED',
+    RENEWED: 'RENEWED',
+    // Legacy support
+    ACTIVE_VN: 'Hiệu lực',
+    EXPIRED_VN: 'Hết hạn',
+    CANCELLED_VN: 'Đã hủy',
   },
+  
   PAYMENT: {
     PAID: 'paid',
     UNPAID: 'unpaid',
+    PARTIAL: 'partial',
+  },
+  
+  TRANSACTION_TYPE: {
+    PAYMENT: 'Thanh toán',
+    REFUND: 'Hoàn tiền',
+    PARTIAL_PAYMENT: 'Thanh toán một phần',
+  },
+  
+  PAYMENT_METHOD: {
+    CASH: 'Tiền mặt',
+    TRANSFER: 'Chuyển khoản',
+    CARD: 'Thẻ',
+    ONLINE: 'Thanh toán online',
+  },
+  
+  ASSESSMENT: {
+    PENDING: 'Chờ thẩm định',
+    APPROVED: 'Đã duyệt',
+    REJECTED: 'Từ chối',
+  },
+  
+  RISK_LEVEL: {
+    LOW: 'LOW',
+    MEDIUM: 'MEDIUM',
+    HIGH: 'HIGH',
+    REJECT: 'REJECT',
+  },
+  
+  LICENSE_PLATE: {
+    ACTIVE: 'Đang sử dụng',
+    TRANSFERRED: 'Đã chuyển nhượng',
+    CANCELLED: 'Đã hủy',
+  },
+  
+  VEHICLE_OWNERSHIP: {
+    CURRENT: 'current',
+    PREVIOUS: 'previous',
   },
 };
 

@@ -113,6 +113,7 @@ app.use('/api/dashboard', require('./routes/dashboardRoutes'));
 app.use('/api/customers', require('./routes/customerRoutes'));
 app.use('/api/vehicles', require('./routes/vehicleRoutes'));
 app.use('/api/contracts', require('./routes/contractRoutes'));
+app.use('/api/payments', require('./routes/paymentRoutes'));
 // Vietnamese alias for contracts and new hoso routes
 app.use('/api/hopdong', require('./routes/contractRoutes'));
 app.use('/api/hoso', require('./routes/hosoRoutes'));

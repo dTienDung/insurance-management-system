@@ -40,6 +40,9 @@ router.get('/contracts/expiring', reportController.getExpiringContracts);
 // Hợp đồng mới trong kỳ
 router.get('/contracts/new', reportController.getNewContracts);
 
+// Danh sách chi tiết hợp đồng theo trạng thái (có phân trang)
+router.get('/contracts/detail', reportController.getContractsDetailByStatus);
+
 // ============================================
 // BÁO CÁO KHÁCH HÀNG
 // ============================================
@@ -52,6 +55,26 @@ router.get('/customers/new', reportController.getNewCustomers);
 
 // Top khách hàng theo doanh thu
 router.get('/customers/top', reportController.getTopCustomers);
+
+// Danh sách khách hàng có hợp đồng (có phân trang)
+router.get('/customers/contracts', reportController.getCustomersWithContracts);
+
+// ============================================
+// BÁO CÁO TÁI TỤC
+// ============================================
+
+// Báo cáo tái tục hợp đồng
+router.get('/renewal', reportController.getRenewalReport);
+
+// ============================================
+// BÁO CÁO THẨM ĐỊNH
+// ============================================
+
+// Thống kê thẩm định theo mức độ rủi ro
+router.get('/assessments/risk-level', reportController.getAssessmentsByRiskLevel);
+
+// Phân tích rủi ro tổng hợp
+router.get('/risk-analysis', reportController.getRiskAnalysis);
 
 // ============================================
 // BÁO CÁO BỒI THƯỜNG
