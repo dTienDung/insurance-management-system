@@ -30,21 +30,36 @@ const VehicleList = () => {
   const [selectedVehicleId, setSelectedVehicleId] = useState(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [detailVehicleId, setDetailVehicleId] = useState(null);
+  const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0 });
 
   useEffect(() => {
     fetchVehicles();
-  }, []);
+  }, [pagination.page, pagination.limit]);
 
   const fetchVehicles = async () => {
     try {
       setLoading(true);
-      const response = await vehicleService.getAll();
+      const response = await vehicleService.getAll({ 
+        page: pagination.page, 
+        limit: pagination.limit 
+      });
       setVehicles(response.data || response.list || []);
+      if (response.pagination) {
+        setPagination(prev => ({ ...prev, total: response.pagination.total }));
+      }
     } catch (error) {
       console.error('Error:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePageChange = (newPage) => {
+    setPagination(prev => ({ ...prev, page: newPage + 1 }));
+  };
+
+  const handlePageSizeChange = (newPageSize) => {
+    setPagination(prev => ({ ...prev, limit: newPageSize, page: 1 }));
   };
 
   const handleDelete = async (row) => {
@@ -170,7 +185,12 @@ const VehicleList = () => {
           data={vehicles}
           loading={loading}
           emptyMessage="Chưa có phương tiện nào"
-          pageSize={10}
+          pageSize={pagination.limit}
+          rowCount={pagination.total}
+          page={pagination.page - 1}
+          onPageChange={handlePageChange}
+          onPageSizeChange={handlePageSizeChange}
+          paginationMode="server"
           getRowId={(row) => row.MaXe}
         />
       </Paper>

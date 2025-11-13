@@ -37,6 +37,7 @@ const ContractList = () => {
   const [activeTab, setActiveTab] = useState(0); // 0: Quản lý, 1: Phát hành, 2: Tái tục
   const [contracts, setContracts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0 });
   const [stats, setStats] = useState({
     active: 0,
     pending: 0,
@@ -46,12 +47,15 @@ const ContractList = () => {
   useEffect(() => {
     fetchContracts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab]);
+  }, [activeTab, pagination.page, pagination.limit]);
 
   const fetchContracts = async () => {
     try {
       setLoading(true);
-      let params = {};
+      let params = {
+        page: pagination.page,
+        limit: pagination.limit
+      };
       
       if (activeTab === 1) {
         // Phát hành: hợp đồng mới tạo, chưa ký
@@ -64,6 +68,10 @@ const ContractList = () => {
       const response = await contractService.getAll(params);
       const data = response.data || response.list || [];
       setContracts(data);
+
+      if (response.pagination) {
+        setPagination(prev => ({ ...prev, total: response.pagination.total }));
+      }
 
       // Calculate stats
       setStats({
@@ -91,6 +99,14 @@ const ContractList = () => {
     } catch (error) {
       alert('Lỗi: ' + (error.message || error));
     }
+  };
+
+  const handlePageChange = (newPage) => {
+    setPagination(prev => ({ ...prev, page: newPage + 1 }));
+  };
+
+  const handlePageSizeChange = (newPageSize) => {
+    setPagination(prev => ({ ...prev, limit: newPageSize, page: 1 }));
   };
 
   const handleRenew = async (row) => {
@@ -357,7 +373,12 @@ const ContractList = () => {
           data={contracts}
           loading={loading}
           emptyMessage="Chưa có hợp đồng nào"
-          pageSize={10}
+          pageSize={pagination.limit}
+          rowCount={pagination.total}
+          page={pagination.page - 1}
+          onPageChange={handlePageChange}
+          onPageSizeChange={handlePageSizeChange}
+          paginationMode="server"
           getRowId={(row) => row.MaHD}
         />
       </Paper>

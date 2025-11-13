@@ -30,21 +30,36 @@ const CustomerList = () => {
   const [selectedCustomerId, setSelectedCustomerId] = useState(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [detailCustomerId, setDetailCustomerId] = useState(null);
+  const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0 });
 
   useEffect(() => {
     fetchCustomers();
-  }, []);
+  }, [pagination.page, pagination.limit]);
 
   const fetchCustomers = async () => {
     try {
       setLoading(true);
-      const response = await customerService.getAll();
+      const response = await customerService.getAll({ 
+        page: pagination.page, 
+        limit: pagination.limit 
+      });
       setCustomers(response.data || response.list || []);
+      if (response.pagination) {
+        setPagination(prev => ({ ...prev, total: response.pagination.total }));
+      }
     } catch (error) {
       console.error('Error:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePageChange = (newPage) => {
+    setPagination(prev => ({ ...prev, page: newPage + 1 })); // MUI uses 0-based index
+  };
+
+  const handlePageSizeChange = (newPageSize) => {
+    setPagination(prev => ({ ...prev, limit: newPageSize, page: 1 }));
   };
 
   const handleDelete = async (row) => {
@@ -167,7 +182,12 @@ const CustomerList = () => {
           data={customers}
           loading={loading}
           emptyMessage="Chưa có khách hàng nào"
-          pageSize={10}
+          pageSize={pagination.limit}
+          rowCount={pagination.total}
+          page={pagination.page - 1}
+          onPageChange={handlePageChange}
+          onPageSizeChange={handlePageSizeChange}
+          paginationMode="server"
           getRowId={(row) => row.MaKH}
         />
       </Paper>

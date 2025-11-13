@@ -10,6 +10,11 @@ const Table = ({
   loading, 
   emptyMessage = 'Không có dữ liệu',
   pageSize = 10,
+  rowCount,
+  page,
+  onPageChange,
+  onPageSizeChange,
+  paginationMode = 'client',
   getRowId = (row) => row.id || row.MaTD || row.MaHS || row.MaHD || row.MaKH || row.MaXe || row.MaBH,
   ...props 
 }) => {
@@ -71,11 +76,21 @@ const Table = ({
       columns={muiColumns}
       loading={loading}
       pageSizeOptions={[5, 10, 25, 50, 100]}
-      paginationMode="client"
-      initialState={{
-        pagination: {
-          paginationModel: { pageSize }
+      paginationMode={paginationMode}
+      rowCount={rowCount || data.length}
+      page={page}
+      pageSize={pageSize}
+      onPaginationModelChange={(model) => {
+        if (onPageChange && model.page !== page) {
+          onPageChange(model.page);
         }
+        if (onPageSizeChange && model.pageSize !== pageSize) {
+          onPageSizeChange(model.pageSize);
+        }
+      }}
+      paginationModel={{
+        page: page || 0,
+        pageSize: pageSize
       }}
       disableRowSelectionOnClick
       onRowClick={(params) => onRowClick && onRowClick(params.row)}
