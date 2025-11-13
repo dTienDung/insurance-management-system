@@ -39,10 +39,12 @@ const VehicleDetailModal = ({ open, onClose, vehicleId }) => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [vehicleData, setVehicleData] = useState(null);
+  const [historyData, setHistoryData] = useState([]);
 
   useEffect(() => {
     if (open && vehicleId) {
       fetchVehicleDetail();
+      fetchVehicleHistory();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vehicleId, open]);
@@ -60,16 +62,20 @@ const VehicleDetailModal = ({ open, onClose, vehicleId }) => {
     }
   };
 
+  const fetchVehicleHistory = async () => {
+    try {
+      const response = await vehicleService.getHistory(vehicleId);
+      setHistoryData(response.data || []);
+    } catch (error) {
+      console.error('Error fetching vehicle history:', error);
+      // Không báo lỗi, chỉ để mảng rỗng
+      setHistoryData([]);
+    }
+  };
+
   const handleClose = () => {
     onClose();
   };
-
-  // Mock history data - thay bằng data từ API
-  const mockHistory = [
-    { NgayGhiNhan: '2024-01-15', LoaiSuKien: 'Đăng ký', MoTa: 'Đăng ký xe lần đầu', TaiLieu: 'DK001.pdf' },
-    { NgayGhiNhan: '2024-06-20', LoaiSuKien: 'Bảo dưỡng', MoTa: 'Bảo dưỡng định kỳ 10,000 km', TaiLieu: null },
-    { NgayGhiNhan: '2024-09-10', LoaiSuKien: 'Đăng kiểm', MoTa: 'Đăng kiểm định kỳ', TaiLieu: 'DK002.pdf' }
-  ];
 
   if (loading) {
     return (
@@ -233,22 +239,22 @@ const VehicleDetailModal = ({ open, onClose, vehicleId }) => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {mockHistory.length === 0 ? (
+              {historyData.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={4} align="center" sx={{ py: 4, color: 'text.secondary' }}>
                     Chưa có lịch sử
                   </TableCell>
                 </TableRow>
               ) : (
-                mockHistory.map((item, index) => (
+                historyData.map((item, index) => (
                   <TableRow key={index}>
-                    <TableCell>{formatDate(item.NgayGhiNhan)}</TableCell>
+                    <TableCell>{formatDate(item.Ngay)}</TableCell>
                     <TableCell>
                       <Chip label={item.LoaiSuKien} size="small" variant="outlined" />
                     </TableCell>
                     <TableCell>{item.MoTa}</TableCell>
                     <TableCell align="center">
-                      {item.TaiLieu ? (
+                      {item.HasDoc ? (
                         <IconButton size="small" color="primary">
                           <DocumentIcon fontSize="small" />
                         </IconButton>

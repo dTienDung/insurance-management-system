@@ -61,12 +61,14 @@ class CustomerController {
       const { id } = req.params;
 
       const pool = await getConnection();
+      
+      // Lấy thông tin khách hàng
       const result = await pool.request()
         .input('maKH', sql.VarChar(10), id)
         .query(`
           SELECT kh.*, 
-                 (SELECT COUNT(*) FROM HopDong WHERE MaKH = kh.MaKH) as TongHopDong,
-                 (SELECT COUNT(*) FROM KhachHangXe WHERE MaKH = kh.MaKH) as TongXe
+                 (SELECT COUNT(*) FROM HopDong WHERE MaKH = kh.MaKH AND TrangThai IN (N'ACTIVE', N'PENDING')) as SoHDHieuLuc,
+                 (SELECT COUNT(DISTINCT kxe.MaXe) FROM KhachHangXe kxe WHERE kxe.MaKH = kh.MaKH AND kxe.NgayKetThucSoHuu IS NULL) as SoXeSoHuu
           FROM KhachHang kh
           WHERE kh.MaKH = @maKH
         `);
@@ -78,9 +80,56 @@ class CustomerController {
         });
       }
 
+      // Lấy danh sách xe của khách hàng (qua KhachHangXe)
+      const vehiclesResult = await pool.request()
+        .input('maKH', sql.VarChar(10), id)
+        .query(`
+          SELECT 
+            xe.MaXe, 
+            xe.HangXe, 
+            xe.LoaiXe, 
+            xe.NamSX,
+            xe.GiaTriXe,
+            bs.BienSo,
+            kxe.NgayBatDauSoHuu,
+            kxe.NgayKetThucSoHuu
+          FROM KhachHangXe kxe
+          INNER JOIN Xe xe ON kxe.MaXe = xe.MaXe
+          LEFT JOIN BienSoXe bs ON kxe.MaKH = bs.MaKH AND bs.TrangThai = N'Hoạt động'
+          WHERE kxe.MaKH = @maKH AND kxe.NgayKetThucSoHuu IS NULL
+          ORDER BY kxe.NgayBatDauSoHuu DESC
+        `);
+
+      // Lấy danh sách hợp đồng của khách hàng
+      const contractsResult = await pool.request()
+        .input('maKH', sql.VarChar(10), id)
+        .query(`
+          SELECT 
+            hd.MaHD,
+            hd.SoHD,
+            hd.NgayBatDau,
+            hd.NgayKetThuc,
+            hd.TrangThai,
+            hd.PhiBH,
+            xe.HangXe,
+            xe.LoaiXe,
+            bs.BienSo,
+            goi.TenGoi
+          FROM HopDong hd
+          INNER JOIN Xe xe ON hd.MaXe = xe.MaXe
+          LEFT JOIN BienSoXe bs ON hd.MaKH = bs.MaKH AND bs.TrangThai = N'Hoạt động'
+          LEFT JOIN GoiBaoHiem goi ON hd.MaGoi = goi.MaGoi
+          WHERE hd.MaKH = @maKH
+          ORDER BY hd.NgayBatDau DESC
+        `);
+
       res.json({
         success: true,
-        data: result.recordset[0]
+        data: {
+          ...result.recordset[0],
+          Vehicles: vehiclesResult.recordset,
+          Contracts: contractsResult.recordset
+        }
       });
     } catch (error) {
       next(error);

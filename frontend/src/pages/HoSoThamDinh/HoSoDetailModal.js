@@ -253,44 +253,43 @@ const HoSoDetailModal = ({ open, onClose, hosoId }) => {
                 <TableHead>
                   <TableRow sx={{ bgcolor: 'grey.100' }}>
                     <TableCell><strong>Tiêu chí</strong></TableCell>
-                    <TableCell align="center"><strong>Giá trị</strong></TableCell>
+                    <TableCell><strong>Mô tả</strong></TableCell>
                     <TableCell align="center"><strong>Điểm</strong></TableCell>
                     <TableCell><strong>Nhận xét</strong></TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {/* Mock data - sẽ thay bằng data thực từ API */}
-                  <TableRow>
-                    <TableCell>Tuổi xe</TableCell>
-                    <TableCell align="center">{hosoData.NamSanXuat ? new Date().getFullYear() - hosoData.NamSanXuat : 'N/A'} năm</TableCell>
-                    <TableCell align="center">
-                      <Chip label="10" size="small" color="success" />
-                    </TableCell>
-                    <TableCell>Xe còn mới</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Giá trị xe</TableCell>
-                    <TableCell align="center">{hosoData.GiaTriXe ? formatCurrency(hosoData.GiaTriXe) : 'N/A'}</TableCell>
-                    <TableCell align="center">
-                      <Chip label="15" size="small" color="warning" />
-                    </TableCell>
-                    <TableCell>Giá trị trung bình</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Lịch sử tai nạn</TableCell>
-                    <TableCell align="center">Không</TableCell>
-                    <TableCell align="center">
-                      <Chip label="0" size="small" color="success" />
-                    </TableCell>
-                    <TableCell>Chưa có tai nạn</TableCell>
-                  </TableRow>
-                  <TableRow sx={{ bgcolor: 'primary.lighter' }}>
-                    <TableCell colSpan={2}><strong>Tổng điểm</strong></TableCell>
-                    <TableCell align="center">
-                      <Chip label={hosoData.RiskScore || 0} size="small" color="primary" />
-                    </TableCell>
-                    <TableCell><strong>{hosoData.RiskLevel}</strong></TableCell>
-                  </TableRow>
+                  {hosoData.ChiTietDiem && hosoData.ChiTietDiem.length > 0 ? (
+                    <>
+                      {hosoData.ChiTietDiem.map((item, index) => (
+                        <TableRow key={index}>
+                          <TableCell>{item.TenTieuChi || 'N/A'}</TableCell>
+                          <TableCell>{item.MoTaTieuChi || 'N/A'}</TableCell>
+                          <TableCell align="center">
+                            <Chip 
+                              label={item.Diem || 0} 
+                              size="small" 
+                              color={item.Diem > 50 ? 'error' : item.Diem > 30 ? 'warning' : 'success'} 
+                            />
+                          </TableCell>
+                          <TableCell>{item.GhiChu || '-'}</TableCell>
+                        </TableRow>
+                      ))}
+                      <TableRow sx={{ bgcolor: 'primary.lighter' }}>
+                        <TableCell colSpan={2}><strong>Tổng điểm</strong></TableCell>
+                        <TableCell align="center">
+                          <Chip label={hosoData.RiskScore || 0} size="small" color="primary" />
+                        </TableCell>
+                        <TableCell><strong>{hosoData.RiskLevel}</strong></TableCell>
+                      </TableRow>
+                    </>
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={4} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                        Chưa có dữ liệu chấm điểm chi tiết
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </TableContainer>

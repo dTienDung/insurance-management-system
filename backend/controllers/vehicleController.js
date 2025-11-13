@@ -314,7 +314,17 @@ class VehicleController {
       const result = await pool.request()
         .input('maXe', sql.VarChar(10), id)
         .query(`
-          SELECT * FROM LS_TaiNan
+          SELECT 
+            MaLS,
+            MaXe,
+            SuKien as LoaiSuKien,
+            NgayXayRa as Ngay,
+            MucDoThietHai as MoTa,
+            CASE 
+              WHEN ChiPhiUocTinh IS NOT NULL THEN 1
+              ELSE 0
+            END as HasDoc
+          FROM LS_TaiNan
           WHERE MaXe = @maXe
           ORDER BY NgayXayRa DESC
         `);

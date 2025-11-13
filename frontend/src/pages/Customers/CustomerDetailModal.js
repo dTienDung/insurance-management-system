@@ -225,7 +225,7 @@ const CustomerDetailModal = ({ open, onClose, customerId }) => {
               </Typography>
             </Stack>
 
-            {(!customerData.vehicles || customerData.vehicles.length === 0) ? (
+            {(!customerData.Vehicles || customerData.Vehicles.length === 0) ? (
               <Paper sx={{ p: 4, textAlign: 'center' }}>
                 <CarIcon sx={{ fontSize: 48, color: 'grey.400', mb: 2 }} />
                 <Typography color="text.secondary">Chưa có xe nào</Typography>
@@ -243,7 +243,7 @@ const CustomerDetailModal = ({ open, onClose, customerId }) => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {(customerData.vehicles || []).map((vehicle, index) => (
+                    {(customerData.Vehicles || []).map((vehicle, index) => (
                       <TableRow key={index}>
                         <TableCell>
                           <Chip label={vehicle.BienSo || 'N/A'} color="primary" size="small" />
@@ -281,7 +281,7 @@ const CustomerDetailModal = ({ open, onClose, customerId }) => {
               </Typography>
             </Stack>
 
-            {(!customerData.contracts || customerData.contracts.length === 0) ? (
+            {(!customerData.Contracts || customerData.Contracts.length === 0) ? (
               <Paper sx={{ p: 4, textAlign: 'center' }}>
                 <ContractIcon sx={{ fontSize: 48, color: 'grey.400', mb: 2 }} />
                 <Typography color="text.secondary">Chưa có hợp đồng nào</Typography>
@@ -300,16 +300,16 @@ const CustomerDetailModal = ({ open, onClose, customerId }) => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {(customerData.contracts || []).map((contract, index) => (
+                    {(customerData.Contracts || []).map((contract, index) => (
                       <TableRow key={index}>
                         <TableCell>{contract.SoHD || contract.MaHD}</TableCell>
                         <TableCell>{contract.TenGoi || 'N/A'}</TableCell>
-                        <TableCell>{formatDate(contract.NgayKy)}</TableCell>
-                        <TableCell>{formatCurrency(contract.PhiBaoHiem)}</TableCell>
+                        <TableCell>{formatDate(contract.NgayBatDau)}</TableCell>
+                        <TableCell>{formatCurrency(contract.PhiBH)}</TableCell>
                         <TableCell>
                           <Chip
                             label={contract.TrangThai || 'N/A'}
-                            color={contract.TrangThai === 'Hiệu lực' ? 'success' : 'default'}
+                            color={contract.TrangThai === 'ACTIVE' ? 'success' : 'default'}
                             size="small"
                           />
                         </TableCell>
