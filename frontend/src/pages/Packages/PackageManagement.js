@@ -24,6 +24,7 @@ import {
 import Table from '../../components/common/Table';
 import Button from '../../components/common/Button';
 import packageService from '../../services/packageService';
+import { formatCurrency } from '../../utils/formatters';
 
 const PackageManagement = () => {
   const [packages, setPackages] = useState([]);
@@ -126,15 +127,9 @@ const PackageManagement = () => {
     { field: 'MaGoi', headerName: 'Mã gói', width: 100 },
     { field: 'TenGoi', headerName: 'Tên gói', width: 200 },
     { field: 'MoTa', headerName: 'Mô tả', width: 250 },
-    { field: 'PhiCoBan', headerName: 'Phí cơ bản', width: 130, renderCell: (row) =>
-      row.PhiCoBan ? new Intl.NumberFormat('vi-VN').format(row.PhiCoBan) + ' VNĐ' : '-'
-    },
-    { field: 'BaoHiemTNDS', headerName: 'BH TNDS', width: 130, renderCell: (row) =>
-      row.BaoHiemTNDS ? new Intl.NumberFormat('vi-VN').format(row.BaoHiemTNDS) + ' VNĐ' : '-'
-    },
-    { field: 'BaoHiemVatChat', headerName: 'BH Vật chất', width: 140, renderCell: (row) =>
-      row.BaoHiemVatChat ? new Intl.NumberFormat('vi-VN').format(row.BaoHiemVatChat) + ' VNĐ' : '-'
-    },
+    { field: 'PhiCoBan', headerName: 'Phí cơ bản', width: 130, renderCell: (row) => formatCurrency(row.PhiCoBan) },
+    { field: 'BaoHiemTNDS', headerName: 'BH TNDS', width: 130, renderCell: (row) => formatCurrency(row.BaoHiemTNDS) },
+    { field: 'BaoHiemVatChat', headerName: 'BH Vật chất', width: 140, renderCell: (row) => formatCurrency(row.BaoHiemVatChat) },
     { field: 'HeSoPhi', headerName: 'Hệ số phí', width: 100 },
     { field: 'TrangThai', headerName: 'Trạng thái', width: 120, renderCell: (row) => (
       <Chip 

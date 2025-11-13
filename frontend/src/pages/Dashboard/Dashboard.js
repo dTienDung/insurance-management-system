@@ -109,13 +109,9 @@ const Dashboard = () => {
     }
   };
 
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat('vi-VN').format(value) + ' VNĐ';
-  };
-
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
-  const StatCard = ({ title, value, icon: Icon, color, growth, subtitle }) => (
+  const StatCard = ({ title, value, icon: Icon, color, growth, subtitle, isCurrency = false }) => (
     <Card sx={{ height: '100%', position: 'relative', overflow: 'visible' }}>
       <CardContent>
         <Stack spacing={2}>
@@ -125,7 +121,7 @@ const Dashboard = () => {
                 {title}
               </Typography>
               <Typography variant="h4" fontWeight="bold" color={color}>
-                {value}
+                {isCurrency ? formatCurrency(value) : formatNumber(value)}
               </Typography>
               {subtitle && (
                 <Typography variant="caption" color="text.secondary">
@@ -220,10 +216,11 @@ const Dashboard = () => {
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
             title="Doanh thu tháng"
-            value={formatCurrency(stats.monthlyRevenue || 0)}
+            value={stats.monthlyRevenue || 0}
             icon={MoneyIcon}
             color="warning.main"
             growth={stats.monthlyGrowth}
+            isCurrency={true}
           />
         </Grid>
       </Grid>
@@ -278,7 +275,14 @@ const Dashboard = () => {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
                 <YAxis />
-                <Tooltip formatter={(value) => [value.toFixed(1) + 'M VNĐ', 'Doanh thu']} />
+                <Tooltip 
+                  formatter={(value, name) => {
+                    if (name === 'Doanh thu') {
+                      return [value.toFixed(1) + 'M VNĐ', name];
+                    }
+                    return [formatNumber(value), name];
+                  }} 
+                />
                 <Legend />
                 <Bar dataKey="doanhThu" fill="#8884d8" name="Doanh thu" />
               </BarChart>
