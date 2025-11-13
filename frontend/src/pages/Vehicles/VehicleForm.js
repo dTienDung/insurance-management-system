@@ -35,7 +35,8 @@ const VehicleForm = () => {
     engine_number: '',
     chassis_number: '',
     color: '',
-    notes: ''
+    notes: '',
+    customer_id: ''
   });
 
   const [loading, setLoading] = useState(false);
@@ -69,6 +70,7 @@ const VehicleForm = () => {
     if (id) {
       fetchVehicle();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const fetchVehicle = async () => {
@@ -190,34 +192,6 @@ const VehicleForm = () => {
         <form onSubmit={handleSubmit}>
           {/* Customer Selection */}
           <Box sx={{ mb: 4 }}>
-            <TextField
-              select
-              fullWidth
-              label="Khách hàng"
-              name="customer_id"
-              value={formData.customer_id}
-              onChange={handleChange}
-              disabled={isEditMode}
-              required
-            >
-              <MenuItem value="">-- Chọn khách hàng --</MenuItem>
-              {customers.map(customer => (
-                <MenuItem key={customer.customer_id} value={customer.customer_id}>
-                  {customer.full_name} - {customer.phone}
-                </MenuItem>
-              ))}
-            </TextField>
-            
-            {selectedCustomer && (
-              <Paper variant="outlined" sx={{ p: 2, mt: 2, bgcolor: 'primary.lighter' }}>
-                <Typography variant="body2">
-                  <strong>CCCD/CMND:</strong> {selectedCustomer.id_number}
-                </Typography>
-                <Typography variant="body2">
-                  <strong>Địa chỉ:</strong> {selectedCustomer.address}
-                </Typography>
-              </Paper>
-            )}
           </Box>
 
           <Divider sx={{ my: 3 }} />

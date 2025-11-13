@@ -13,8 +13,7 @@ import {
   Tab,
   Grid,
   Card,
-  CardContent,
-  Button as MuiButton
+  CardContent
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -22,7 +21,6 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Description as DescriptionIcon,
-  Payment as PaymentIcon,
   CheckCircle as CheckCircleIcon,
   Print as PrintIcon,
   Autorenew as AutorenewIcon,
@@ -47,6 +45,7 @@ const ContractList = () => {
 
   useEffect(() => {
     fetchContracts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
   const fetchContracts = async () => {

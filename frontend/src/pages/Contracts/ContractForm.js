@@ -9,9 +9,7 @@ import {
   Stack,
   Alert,
   Box,
-  MenuItem,
   Divider,
-  Autocomplete,
   CircularProgress,
   InputAdornment
 } from '@mui/material';
@@ -20,7 +18,6 @@ import {
   Cancel as CancelIcon, 
   Info as InfoIcon,
   Person as PersonIcon,
-  DirectionsCar as CarIcon,
   CalendarToday as CalendarIcon,
   MonetizationOn as MoneyIcon
 } from '@mui/icons-material';
@@ -73,6 +70,7 @@ const ContractForm = () => {
     if (id) {
       fetchContract();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   // Filter vehicles by selected customer
@@ -167,20 +165,8 @@ const ContractForm = () => {
     if (error) setError(null);
   };
 
-  const handleDateChange = (name, value) => {
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
   const calculateEndDate = (startDate) => {
     return dayjs(startDate).add(1, 'year');
-  };
-
-  const handleNgayKyChange = (value) => {
-    setFormData(prev => ({
-      ...prev,
-      NgayKy: value,
-      NgayHetHan: calculateEndDate(value)
-    }));
   };
 
   const validateForm = () => {

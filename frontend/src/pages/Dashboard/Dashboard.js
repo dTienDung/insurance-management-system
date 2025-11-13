@@ -8,7 +8,6 @@ import {
   CardContent,
   Paper,
   Stack,
-  Chip,
   LinearProgress
 } from '@mui/material';
 import {
@@ -37,7 +36,7 @@ import {
   ResponsiveContainer
 } from 'recharts';
 import reportService from '../../services/reportService';
-import { formatCurrency, formatNumber, formatShortNumber } from '../../utils/formatters';
+import { formatCurrency, formatNumber } from '../../utils/formatters';
 
 const Dashboard = () => {
   const [loading, setLoading] = useState(true);

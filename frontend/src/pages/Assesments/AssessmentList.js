@@ -187,6 +187,7 @@ const AssessmentList = () => {
               data={filteredData}
               loading={loading}
               emptyMessage="Chưa có thẩm định nào"
+              getRowId={(row) => row.MaTD}
             />
           </Box>
         )}

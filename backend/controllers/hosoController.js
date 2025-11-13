@@ -13,10 +13,18 @@ class HoSoController {
       .input('limit', sql.Int, parseInt(limit));
 
     const result = await request.query(`
-      SELECT hs.*, kh.HoTen AS TenKhach, xe.BienSo
+      SELECT hs.*, 
+             kh.HoTen AS TenKhach, 
+             xe.HangXe, 
+             xe.LoaiXe,
+             bs.BienSo,
+             nv.HoTen AS NhanVienThamDinh
       FROM HoSoThamDinh hs
       JOIN KhachHang kh ON hs.MaKH = kh.MaKH
       JOIN Xe xe ON hs.MaXe = xe.MaXe
+      LEFT JOIN KhachHangXe kxe ON xe.MaXe = kxe.MaXe AND kxe.NgayKetThucSoHuu IS NULL
+      LEFT JOIN BienSoXe bs ON kxe.MaKH = bs.MaKH AND bs.TrangThai = N'Hoạt động'
+      LEFT JOIN NhanVien nv ON hs.MaNV_ThamDinh = nv.MaNV
       ORDER BY hs.NgayLap DESC
       OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY
     `);

@@ -5,10 +5,13 @@ const reportService = {
   // BÁO CÁO DOANH THU
   // ============================================
 
-  getMonthlyRevenue: async (year) => {
+  getMonthlyRevenue: async (params) => {
     try {
+      // Extract year value if params is an object with year property
+      const year = typeof params === 'object' ? params.year : params;
+      
       const response = await api.get('/reports/revenue/monthly', {
-        params: { year }
+        params: { year: parseInt(year) || new Date().getFullYear() }
       });
       return response.data;
     } catch (error) {

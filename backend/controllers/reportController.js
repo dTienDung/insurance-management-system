@@ -18,7 +18,13 @@ class ReportController {
 
   async getMonthlyRevenue(req, res) {
     try {
-      const { year = new Date().getFullYear() } = req.query;
+      let { year } = req.query;
+      
+      // Parse year properly - handle both {year: 2025} and year=2025
+      if (typeof year === 'object' && year.year) {
+        year = year.year;
+      }
+      year = parseInt(year) || new Date().getFullYear();
       
       const pool = await getConnection();
       const result = await pool.request()
@@ -275,12 +281,15 @@ class ReportController {
         .input('month', sql.Int, month)
         .input('year', sql.Int, year)
         .query(`
-          SELECT 
-            *
-          FROM KhachHang
-          WHERE MONTH(NgayTao) = @month 
-            AND YEAR(NgayTao) = @year
-          ORDER BY NgayTao DESC
+          SELECT DISTINCT
+            kh.*,
+            MIN(hd.NgayKy) as NgayHopDongDauTien
+          FROM KhachHang kh
+          INNER JOIN HopDong hd ON kh.MaKH = hd.MaKH
+          WHERE MONTH(hd.NgayKy) = @month 
+            AND YEAR(hd.NgayKy) = @year
+          GROUP BY kh.MaKH, kh.HoTen, kh.CMND_CCCD, kh.NgaySinh, kh.DiaChi, kh.SDT, kh.Email
+          ORDER BY NgayHopDongDauTien DESC
         `);
 
       res.json({
@@ -1133,11 +1142,11 @@ class ReportController {
           UNION ALL
           SELECT 
             N'Khách hàng mới' as ChiTieu,
-            COUNT(*) as KetQua,
+            COUNT(DISTINCT MaKH) as KetQua,
             500 as MucTieu,
-            CAST(COUNT(*) * 100.0 / 500 AS DECIMAL(5,2)) as Dat
-          FROM KhachHang
-          WHERE YEAR(NgayTao) = @year
+            CAST(COUNT(DISTINCT MaKH) * 100.0 / 500 AS DECIMAL(5,2)) as Dat
+          FROM HopDong
+          WHERE YEAR(NgayKy) = @year
           UNION ALL
           SELECT 
             N'Tỷ lệ tái tục (%)' as ChiTieu,

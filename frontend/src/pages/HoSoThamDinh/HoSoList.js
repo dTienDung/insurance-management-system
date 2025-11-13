@@ -13,17 +13,19 @@ import {
 import {
   Add as AddIcon,
   Visibility as VisibilityIcon,
-  Edit as EditIcon,
   Delete as DeleteIcon
 } from '@mui/icons-material';
 import Table from '../../components/common/Table';
 import Button from '../../components/common/Button';
 import hosoService from '../../services/hosoService';
 
+// Force rebuild - timestamp: 2025-11-13T07:55:00
 const HoSoList = () => {
+  console.log('[HoSoList] Component loaded at:', new Date().toISOString());
   const navigate = useNavigate();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
+  // eslint-disable-next-line no-unused-vars
   const [filter, setFilter] = useState('all'); // placeholder for future status filter
   const [page] = useState(1);
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0 });
@@ -37,7 +39,14 @@ const HoSoList = () => {
     try {
       setLoading(true);
       const { list, pagination: pg } = await hosoService.getAll({ status: filter, page });
-      setData(list);
+      console.log('[HoSoList] Raw list from API:', list);
+      // Transform data to add id field
+      const transformedList = list.map(item => ({
+        ...item,
+        id: item.MaHS
+      }));
+      console.log('[HoSoList] Transformed list:', transformedList);
+      setData(transformedList);
       setPagination(pg);
     } catch (error) {
       console.error('[HoSoList] Fetch error:', error);
@@ -138,7 +147,7 @@ const HoSoList = () => {
           pageSize={pagination.limit || 10}
           getRowId={(row) => row.MaHS}
         />
-      </Box>
+      </Paper>
     </Container>
   );
 };

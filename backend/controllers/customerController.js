@@ -18,12 +18,12 @@ class CustomerController {
       const request = pool.request();
 
       if (search) {
-        query += ` AND (kh.HoTen LIKE @search OR kh.CCCD LIKE @search OR kh.SDT LIKE @search)`;
+        query += ` AND (kh.HoTen LIKE @search OR kh.CMND_CCCD LIKE @search OR kh.SDT LIKE @search)`;
         request.input('search', sql.NVarChar, `%${search}%`);
       }
 
       query += ` 
-        GROUP BY kh.MaKH, kh.HoTen, kh.CCCD, kh.NgaySinh, kh.DiaChi, kh.SDT, kh.Email
+        GROUP BY kh.MaKH, kh.HoTen, kh.CMND_CCCD, kh.NgaySinh, kh.DiaChi, kh.SDT, kh.Email
         ORDER BY kh.MaKH DESC
         OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY
       `;
@@ -34,7 +34,7 @@ class CustomerController {
       const result = await request.query(query);
 
       const countQuery = `SELECT COUNT(*) as total FROM KhachHang WHERE 1=1
-        ${search ? `AND (HoTen LIKE @search OR CCCD LIKE @search OR SDT LIKE @search)` : ''}`;
+        ${search ? `AND (HoTen LIKE @search OR CMND_CCCD LIKE @search OR SDT LIKE @search)` : ''}`;
       
       const countRequest = pool.request();
       if (search) {

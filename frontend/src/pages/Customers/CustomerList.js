@@ -67,17 +67,38 @@ const CustomerList = () => {
       renderCell: (row) => (
         <Stack direction="row" spacing={0.5}>
           <Tooltip title="Xem chi tiết">
-            <IconButton size="small" color="primary" onClick={() => navigate(`/customers/${row.MaKH}`)}>
+            <IconButton 
+              size="small" 
+              color="primary" 
+              onClick={() => row.MaKH && navigate(`/customers/${row.MaKH}`)}
+              disabled={!row.MaKH}
+            >
               <VisibilityIcon fontSize="small" />
             </IconButton>
           </Tooltip>
           <Tooltip title="Chỉnh sửa">
-            <IconButton size="small" color="warning" onClick={(e) => { e.stopPropagation(); navigate(`/customers/edit/${row.MaKH}`); }}>
+            <IconButton 
+              size="small" 
+              color="warning" 
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                if (row.MaKH) navigate(`/customers/edit/${row.MaKH}`); 
+              }}
+              disabled={!row.MaKH}
+            >
               <EditIcon fontSize="small" />
             </IconButton>
           </Tooltip>
           <Tooltip title="Xóa">
-            <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); handleDelete(row); }}>
+            <IconButton 
+              size="small" 
+              color="error" 
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                if (row.MaKH) handleDelete(row); 
+              }}
+              disabled={!row.MaKH}
+            >
               <DeleteIcon fontSize="small" />
             </IconButton>
           </Tooltip>

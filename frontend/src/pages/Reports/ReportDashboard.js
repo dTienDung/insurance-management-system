@@ -32,26 +32,17 @@ const ReportDashboard = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [stats, setStats] = useState(null);
 
   // Danh sách năm (5 năm gần nhất)
   const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
 
   useEffect(() => {
     loadDashboardStats();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadDashboardStats = async () => {
-    try {
-      setLoading(true);
-      const response = await reportService.getDashboardStats();
-      setStats(response.data || {});
-    } catch (err) {
-      console.error('Lỗi tải thống kê:', err);
-      setError('Không thể tải dữ liệu thống kê');
-    } finally {
-      setLoading(false);
-    }
+    // Stats will be loaded from backend when needed
   };
 
   const handleExportPDF = async (reportType) => {

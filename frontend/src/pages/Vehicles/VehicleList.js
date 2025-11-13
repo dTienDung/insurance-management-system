@@ -19,7 +19,6 @@ import {
 import vehicleService from '../../services/vehicleService';
 import Button from '../../components/common/Button';
 import Table from '../../components/common/Table';
-import { formatNumber } from '../../utils/formatters';
 
 const VehicleList = () => {
   const navigate = useNavigate();
@@ -71,17 +70,38 @@ const VehicleList = () => {
       renderCell: (row) => (
         <Stack direction="row" spacing={0.5}>
           <Tooltip title="Xem chi tiết">
-            <IconButton size="small" color="primary" onClick={() => navigate(`/vehicles/${row.MaXe}`)}>
+            <IconButton 
+              size="small" 
+              color="primary" 
+              onClick={() => row.MaXe && navigate(`/vehicles/${row.MaXe}`)}
+              disabled={!row.MaXe}
+            >
               <VisibilityIcon fontSize="small" />
             </IconButton>
           </Tooltip>
           <Tooltip title="Chỉnh sửa">
-            <IconButton size="small" color="warning" onClick={(e) => { e.stopPropagation(); navigate(`/vehicles/edit/${row.MaXe}`); }}>
+            <IconButton 
+              size="small" 
+              color="warning" 
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                if (row.MaXe) navigate(`/vehicles/edit/${row.MaXe}`); 
+              }}
+              disabled={!row.MaXe}
+            >
               <EditIcon fontSize="small" />
             </IconButton>
           </Tooltip>
           <Tooltip title="Xóa">
-            <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); handleDelete(row); }}>
+            <IconButton 
+              size="small" 
+              color="error" 
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                if (row.MaXe) handleDelete(row); 
+              }}
+              disabled={!row.MaXe}
+            >
               <DeleteIcon fontSize="small" />
             </IconButton>
           </Tooltip>

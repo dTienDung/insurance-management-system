@@ -15,7 +15,7 @@ import {
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../hooks/useTranslation';
-import { COMPANY, APP, MESSAGES } from '../../config';
+import { COMPANY, APP } from '../../config';
 import './MainLayout.css';
 
 const { Header, Sider, Content } = Layout;

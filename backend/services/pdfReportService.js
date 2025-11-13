@@ -9,11 +9,55 @@ const path = require('path');
 
 class PDFReportService {
   constructor() {
-    // Font tiếng Việt
+    // Font tiếng Việt - sử dụng font có sẵn hỗ trợ Unicode
     this.fontPath = path.join(__dirname, '../fonts');
     this.COMPANY_NAME = 'TỔNG CÔNG TY BẢO HIỂM PETROLIMEX';
     this.COMPANY_SHORT = 'PJICO';
     this.ADDRESS = 'Hà Nội, Việt Nam';
+    
+    // Kiểm tra xem có font Roboto không
+    this.hasCustomFont = false;
+    try {
+      const robotoPath = path.join(this.fontPath, 'Roboto-Regular.ttf');
+      if (fs.existsSync(robotoPath)) {
+        this.hasCustomFont = true;
+        this.regularFont = robotoPath;
+        this.boldFont = path.join(this.fontPath, 'Roboto-Bold.ttf');
+        this.italicFont = path.join(this.fontPath, 'Roboto-Italic.ttf');
+      }
+    } catch (err) {
+      console.log('Custom fonts not found, using default');
+    }
+  }
+
+  /**
+   * Set font cho document
+   */
+  setFont(doc, style = 'regular') {
+    if (this.hasCustomFont) {
+      switch(style) {
+        case 'bold':
+          doc.font(this.boldFont);
+          break;
+        case 'italic':
+          doc.font(this.italicFont);
+          break;
+        default:
+          doc.font(this.regularFont);
+      }
+    } else {
+      // Fallback to Helvetica
+      switch(style) {
+        case 'bold':
+          doc.font('Helvetica-Bold');
+          break;
+        case 'italic':
+          doc.font('Helvetica-Oblique');
+          break;
+        default:
+          doc.font('Helvetica');
+      }
+    }
   }
 
   /**
@@ -23,26 +67,26 @@ class PDFReportService {
     const pageWidth = doc.page.width;
     
     // Logo + Thông tin công ty (bên trái)
-    doc.fontSize(11)
-       .font('Helvetica-Bold')
-       .text(this.COMPANY_SHORT, 50, 50);
+    doc.fontSize(11);
+    this.setFont(doc, 'bold');
+    doc.text(this.COMPANY_SHORT, 50, 50);
     
-    doc.fontSize(9)
-       .font('Helvetica')
-       .text(this.COMPANY_NAME, 50, 65);
+    doc.fontSize(9);
+    this.setFont(doc, 'regular');
+    doc.text(this.COMPANY_NAME, 50, 65);
 
     // Quốc hiệu + Tiêu ngữ (bên phải)
     const rightX = pageWidth - 250;
-    doc.fontSize(11)
-       .font('Helvetica-Bold')
-       .text('CỘNG HOÀ XÃ HỘI CHỦ NGHĨA VIỆT NAM', rightX, 50, {
+    doc.fontSize(11);
+    this.setFont(doc, 'bold');
+    doc.text('CỘNG HOÀ XÃ HỘI CHỦ NGHĨA VIỆT NAM', rightX, 50, {
          align: 'center',
          width: 200
        });
     
-    doc.fontSize(10)
-       .font('Helvetica-BoldOblique')
-       .text('Độc lập - Tự do - Hạnh phúc', rightX, 65, {
+    doc.fontSize(10);
+    this.setFont(doc, 'italic');
+    doc.text('Độc lập - Tự do - Hạnh phúc', rightX, 65, {
          align: 'center',
          width: 200
        });
@@ -57,17 +101,17 @@ class PDFReportService {
     // Địa điểm và ngày tháng
     const today = new Date();
     const dateStr = `${this.ADDRESS}, ngày ${today.getDate()} tháng ${today.getMonth() + 1} năm ${today.getFullYear()}`;
-    doc.fontSize(10)
-       .font('Helvetica-Oblique')
-       .text(dateStr, rightX, 95, {
+    doc.fontSize(10);
+    this.setFont(doc, 'italic');
+    doc.text(dateStr, rightX, 95, {
          align: 'center',
          width: 200
        });
 
     // Tiêu đề báo cáo
-    doc.fontSize(16)
-       .font('Helvetica-Bold')
-       .text(reportTitle.toUpperCase(), 50, 130, {
+    doc.fontSize(16);
+    this.setFont(doc, 'bold');
+    doc.text(reportTitle.toUpperCase(), 50, 130, {
          align: 'center',
          width: pageWidth - 100
        });
@@ -81,7 +125,8 @@ class PDFReportService {
   createReporterInfo(doc, yPos, reporterInfo) {
     const { hoTen = '', chucVu = '', boPhan = '', tuNgay = '', denNgay = '', kyBaoCao = '', phamVi = '' } = reporterInfo;
 
-    doc.fontSize(10).font('Helvetica');
+    doc.fontSize(10);
+    this.setFont(doc, 'regular');
 
     // Tạo bảng thông tin
     const table = [
@@ -106,14 +151,14 @@ class PDFReportService {
       doc.rect(startX + col1Width + col2Width + col3Width, currentY, col4Width, cellHeight).stroke();
 
       // Nội dung
-      doc.font('Helvetica-Bold')
-         .text(row[0], startX + 5, currentY + 8, { width: col1Width - 10 });
-      doc.font('Helvetica')
-         .text(row[1], startX + col1Width + 5, currentY + 8, { width: col2Width - 10 });
-      doc.font('Helvetica-Bold')
-         .text(row[2], startX + col1Width + col2Width + 5, currentY + 8, { width: col3Width - 10 });
-      doc.font('Helvetica')
-         .text(row[3], startX + col1Width + col2Width + col3Width + 5, currentY + 8, { width: col4Width - 10 });
+      this.setFont(doc, 'bold');
+      doc.text(row[0], startX + 5, currentY + 8, { width: col1Width - 10 });
+      this.setFont(doc, 'regular');
+      doc.text(row[1], startX + col1Width + 5, currentY + 8, { width: col2Width - 10 });
+      this.setFont(doc, 'bold');
+      doc.text(row[2], startX + col1Width + col2Width + 5, currentY + 8, { width: col3Width - 10 });
+      this.setFont(doc, 'regular');
+      doc.text(row[3], startX + col1Width + col2Width + col3Width + 5, currentY + 8, { width: col4Width - 10 });
 
       currentY += cellHeight;
     });

@@ -20,6 +20,8 @@ import ContractForm from './pages/Contracts/ContractForm';
 import ContractDetail from './pages/Contracts/ContractDetail';
 import AssessmentList from './pages/Assesments/AssessmentList';
 import AssessmentForm from './pages/Assesments/AssessmentForm';
+import AssessmentDetail from './pages/Assesments/AssessmentDetail';
+import HoSoList from './pages/HoSoThamDinh/HoSoList';
 import ReportDashboard from './pages/Reports/ReportDashboard';
 import { pjicoTheme } from './theme';
 import './App.css';
@@ -80,7 +82,11 @@ function AppRoutes() {
                 <Route path="/assessments" element={<AssessmentList />} />
                 <Route path="/assessments/new" element={<AssessmentForm />} />
                 <Route path="/assessments/edit/:id" element={<AssessmentForm />} />
-                <Route path="/assessments/:id" element={<AssessmentForm />} />
+                <Route path="/assessments/:id" element={<AssessmentDetail />} />
+
+                {/* HoSo Routes */}
+                <Route path="/hoso" element={<HoSoList />} />
+                <Route path="/hoso/:id" element={<AssessmentDetail />} />
 
                 {/* Reports */}
                 <Route path="/reports" element={<ReportDashboard />} />

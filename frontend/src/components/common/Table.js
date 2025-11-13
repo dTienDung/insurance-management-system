@@ -10,6 +10,7 @@ const Table = ({
   loading, 
   emptyMessage = 'Không có dữ liệu',
   pageSize = 10,
+  getRowId,
   ...props 
 }) => {
   // Convert columns format if needed
@@ -70,6 +71,7 @@ const Table = ({
       columns={muiColumns}
       loading={loading}
       pageSizeOptions={[5, 10, 25, 50, 100]}
+      paginationMode="client"
       initialState={{
         pagination: {
           paginationModel: { pageSize }
@@ -98,6 +100,7 @@ const Table = ({
         },
       }}
       {...props}
+      getRowId={getRowId}
     />
   );
 };
