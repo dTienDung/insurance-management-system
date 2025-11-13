@@ -15,18 +15,50 @@ class PDFReportService {
     this.COMPANY_SHORT = 'PJICO';
     this.ADDRESS = 'Hà Nội, Việt Nam';
     
-    // Kiểm tra xem có font Roboto không
+    // Thử tìm các font hỗ trợ tiếng Việt (ưu tiên: Noto Sans > Roboto > DejaVu)
     this.hasCustomFont = false;
+    this.regularFont = null;
+    this.boldFont = null;
+    this.italicFont = null;
+
     try {
-      const robotoPath = path.join(this.fontPath, 'Roboto-Regular.ttf');
-      if (fs.existsSync(robotoPath)) {
+      // Thử Noto Sans trước (font tốt nhất cho tiếng Việt)
+      const notoPath = path.join(this.fontPath, 'NotoSans-Regular.ttf');
+      if (fs.existsSync(notoPath)) {
         this.hasCustomFont = true;
-        this.regularFont = robotoPath;
-        this.boldFont = path.join(this.fontPath, 'Roboto-Bold.ttf');
-        this.italicFont = path.join(this.fontPath, 'Roboto-Italic.ttf');
+        this.regularFont = notoPath;
+        this.boldFont = path.join(this.fontPath, 'NotoSans-Bold.ttf');
+        this.italicFont = path.join(this.fontPath, 'NotoSans-Italic.ttf');
+        console.log('✅ Using Noto Sans font for PDF (best for Vietnamese)');
+      } else {
+        // Thử Roboto
+        const robotoPath = path.join(this.fontPath, 'Roboto-Regular.ttf');
+        if (fs.existsSync(robotoPath)) {
+          this.hasCustomFont = true;
+          this.regularFont = robotoPath;
+          this.boldFont = path.join(this.fontPath, 'Roboto-Bold.ttf');
+          this.italicFont = path.join(this.fontPath, 'Roboto-Italic.ttf');
+          console.log('✅ Using Roboto font for PDF');
+        } else {
+          // Thử DejaVu Sans (fallback)
+          const dejavuPath = path.join(this.fontPath, 'DejaVuSans.ttf');
+          if (fs.existsSync(dejavuPath)) {
+            this.hasCustomFont = true;
+            this.regularFont = dejavuPath;
+            this.boldFont = path.join(this.fontPath, 'DejaVuSans-Bold.ttf');
+            this.italicFont = dejavuPath; // DejaVu không có italic riêng
+            console.log('✅ Using DejaVu Sans font for PDF');
+          }
+        }
+      }
+
+      if (!this.hasCustomFont) {
+        console.warn('⚠️  No custom fonts found. Vietnamese characters may not display correctly.');
+        console.warn('   Download fonts to backend/fonts/');
+        console.warn('   Recommended: Noto Sans from https://fonts.google.com/noto/specimen/Noto+Sans');
       }
     } catch (err) {
-      console.log('Custom fonts not found, using default');
+      console.error('❌ Error loading fonts:', err.message);
     }
   }
 

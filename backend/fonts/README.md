@@ -1,30 +1,50 @@
 # Fonts cho PDF tiếng Việt
 
-Để hiển thị đúng tiếng Việt trong file PDF, cần tải các font sau vào thư mục này:
+Để hiển thị đúng tiếng Việt trong file PDF, cần các font hỗ trợ Unicode.
 
-## Roboto Font (Khuyến nghị)
+## ✅ Cách tải tự động (KHUYẾN NGHỊ)
 
-Tải từ Google Fonts: https://fonts.google.com/specimen/Roboto
+Chạy lệnh sau trong thư mục `backend`:
 
-Cần các file:
-- `Roboto-Regular.ttf`
-- `Roboto-Bold.ttf`
-- `Roboto-Italic.ttf`
-- `Roboto-BoldItalic.ttf`
+```bash
+npm run download-fonts
+```
 
-## Cách tải:
+Script sẽ tự động tải **Noto Sans** từ Google Fonts (font tốt nhất cho tiếng Việt).
 
-1. Vào https://fonts.google.com/specimen/Roboto
+## 📦 Fonts được tải:
+
+- `NotoSans-Regular.ttf` - Font chữ thường
+- `NotoSans-Bold.ttf` - Font chữ đậm
+- `NotoSans-Italic.ttf` - Font chữ nghiêng
+- `NotoSans-BoldItalic.ttf` - Font chữ đậm nghiêng
+
+## 🔄 Fonts thay thế
+
+Hệ thống tự động tìm fonts theo thứ tự ưu tiên:
+
+1. **Noto Sans** (tốt nhất) ✅
+2. **Roboto** (tốt)
+3. **DejaVu Sans** (khả dụng)
+4. **Helvetica** (không hỗ trợ tiếng Việt)
+
+## 📥 Cách tải thủ công
+
+### Noto Sans (Khuyến nghị):
+1. Vào https://fonts.google.com/noto/specimen/Noto+Sans
 2. Click "Download family"
 3. Giải nén file zip
-4. Copy các file `.ttf` từ thư mục `static` vào đây
+4. Copy các file `.ttf` vào thư mục này
 
-## Alternative: DejaVu Sans
+### Roboto:
+1. Vào https://fonts.google.com/specimen/Roboto
+2. Click "Download family"
+3. Copy các file từ thư mục `static` vào đây
 
-Nếu không dùng Roboto, có thể dùng DejaVu Sans:
-- Tải từ: https://dejavu-fonts.github.io/
-- Copy `DejaVuSans.ttf`, `DejaVuSans-Bold.ttf` vào đây
+### DejaVu Sans:
+1. Tải từ: https://dejavu-fonts.github.io/
+2. Copy `DejaVuSans.ttf`, `DejaVuSans-Bold.ttf` vào đây
 
 ---
 
-**Lưu ý:** Nếu không có font file, hệ thống sẽ dùng Helvetica (không hỗ trợ tiếng Việt tốt)
+**Lưu ý:** Sau khi tải font, khởi động lại server để áp dụng thay đổi!
