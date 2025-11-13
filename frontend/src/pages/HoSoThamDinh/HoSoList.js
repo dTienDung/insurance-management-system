@@ -53,7 +53,7 @@ const HoSoList = () => {
   const columns = [
     { field: 'MaHS', headerName: 'Mã HS', width: 110 },
     { field: 'TenKhach', headerName: 'Khách hàng', width: 180, renderCell: row => row.TenKhach || row.MaKH },
-    { field: 'BienSo', headerName: 'Biển số', width: 130, renderCell: row => row.BienSo || row.MaXe },
+    { field: 'MaXe', headerName: 'Mã xe', width: 100 },
     { field: 'TrangThai', headerName: 'Trạng thái', width: 150, renderCell: row => getStatusChip(row.TrangThai) },
     { field: 'NgayLap', headerName: 'Ngày lập', width: 140, renderCell: row => row.NgayLap ? new Date(row.NgayLap).toLocaleDateString() : '' }
   ];

@@ -318,7 +318,7 @@ const CustomerList = () => {
           <SearchBar
             searchTerm={searchTerm}
             onSearchChange={setSearchTerm}
-            placeholder="Tìm kiếm theo tên, CMND, số điện thoại, email..."
+            placeholder="Tìm kiếm theo tên, CMND/CCCD, số điện thoại, email..."
             actions={[
               {
                 label: 'Làm mới',

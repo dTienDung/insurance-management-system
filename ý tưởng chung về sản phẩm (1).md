@@ -1161,3 +1161,5 @@ không cho sửa\":
     liệu. Trigger trg_AutoMaKH của bạn kích hoạt. Nó thấy i.MaKH là
     KH0026 (không phải NULL), nên nó chạy nhánh logic số 2 và chèn
     KH0026 vào bảng.
+
+TABLE trong FRONT sử dụng search inline

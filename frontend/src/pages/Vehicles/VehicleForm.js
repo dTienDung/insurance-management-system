@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   Container,
   Paper,
@@ -20,18 +20,14 @@ import {
   Info as InfoIcon
 } from '@mui/icons-material';
 import vehicleService from '../../services/vehicleService';
-import customerService from '../../services/customerService';
 import Button from '../../components/common/Button';
 
 const VehicleForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const customerIdFromQuery = searchParams.get('customer_id');
   
   const [formData, setFormData] = useState({
-    customer_id: customerIdFromQuery || '',
-    license_plate: '',
+    MaXe: '', // Display only
     vehicle_type: 'car',
     manufacturer: '',
     model: '',
@@ -42,11 +38,8 @@ const VehicleForm = () => {
     notes: ''
   });
 
-  const [customers, setCustomers] = useState([]);
-  const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [loadingCustomers, setLoadingCustomers] = useState(true);
 
   const isEditMode = !!id;
 
@@ -73,62 +66,25 @@ const VehicleForm = () => {
   const years = Array.from({ length: 50 }, (_, i) => currentYear - i);
 
   useEffect(() => {
-    fetchCustomers();
     if (id) {
       fetchVehicle();
     }
   }, [id]);
-
-  useEffect(() => {
-    if (formData.customer_id) {
-      const customer = customers.find(c => c.customer_id === parseInt(formData.customer_id));
-      setSelectedCustomer(customer);
-    }
-  }, [formData.customer_id, customers]);
-
-  const fetchCustomers = async () => {
-    try {
-      setLoadingCustomers(true);
-      const data = await customerService.getAll();
-
-      // Normalize possible response shapes: Array, { data: [] }, { customers: [] }, { items: [] }
-      let list = [];
-      if (Array.isArray(data)) {
-        list = data;
-      } else if (data && Array.isArray(data.data)) {
-        list = data.data;
-      } else if (data && Array.isArray(data.customers)) {
-        list = data.customers;
-      } else if (data && Array.isArray(data.items)) {
-        list = data.items;
-      } else {
-        console.warn('Unexpected customers response shape, expected array-like but got:', data);
-      }
-
-      setCustomers(list);
-    } catch (err) {
-      console.error('Error fetching customers:', err);
-      setError('Lỗi khi tải danh sách khách hàng');
-    } finally {
-      setLoadingCustomers(false);
-    }
-  };
 
   const fetchVehicle = async () => {
     try {
       setLoading(true);
       const data = await vehicleService.getById(id);
       setFormData({
-        customer_id: data.vehicle.customer_id,
-        license_plate: data.vehicle.license_plate,
-        vehicle_type: data.vehicle.vehicle_type || 'car',
-        manufacturer: data.vehicle.manufacturer,
-        model: data.vehicle.model,
-        manufacturing_year: data.vehicle.manufacturing_year,
-        engine_number: data.vehicle.engine_number,
-        chassis_number: data.vehicle.chassis_number,
-        color: data.vehicle.color || '',
-        notes: data.vehicle.notes || ''
+        MaXe: data.vehicle.MaXe || data.vehicle.vehicle_id || '',
+        vehicle_type: data.vehicle.vehicle_type || data.vehicle.LoaiXe || 'car',
+        manufacturer: data.vehicle.manufacturer || data.vehicle.HangXe || '',
+        model: data.vehicle.model || data.vehicle.DongXe || '',
+        manufacturing_year: data.vehicle.manufacturing_year || data.vehicle.NamSX || new Date().getFullYear(),
+        engine_number: data.vehicle.engine_number || data.vehicle.SoMay || '',
+        chassis_number: data.vehicle.chassis_number || data.vehicle.SoKhung || '',
+        color: data.vehicle.color || data.vehicle.MauSac || '',
+        notes: data.vehicle.notes || data.vehicle.GhiChu || ''
       });
     } catch (err) {
       setError('Lỗi khi tải thông tin phương tiện');
@@ -146,35 +102,10 @@ const VehicleForm = () => {
     }));
   };
 
-  const validateLicensePlate = (plate) => {
-    // Định dạng biển số Việt Nam: 29A-12345 hoặc 29A12345
-    const regex = /^[0-9]{2}[A-Z]{1,2}[0-9]{4,5}$/;
-    const formattedPlate = plate.replace(/[-\s]/g, '').toUpperCase();
-    return regex.test(formattedPlate);
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     // Validation
-    if (!formData.customer_id) {
-      setError('Vui lòng chọn khách hàng');
-      return;
-    }
-    
-    if (!formData.license_plate.trim()) {
-      setError('Vui lòng nhập biển số xe');
-      return;
-    }
-
-    // Format biển số (loại bỏ dấu gạch ngang và khoảng trắng, viết hoa)
-    const formattedPlate = formData.license_plate.replace(/[-\s]/g, '').toUpperCase();
-    
-    if (!validateLicensePlate(formattedPlate)) {
-      setError('Biển số xe không đúng định dạng. Ví dụ: 29A12345 hoặc 29A-12345');
-      return;
-    }
-
     if (!formData.manufacturer.trim()) {
       setError('Vui lòng chọn hoặc nhập hãng xe');
       return;
@@ -200,9 +131,14 @@ const VehicleForm = () => {
       setError(null);
 
       const dataToSubmit = {
-        ...formData,
-        license_plate: formattedPlate,
-        manufacturing_year: parseInt(formData.manufacturing_year)
+        LoaiXe: formData.vehicle_type,
+        HangXe: formData.manufacturer.trim(),
+        DongXe: formData.model.trim(),
+        NamSX: parseInt(formData.manufacturing_year),
+        SoMay: formData.engine_number.trim().toUpperCase(),
+        SoKhung: formData.chassis_number.trim().toUpperCase(),
+        MauSac: formData.color.trim() || null,
+        GhiChu: formData.notes.trim() || null
       };
 
       if (isEditMode) {
@@ -222,7 +158,7 @@ const VehicleForm = () => {
     }
   };
 
-  if (loadingCustomers || (isEditMode && loading)) {
+  if (isEditMode && loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight={400}>
         <CircularProgress />
@@ -292,21 +228,6 @@ const VehicleForm = () => {
           </Typography>
           
           <Grid container spacing={3} sx={{ mb: 4 }}>
-            {/* License Plate */}
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Biển số xe"
-                name="license_plate"
-                value={formData.license_plate}
-                onChange={handleChange}
-                required
-                placeholder="Ví dụ: 29A-12345"
-                helperText="Định dạng: 29A-12345 hoặc 29A12345"
-                inputProps={{ style: { textTransform: 'uppercase' } }}
-              />
-            </Grid>
-
             {/* Vehicle Type */}
             <Grid item xs={12} md={6}>
               <TextField
@@ -416,17 +337,18 @@ const VehicleForm = () => {
               />
             </Grid>
 
-            {/* Chassis Number */}
+            {/* Chassis Number (VIN) */}
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="Số khung"
+                label="Số khung (VIN)"
                 name="chassis_number"
                 value={formData.chassis_number}
                 onChange={handleChange}
                 required
-                placeholder="Nhập số khung"
-                inputProps={{ style: { textTransform: 'uppercase' } }}
+                placeholder="Nhập số khung VIN (17 ký tự)"
+                inputProps={{ style: { textTransform: 'uppercase' }, maxLength: 17 }}
+                helperText="VIN phải có 17 ký tự (chữ và số)"
               />
             </Grid>
           </Grid>
@@ -493,7 +415,8 @@ const VehicleForm = () => {
           💡 Gợi ý:
         </Typography>
         <ul style={{ margin: 0, paddingLeft: 20 }}>
-          <li>Biển số xe phải đúng định dạng Việt Nam (VD: 29A-12345)</li>
+          <li>Số khung (VIN) phải có đúng 17 ký tự và duy nhất cho mỗi xe</li>
+          <li>Biển số xe và chủ sở hữu được quản lý qua bảng KhachHangXe</li>
           <li>Số máy và số khung phải chính xác theo đăng ký xe</li>
           <li>Kiểm tra kỹ thông tin trước khi lưu để tránh sai sót</li>
         </ul>

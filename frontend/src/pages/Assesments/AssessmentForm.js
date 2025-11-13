@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import assessmentService from '../../services/assessmentService';
 import contractService from '../../services/contractService';
+import customerService from '../../services/customerService';
+import vehicleService from '../../services/vehicleService';
+import { CustomerAutocomplete, VehicleAutocomplete, ContractAutocomplete } from '../../components/common/EntityAutocomplete';
 import {
   Container,
   Box,
@@ -25,7 +28,6 @@ const AssessmentForm = () => {
   const contractIdFromQuery = searchParams.get('contract_id');
   
   const [formData, setFormData] = useState({
-    contract_id: contractIdFromQuery || '',
     assessment_date: new Date().toISOString().split('T')[0],
     assessed_value: '',
     assessor_name: '',
@@ -36,7 +38,11 @@ const AssessmentForm = () => {
   });
 
   const [contracts, setContracts] = useState([]);
-  const [selectedContract, setSelectedContract] = useState(null);
+  const [customers, setCustomers] = useState([]);
+  const [vehicles, setVehicles] = useState([]);
+  const [selectedContract, setSelectedContract] = useState(contractIdFromQuery ? { MaHD: contractIdFromQuery } : null);
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [selectedVehicle, setSelectedVehicle] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [loadingContracts, setLoadingContracts] = useState(true);
@@ -44,23 +50,40 @@ const AssessmentForm = () => {
   const isEditMode = !!id;
 
   useEffect(() => {
-    const fetchContracts = async () => {
+    const fetchData = async () => {
       try {
         setLoadingContracts(true);
-        const data = await contractService.getAll();
+        const [contractsRes, customersRes, vehiclesRes] = await Promise.all([
+          contractService.getAll(),
+          customerService.getAll(),
+          vehicleService.getAll()
+        ]);
 
-        // Normalize response (array or { data: [...] })
-        let list = [];
-        if (Array.isArray(data)) list = data;
-        else if (data && Array.isArray(data.data)) list = data.data;
-        else if (data && Array.isArray(data.contracts)) list = data.contracts;
-        else console.warn('Unexpected contracts response shape:', data);
-
-        const activeContracts = list.filter(c => (c.status === 'active' || c.TrangThai === 'Hiệu lực'));
+        // Normalize contracts
+        let contractList = [];
+        if (Array.isArray(contractsRes)) contractList = contractsRes;
+        else if (contractsRes && Array.isArray(contractsRes.data)) contractList = contractsRes.data;
+        else if (contractsRes && Array.isArray(contractsRes.contracts)) contractList = contractsRes.contracts;
+        
+        const activeContracts = contractList.filter(c => (c.status === 'active' || c.TrangThai === 'Hiệu lực'));
         setContracts(activeContracts);
+
+        // Normalize customers
+        if (customersRes.data) {
+          setCustomers(Array.isArray(customersRes.data) ? customersRes.data : []);
+        } else if (Array.isArray(customersRes)) {
+          setCustomers(customersRes);
+        }
+
+        // Normalize vehicles
+        if (vehiclesRes.data) {
+          setVehicles(Array.isArray(vehiclesRes.data) ? vehiclesRes.data : []);
+        } else if (Array.isArray(vehiclesRes)) {
+          setVehicles(vehiclesRes);
+        }
       } catch (err) {
-        console.error('Error fetching contracts:', err);
-        setError('Lỗi khi tải danh sách hợp đồng');
+        console.error('Error fetching data:', err);
+        setError('Lỗi khi tải dữ liệu');
       } finally {
         setLoadingContracts(false);
       }
@@ -71,7 +94,6 @@ const AssessmentForm = () => {
         setLoading(true);
         const data = await assessmentService.getById(id);
         setFormData({
-          contract_id: data.contract_id,
           assessment_date: data.assessment_date.split('T')[0],
           assessed_value: data.assessed_value,
           assessor_name: data.assessor_name || '',
@@ -80,6 +102,21 @@ const AssessmentForm = () => {
           notes: data.notes || '',
           status: data.status
         });
+
+        // Set autocomplete values
+        const customer = customers.find(c => 
+          (c.MaKH || c.customer_id) === (data.MaKH || data.customer_id)
+        );
+        const vehicle = vehicles.find(v => 
+          (v.MaXe || v.vehicle_id) === (data.MaXe || data.vehicle_id)
+        );
+        const contract = contracts.find(ct => 
+          (ct.MaHD || ct.contract_id) === (data.MaHD || data.contract_id)
+        );
+
+        setSelectedCustomer(customer || null);
+        setSelectedVehicle(vehicle || null);
+        setSelectedContract(contract || null);
       } catch (err) {
         setError('Lỗi khi tải thông tin định giá');
         console.error('Error fetching assessment:', err);
@@ -88,16 +125,16 @@ const AssessmentForm = () => {
       }
     };
 
-    fetchContracts();
+    fetchData();
     if (id) fetchAssessment();
   }, [id]);
 
-  useEffect(() => {
-    if (formData.contract_id) {
-      const contract = contracts.find(c => c.contract_id === parseInt(formData.contract_id));
-      setSelectedContract(contract);
-    }
-  }, [formData.contract_id, contracts]);
+  // Filter vehicles by customer
+  const filteredVehicles = selectedCustomer
+    ? vehicles.filter(v => 
+        (v.MaKH || v.customer_id) === (selectedCustomer.MaKH || selectedCustomer.customer_id)
+      )
+    : vehicles;
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -106,16 +143,16 @@ const AssessmentForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.contract_id) {
-      setError('Vui lòng chọn hợp đồng');
+    if (!selectedCustomer) {
+      setError('Vui lòng chọn khách hàng');
+      return;
+    }
+    if (!selectedVehicle) {
+      setError('Vui lòng chọn xe');
       return;
     }
     if (!formData.assessed_value || parseFloat(formData.assessed_value) <= 0) {
       setError('Vui lòng nhập giá trị định giá hợp lệ');
-      return;
-    }
-    if (!formData.assessor_name.trim()) {
-      setError('Vui lòng nhập tên người định giá');
       return;
     }
 
@@ -124,9 +161,13 @@ const AssessmentForm = () => {
       setError(null);
 
       const dataToSubmit = {
-        ...formData,
-        assessed_value: parseFloat(formData.assessed_value),
-        condition_rating: parseInt(formData.condition_rating)
+        MaKH: selectedCustomer.MaKH || selectedCustomer.customer_id,
+        MaXe: selectedVehicle.MaXe || selectedVehicle.vehicle_id,
+        MaHD: selectedContract ? (selectedContract.MaHD || selectedContract.contract_id) : null,
+        NgayLap: formData.assessment_date,
+        PhiDuKien: parseFloat(formData.assessed_value),
+        GhiChu: formData.notes,
+        TrangThai: formData.status
       };
 
       if (isEditMode) {
@@ -162,32 +203,56 @@ const AssessmentForm = () => {
 
       <Paper sx={{ p: 3 }} component="form" onSubmit={handleSubmit}>
         <Grid container spacing={2}>
-          <Grid item xs={12}>
-            <FormControl fullWidth disabled={isEditMode}>
-              <InputLabel id="contract-label">Hợp đồng *</InputLabel>
-              <Select
-                labelId="contract-label"
-                name="contract_id"
-                value={formData.contract_id}
-                label="Hợp đồng *"
-                onChange={handleChange}
-              >
-                <MenuItem value="">-- Chọn hợp đồng --</MenuItem>
-                {contracts.map(contract => (
-                  <MenuItem key={contract.contract_id} value={contract.contract_id}>
-                    {`${contract.contract_number} - ${contract.customer_name} - ${contract.license_plate}`}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+          {/* Customer Autocomplete */}
+          <Grid item xs={12} md={6}>
+            <CustomerAutocomplete
+              options={customers}
+              value={selectedCustomer}
+              onChange={(event, newValue) => {
+                setSelectedCustomer(newValue);
+                // Reset vehicle when customer changes
+                if (!newValue) {
+                  setSelectedVehicle(null);
+                }
+                if (error) setError(null);
+              }}
+              disabled={isEditMode}
+              required
+              helperText="Chọn khách hàng cần thẩm định"
+              loading={loadingContracts}
+            />
+          </Grid>
 
-            {selectedContract && (
-              <Paper sx={{ mt: 2, p: 2, backgroundColor: 'info.light' }}>
-                <Typography variant="body2"><strong>Khách hàng:</strong> {selectedContract.customer_name}</Typography>
-                <Typography variant="body2"><strong>Phương tiện:</strong> {selectedContract.license_plate} - {selectedContract.vehicle_type}</Typography>
-                <Typography variant="body2"><strong>Số tiền bảo hiểm:</strong> {parseFloat(selectedContract.coverage_amount).toLocaleString('vi-VN')} VNĐ</Typography>
-              </Paper>
-            )}
+          {/* Vehicle Autocomplete */}
+          <Grid item xs={12} md={6}>
+            <VehicleAutocomplete
+              options={filteredVehicles}
+              value={selectedVehicle}
+              onChange={(event, newValue) => {
+                setSelectedVehicle(newValue);
+                if (error) setError(null);
+              }}
+              disabled={!selectedCustomer || isEditMode}
+              required
+              helperText={selectedCustomer ? "Chọn xe cần thẩm định" : "Chọn khách hàng trước"}
+              loading={loadingContracts}
+            />
+          </Grid>
+
+          {/* Contract Autocomplete (Optional) */}
+          <Grid item xs={12}>
+            <ContractAutocomplete
+              options={contracts}
+              value={selectedContract}
+              onChange={(event, newValue) => {
+                setSelectedContract(newValue);
+                if (error) setError(null);
+              }}
+              disabled={isEditMode}
+              required={false}
+              helperText="Tùy chọn - Liên kết với hợp đồng hiện tại (nếu có)"
+              loading={loadingContracts}
+            />
           </Grid>
 
           <Grid item xs={12} md={6}>

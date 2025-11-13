@@ -92,10 +92,10 @@ const ContractList = () => {
       key: 'KhachHang'
     },
     { 
-      field: 'BienSo', 
-      headerName: 'Biển số', 
-      width: 130,
-      key: 'BienSo'
+      field: 'MaXe', 
+      headerName: 'Mã xe', 
+      width: 100,
+      key: 'MaXe'
     },
     { 
       field: 'PhiBaoHiem', 

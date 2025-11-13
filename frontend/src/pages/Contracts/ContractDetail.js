@@ -382,7 +382,7 @@ const ContractDetail = () => {
 
               <Grid container spacing={2}>
                 <Grid item xs={12} md={6}><Typography variant="body2" color="text.secondary">Họ và tên</Typography><Typography>{customer.full_name}</Typography></Grid>
-                <Grid item xs={12} md={6}><Typography variant="body2" color="text.secondary">CCCD/CMND</Typography><Typography>{customer.id_number}</Typography></Grid>
+                <Grid item xs={12} md={6}><Typography variant="body2" color="text.secondary">CMND/CCCD</Typography><Typography>{customer.id_number}</Typography></Grid>
                 <Grid item xs={12} md={6}><Typography variant="body2" color="text.secondary">Số điện thoại</Typography><Typography>{customer.phone}</Typography></Grid>
                 <Grid item xs={12} md={6}><Typography variant="body2" color="text.secondary">Email</Typography><Typography>{customer.email || 'Chưa cập nhật'}</Typography></Grid>
                 <Grid item xs={12}><Typography variant="body2" color="text.secondary">Địa chỉ</Typography><Typography>{customer.address}</Typography></Grid>

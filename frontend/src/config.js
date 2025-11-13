@@ -95,37 +95,55 @@ export const PAGINATION = {
 
 // Contract Status
 export const CONTRACT_STATUS = {
-  ACTIVE: 'active',
-  EXPIRED: 'expired',
-  CANCELLED: 'cancelled',
+  DRAFT: 'DRAFT',
+  PENDING_PAYMENT: 'PENDING_PAYMENT',
+  ACTIVE: 'ACTIVE',
+  EXPIRED: 'EXPIRED',
+  CANCELLED: 'CANCELLED',
+  TERMINATED: 'TERMINATED',
+  RENEWED: 'RENEWED',
 };
 
 export const CONTRACT_STATUS_TEXT = {
-  active: 'Hiệu lực',
-  expired: 'Hết hạn',
-  cancelled: 'Đã hủy',
+  DRAFT: 'Khởi tạo',
+  PENDING_PAYMENT: 'Chờ thanh toán',
+  ACTIVE: 'Đang hiệu lực',
+  EXPIRED: 'Hết hạn',
+  CANCELLED: 'Đã hủy',
+  TERMINATED: 'Chấm dứt',
+  RENEWED: 'Đã tái tục',
 };
 
 export const CONTRACT_STATUS_COLOR = {
-  active: 'success',
-  expired: 'warning',
-  cancelled: 'error',
+  DRAFT: 'default',
+  PENDING_PAYMENT: 'warning',
+  ACTIVE: 'success',
+  EXPIRED: 'error',
+  CANCELLED: 'error',
+  TERMINATED: 'error',
+  RENEWED: 'info',
 };
 
 // Payment Status
 export const PAYMENT_STATUS = {
-  PAID: 'paid',
-  UNPAID: 'unpaid',
+  THANH_CONG: 'Thành công',
+  THAT_BAI: 'Thất bại',
+  CHO_XU_LY: 'Chờ xử lý',
+  HOAN_TRA: 'Hoàn trả',
 };
 
 export const PAYMENT_STATUS_TEXT = {
-  paid: 'Đã thanh toán',
-  unpaid: 'Chưa thanh toán',
+  'Thành công': 'Thành công',
+  'Thất bại': 'Thất bại',
+  'Chờ xử lý': 'Chờ xử lý',
+  'Hoàn trả': 'Hoàn trả',
 };
 
 export const PAYMENT_STATUS_COLOR = {
-  paid: 'success',
-  unpaid: 'warning',
+  'Thành công': 'success',
+  'Thất bại': 'error',
+  'Chờ xử lý': 'warning',
+  'Hoàn trả': 'info',
 };
 
 // Payment Methods
@@ -139,6 +157,107 @@ export const PAYMENT_METHODS_TEXT = {
   cash: 'Tiền mặt',
   transfer: 'Chuyển khoản',
   card: 'Thẻ',
+};
+
+// Transaction Types
+export const TRANSACTION_TYPE = {
+  THANH_TOAN: 'Thanh toán',
+  HOAN_PHI: 'Hoàn phí',
+};
+
+export const TRANSACTION_TYPE_TEXT = {
+  'Thanh toán': 'Thanh toán',
+  'Hoàn phí': 'Hoàn phí',
+};
+
+// Assessment Status
+export const ASSESSMENT_STATUS = {
+  CHO_THAM_DINH: 'Chờ thẩm định',
+  DA_DUYET: 'Đã duyệt',
+  TU_CHOI: 'Từ chối',
+};
+
+export const ASSESSMENT_STATUS_TEXT = {
+  'Chờ thẩm định': 'Chờ thẩm định',
+  'Đã duyệt': 'Đã duyệt',
+  'Từ chối': 'Từ chối',
+};
+
+export const ASSESSMENT_STATUS_COLOR = {
+  'Chờ thẩm định': 'warning',
+  'Đã duyệt': 'success',
+  'Từ chối': 'error',
+};
+
+// Risk Levels
+export const RISK_LEVEL = {
+  LOW: 'LOW',
+  MEDIUM: 'MEDIUM',
+  HIGH: 'HIGH',
+};
+
+export const RISK_LEVEL_TEXT = {
+  LOW: 'Thấp',
+  MEDIUM: 'Trung bình',
+  HIGH: 'Cao',
+};
+
+export const RISK_LEVEL_COLOR = {
+  LOW: 'success',
+  MEDIUM: 'warning',
+  HIGH: 'error',
+};
+
+// ============================================
+// DROPDOWN OPTIONS (for EnumSelect component)
+// ============================================
+
+// Contract Status Dropdown (Database values)
+export const CONTRACT_STATUS_OPTIONS = {
+  'Hiệu lực': 'Hiệu lực',
+  'Hết hạn': 'Hết hạn',
+  'Huỷ': 'Huỷ',
+};
+
+// Payment Method Dropdown (Database values)
+export const PAYMENT_METHOD_OPTIONS = {
+  'Tiền mặt': 'Tiền mặt',
+  'Chuyển khoản': 'Chuyển khoản',
+  'Thẻ': 'Thẻ',
+};
+
+// Transaction Type Dropdown
+export const TRANSACTION_TYPE_OPTIONS = {
+  'THANH_TOAN': 'Thanh toán',
+  'HOAN_PHI': 'Hoàn phí',
+};
+
+// Risk Level Dropdown
+export const RISK_LEVEL_OPTIONS = {
+  'LOW': 'Thấp',
+  'MEDIUM': 'Trung bình',
+  'HIGH': 'Cao',
+};
+
+// Assessment Status Dropdown
+export const ASSESSMENT_STATUS_OPTIONS = {
+  'Chờ thẩm định': 'Chờ thẩm định',
+  'Đã duyệt': 'Đã duyệt',
+  'Từ chối': 'Từ chối',
+};
+
+// User Role Dropdown
+export const USER_ROLE_OPTIONS = {
+  'Admin': 'Admin',
+  'Nhân viên': 'Nhân viên',
+  'Kế toán': 'Kế toán',
+  'Thẩm định': 'Thẩm định',
+};
+
+// Relation Type Dropdown (HopDongRelation)
+export const RELATION_TYPE_OPTIONS = {
+  'TAI_TUC': 'Tái tục',
+  'CHUYEN_QUYEN': 'Chuyển quyền',
 };
 
 // User Roles
@@ -222,10 +341,39 @@ export const FILE_UPLOAD = {
 
 // Regex Patterns
 export const REGEX = {
-  email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+  // Email - RFC 5322 basic pattern
+  email: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+  
+  // Phone - Vietnam format (0xxxxxxxxx or +84xxxxxxxxx)
   phone: /^(0|\+84)[0-9]{9,10}$/,
+  
+  // ID Card - CMND 9 digits or CCCD 12 digits
   idCard: /^[0-9]{9,12}$/,
+  
+  // License Plate - Vietnam format (29A-12345) - DEPRECATED: No validation needed
   licensePlate: /^[0-9]{2}[A-Z]{1,2}-[0-9]{4,5}$/,
+  
+  // VIN - ISO 3779: 17 chars, no I/O/Q
+  vin: /^[A-HJ-NPR-Z0-9]{17}$/i,
+  
+  // Engine Number - 6-30 alphanumeric
+  engineNumber: /^[A-Z0-9]{6,30}$/i,
+  
+  // Full Name - Vietnamese letters with diacritics + spaces
+  fullName: /^[a-zA-ZÀ-ỹ\s]{2,100}$/,
+  
+  // Address - Vietnamese text with numbers, punctuation
+  address: /^[a-zA-Z0-9À-ỹ\s,.\-/]{10,500}$/,
+  
+  // ============================================
+  // DEPRECATED: User/Account validation (Demo mode - no strict validation)
+  // ============================================
+  
+  // Username - alphanumeric + underscore (DEPRECATED: Demo mode)
+  username: /^[a-zA-Z0-9_]{5,50}$/,
+  
+  // Password - min 8 chars, 1 uppercase, 1 lowercase, 1 digit, 1 special char (DEPRECATED: Demo mode)
+  password: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
 };
 
 // Export default config object
@@ -244,11 +392,26 @@ const config = {
   PAYMENT_STATUS_COLOR,
   PAYMENT_METHODS,
   PAYMENT_METHODS_TEXT,
+  TRANSACTION_TYPE, // ⭐ NEW
+  TRANSACTION_TYPE_TEXT, // ⭐ NEW
+  ASSESSMENT_STATUS, // ⭐ NEW
+  ASSESSMENT_STATUS_TEXT, // ⭐ NEW
+  ASSESSMENT_STATUS_COLOR, // ⭐ NEW
+  RISK_LEVEL, // ⭐ NEW
+  RISK_LEVEL_TEXT, // ⭐ NEW
+  RISK_LEVEL_COLOR, // ⭐ NEW
+  CONTRACT_STATUS_OPTIONS, // ⭐ Dropdown
+  PAYMENT_METHOD_OPTIONS, // ⭐ Dropdown
+  TRANSACTION_TYPE_OPTIONS, // ⭐ Dropdown
+  RISK_LEVEL_OPTIONS, // ⭐ Dropdown
+  ASSESSMENT_STATUS_OPTIONS, // ⭐ Dropdown
+  USER_ROLE_OPTIONS, // ⭐ Dropdown
+  RELATION_TYPE_OPTIONS, // ⭐ Dropdown
   USER_ROLES,
   STORAGE_KEYS,
   MESSAGES,
-  ERROR_MESSAGES, // << thêm vào đây
-  UI_COMMON,      // << và đây
+  ERROR_MESSAGES,
+  UI_COMMON,
   FILE_UPLOAD,
   REGEX,
 };

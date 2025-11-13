@@ -92,7 +92,7 @@ const CustomerForm = () => {
       
       const submitData = {
         hoTen: formData.HoTen,
-        cmndCccd: formData.CMND_CCCD,
+        cccd: formData.CMND_CCCD,
         ngaySinh: formData.NgaySinh,
         diaChi: formData.DiaChi,
         sdt: formData.SDT,

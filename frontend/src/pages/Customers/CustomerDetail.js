@@ -165,7 +165,7 @@ const CustomerDetail = () => {
                 <Box display="flex" gap={2}>
                   <BadgeIcon color="action" sx={{ mt: 0.5 }} />
                   <Box>
-                    <Typography variant="body2" color="text.secondary">CCCD/CMND</Typography>
+                    <Typography variant="body2" color="text.secondary">CMND/CCCD</Typography>
                     <Typography variant="subtitle1" fontWeight={500}>{customer.id_number}</Typography>
                   </Box>
                 </Box>

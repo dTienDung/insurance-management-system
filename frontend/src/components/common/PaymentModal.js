@@ -26,9 +26,8 @@ import {
 
 const PaymentModal = ({ isOpen, onClose, contract, onConfirm }) => {
   const [formData, setFormData] = useState({
-    payment_date: new Date().toISOString().split('T')[0],
-    payment_method: 'cash',
-    payment_notes: ''
+    HinhThuc: 'Tiền mặt', // Default payment method
+    GhiChu: '' // Optional notes
   });
   const [loading, setLoading] = useState(false);
 
@@ -114,29 +113,14 @@ const PaymentModal = ({ isOpen, onClose, contract, onConfirm }) => {
               </Stack>
             </Paper>
 
-            {/* Payment Date */}
-            <TextField
-              label="Ngày thanh toán"
-              type="date"
-              name="payment_date"
-              value={formData.payment_date}
-              onChange={handleChange}
-              required
-              fullWidth
-              InputLabelProps={{ shrink: true }}
-              inputProps={{
-                max: new Date().toISOString().split('T')[0]
-              }}
-            />
-
             {/* Payment Method */}
             <Box>
               <Typography variant="subtitle2" gutterBottom>
                 Hình thức thanh toán <span style={{ color: 'red' }}>*</span>
               </Typography>
               <RadioGroup
-                name="payment_method"
-                value={formData.payment_method}
+                name="HinhThuc"
+                value={formData.HinhThuc}
                 onChange={handleChange}
               >
                 <Paper 
@@ -148,7 +132,7 @@ const PaymentModal = ({ isOpen, onClose, contract, onConfirm }) => {
                   }}
                 >
                   <FormControlLabel
-                    value="cash"
+                    value="Tiền mặt"
                     control={<Radio />}
                     label={
                       <Box display="flex" alignItems="center" gap={1}>
@@ -168,7 +152,7 @@ const PaymentModal = ({ isOpen, onClose, contract, onConfirm }) => {
                   }}
                 >
                   <FormControlLabel
-                    value="transfer"
+                    value="Chuyển khoản"
                     control={<Radio />}
                     label={
                       <Box display="flex" alignItems="center" gap={1}>
@@ -187,7 +171,7 @@ const PaymentModal = ({ isOpen, onClose, contract, onConfirm }) => {
                   }}
                 >
                   <FormControlLabel
-                    value="card"
+                    value="Thẻ"
                     control={<Radio />}
                     label={
                       <Box display="flex" alignItems="center" gap={1}>
@@ -203,8 +187,8 @@ const PaymentModal = ({ isOpen, onClose, contract, onConfirm }) => {
             {/* Notes */}
             <TextField
               label="Ghi chú"
-              name="payment_notes"
-              value={formData.payment_notes}
+              name="GhiChu"
+              value={formData.GhiChu}
               onChange={handleChange}
               multiline
               rows={3}

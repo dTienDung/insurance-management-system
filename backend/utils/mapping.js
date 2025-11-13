@@ -151,7 +151,8 @@ const columnMapping = {
   'model': 'Model',
   'manufacturing_year': 'NamSX',
   'engine_number': 'SoMay',
-  'chassis_number': 'SoKhung',
+  'chassis_number': 'SoKhung_VIN', // ← Database dùng SoKhung_VIN
+  'vin': 'SoKhung_VIN', // Alias cho VIN
   'value': 'GiaTriXe',
   
   // License plate fields (BienSoXe table)

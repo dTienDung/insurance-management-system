@@ -114,7 +114,7 @@ export const dashboardAPI = {
 };
 
 export const customerAPI = {
-  getAll: () => api.get('/customers'),
+  getAll: (params) => api.get('/customers', { params }),
   getById: (id) => api.get(`/customers/${id}`),
   create: (data) => api.post('/customers', data),
   update: (id, data) => api.put(`/customers/${id}`, data),
@@ -122,7 +122,7 @@ export const customerAPI = {
 };
 
 export const vehicleAPI = {
-  getAll: () => api.get('/vehicles'),
+  getAll: (params) => api.get('/vehicles', { params }),
   getById: (id) => api.get(`/vehicles/${id}`),
   create: (data) => api.post('/vehicles', data),
   update: (id, data) => api.put(`/vehicles/${id}`, data),
@@ -130,11 +130,13 @@ export const vehicleAPI = {
 };
 
 export const contractAPI = {
-  getAll: () => api.get('/contracts'),
+  getAll: (params) => api.get('/contracts', { params }),
   getById: (id) => api.get(`/contracts/${id}`),
   create: (data) => api.post('/contracts', data),
   update: (id, data) => api.put(`/contracts/${id}`, data),
   delete: (id) => api.delete(`/contracts/${id}`),
+  renew: (id) => api.post(`/contracts/${id}/renew`), // ⭐ NEW - Tái tục
+  cancel: (id) => api.post(`/contracts/${id}/cancel`), // ⭐ NEW - Hủy
 };
 
 export const exportAPI = {
@@ -142,4 +144,58 @@ export const exportAPI = {
   exportVehicle: (id) => api.get(`/export/vehicle/${id}`, { responseType: 'blob' }),
   exportCustomer: (id) => api.get(`/export/customer/${id}`, { responseType: 'blob' }),
   exportAll: (type) => api.get(`/export/${type}/all`, { responseType: 'blob' }),
+  
+  // ⭐ NEW - Export chứng từ
+  exportGiayYeuCau: (maKH, maXe) => api.get(`/export/giay-yeu-cau/${maKH}/${maXe}`, { responseType: 'blob' }),
+  exportHopDong: (maHD) => api.get(`/export/hop-dong/${maHD}`, { responseType: 'blob' }),
+  exportBienLai: (maTT) => api.get(`/export/bien-lai/${maTT}`, { responseType: 'blob' }),
+  exportGiayChungNhan: (maHD) => api.get(`/export/giay-chung-nhan/${maHD}`, { responseType: 'blob' }),
+};
+
+// ⭐ NEW - PAYMENT API
+export const paymentAPI = {
+  getAll: (params) => api.get('/payments', { params }),
+  getByContract: (maHD) => api.get(`/payments/contract/${maHD}`),
+  create: (data) => api.post('/payments', data),
+  refund: (maTT, data) => api.post(`/payments/${maTT}/refund`, data),
+  getById: (maTT) => api.get(`/payments/${maTT}`),
+};
+
+// ⭐ NEW - ASSESSMENT API (cập nhật)
+export const assessmentAPI = {
+  getAll: (params) => api.get('/assessments', { params }),
+  getByHoSo: (maHS) => api.get(`/assessments/hoso/${maHS}`),
+  calculateRisk: (data) => api.post('/assessments/calculate-risk', data),
+  create: (data) => api.post('/assessments', data),
+};
+
+// ⭐ NEW - HOSO API
+export const hosoAPI = {
+  getAll: (params) => api.get('/hoso', { params }),
+  getById: (maHS) => api.get(`/hoso/${maHS}`),
+  create: (data) => api.post('/hoso', data),
+  update: (maHS, data) => api.put(`/hoso/${maHS}`, data),
+  delete: (maHS) => api.delete(`/hoso/${maHS}`),
+};
+
+// ⭐ NEW - REPORTS API (đầy đủ)
+export const reportAPI = {
+  // Revenue
+  getMonthlyRevenue: (params) => api.get('/reports/revenue/monthly', { params }),
+  getYearlyRevenue: (params) => api.get('/reports/revenue/yearly', { params }),
+  
+  // Contracts
+  getContractsByStatus: (params) => api.get('/reports/contracts/status', { params }),
+  getContractsByType: (params) => api.get('/reports/contracts/type', { params }),
+  getExpiringContracts: (params) => api.get('/reports/contracts/expiring', { params }),
+  
+  // NEW - 5 báo cáo mới
+  getContractsDetailByStatus: (params) => api.get('/reports/contracts/detail', { params }),
+  getCustomersWithContracts: (params) => api.get('/reports/customers/contracts', { params }),
+  getRenewalReport: (params) => api.get('/reports/renewal', { params }),
+  getAssessmentsByRiskLevel: (params) => api.get('/reports/assessments/risk-level', { params }),
+  getRiskAnalysis: (params) => api.get('/reports/risk-analysis', { params }),
+  
+  // Dashboard
+  getDashboardStats: () => api.get('/reports/dashboard'),
 };

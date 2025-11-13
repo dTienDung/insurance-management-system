@@ -32,6 +32,9 @@ import contractService from '../../services/contractService';
 import customerService from '../../services/customerService';
 import vehicleService from '../../services/vehicleService';
 import Button from '../../components/common/Button';
+import { CustomerAutocomplete, VehicleAutocomplete, PackageAutocomplete } from '../../components/common/EntityAutocomplete';
+import EnumSelect from '../../components/common/EnumSelect';
+import { PAYMENT_METHOD_OPTIONS } from '../../config';
 
 const ContractForm = () => {
   const { id } = useParams();
@@ -41,34 +44,25 @@ const ContractForm = () => {
   const vehicleIdFromQuery = searchParams.get('vehicle_id');
   
   const [formData, setFormData] = useState({
-    customer_id: customerIdFromQuery || '',
-    vehicle_id: vehicleIdFromQuery || '',
-    insurance_type: 'TNDS',
-    premium_amount: '',
-    coverage_amount: '',
-    start_date: dayjs(),
-    end_date: dayjs().add(1, 'year'),
-    notes: ''
+    MaHD: '', // Display only, auto-generated
+    NgayKy: dayjs(),
+    NgayHetHan: dayjs().add(1, 'year'),
+    PhiBaoHiem: '',
+    HinhThucThanhToan: '', // Payment method (optional)
+    GhiChu: ''
   });
 
   const [customers, setCustomers] = useState([]);
   const [vehicles, setVehicles] = useState([]);
-  const [selectedCustomer, setSelectedCustomer] = useState(null);
-  const [selectedVehicle, setSelectedVehicle] = useState(null);
+  const [packages, setPackages] = useState([]);
+  const [selectedCustomer, setSelectedCustomer] = useState(customerIdFromQuery ? { MaKH: customerIdFromQuery } : null);
+  const [selectedVehicle, setSelectedVehicle] = useState(vehicleIdFromQuery ? { MaXe: vehicleIdFromQuery } : null);
+  const [selectedPackage, setSelectedPackage] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [loadingData, setLoadingData] = useState(true);
 
   const isEditMode = !!id;
-
-  // Insurance types
-  const insuranceTypes = [
-    { value: 'TNDS', label: 'Bảo hiểm Trách nhiệm dân sự (TNDS)' },
-    { value: 'TNDS_BB', label: 'TNDS + Bảo hiểm vật chất xe (BB)' },
-    { value: 'FULL', label: 'Bảo hiểm toàn diện (Full)' },
-    { value: 'VCX', label: 'Bảo hiểm vật chất xe (VCX)' },
-    { value: 'CUSTOM', label: 'Tùy chỉnh' }
-  ];
 
   useEffect(() => {
     fetchInitialData();
@@ -80,75 +74,44 @@ const ContractForm = () => {
     }
   }, [id]);
 
-  useEffect(() => {
-    if (formData.customer_id && customers.length > 0) {
-      const customer = customers.find(c => 
-        c.customer_id === parseInt(formData.customer_id) ||
-        c.MaKH === parseInt(formData.customer_id)
-      );
-      setSelectedCustomer(customer);
-      
-      // Load vehicles of selected customer
-      if (customer) {
-        fetchCustomerVehicles(customer.customer_id || customer.MaKH);
-      }
-    }
-  }, [formData.customer_id, customers]);
-
-  useEffect(() => {
-    if (formData.vehicle_id && vehicles.length > 0) {
-      const vehicle = vehicles.find(v => 
-        v.vehicle_id === parseInt(formData.vehicle_id) ||
-        v.MaXe === parseInt(formData.vehicle_id)
-      );
-      setSelectedVehicle(vehicle);
-    }
-  }, [formData.vehicle_id, vehicles]);
+  // Filter vehicles by selected customer
+  const filteredVehicles = selectedCustomer 
+    ? vehicles.filter(v => 
+        (v.MaKH || v.customer_id) === (selectedCustomer.MaKH || selectedCustomer.customer_id)
+      )
+    : vehicles;
 
   const fetchInitialData = async () => {
     try {
       setLoadingData(true);
-      const [customersRes] = await Promise.all([
-        customerService.getAll()
+      const [customersRes, vehiclesRes] = await Promise.all([
+        customerService.getAll(),
+        vehicleService.getAll()
       ]);
       
       console.log('Customers:', customersRes);
+      console.log('Vehicles:', vehiclesRes);
       
       if (customersRes.data) {
         setCustomers(Array.isArray(customersRes.data) ? customersRes.data : []);
       } else if (Array.isArray(customersRes)) {
         setCustomers(customersRes);
       }
+
+      if (vehiclesRes.data) {
+        setVehicles(Array.isArray(vehiclesRes.data) ? vehiclesRes.data : []);
+      } else if (Array.isArray(vehiclesRes)) {
+        setVehicles(vehiclesRes);
+      }
+
+      // TODO: Load packages when API is ready
+      // const packagesRes = await packageService.getAll();
+      // setPackages(packagesRes.data || []);
     } catch (err) {
       console.error('Error loading data:', err);
       setError('Lỗi khi tải dữ liệu');
     } finally {
       setLoadingData(false);
-    }
-  };
-
-  const fetchCustomerVehicles = async (customerId) => {
-    try {
-      const response = await vehicleService.getByCustomerId(customerId);
-      console.log('Customer vehicles:', response);
-      
-      if (response.data) {
-        setVehicles(Array.isArray(response.data) ? response.data : []);
-      } else if (Array.isArray(response)) {
-        setVehicles(response);
-      }
-    } catch (err) {
-      console.error('Error loading vehicles:', err);
-      // If specific API doesn't exist, load all vehicles
-      try {
-        const allVehicles = await vehicleService.getAll();
-        const customerVehicles = allVehicles.data?.filter(v => 
-          v.customer_id === customerId || v.MaKH === customerId
-        ) || [];
-        setVehicles(customerVehicles);
-      } catch (err2) {
-        console.error('Error loading all vehicles:', err2);
-      }
     }
   };
 
@@ -161,17 +124,30 @@ const ContractForm = () => {
       const contract = response.data || response.contract || response;
       
       setFormData({
-        customer_id: contract.customer_id || contract.MaKH || '',
-        vehicle_id: contract.vehicle_id || contract.MaXe || '',
-        insurance_type: contract.insurance_type || contract.LoaiBH || 'TNDS',
-        premium_amount: contract.premium_amount || contract.PhiBaoHiem || '',
-        coverage_amount: contract.coverage_amount || contract.SoTienBH || '',
-        start_date: contract.start_date || contract.NgayBatDau ? 
-          dayjs(contract.start_date || contract.NgayBatDau) : dayjs(),
-        end_date: contract.end_date || contract.NgayKetThuc ? 
-          dayjs(contract.end_date || contract.NgayKetThuc) : dayjs().add(1, 'year'),
-        notes: contract.notes || contract.GhiChu || ''
+        MaHD: contract.MaHD || contract.contract_id || '',
+        NgayKy: contract.NgayKy || contract.start_date ? 
+          dayjs(contract.NgayKy || contract.start_date) : dayjs(),
+        NgayHetHan: contract.NgayHetHan || contract.end_date ? 
+          dayjs(contract.NgayHetHan || contract.end_date) : dayjs().add(1, 'year'),
+        PhiBaoHiem: contract.PhiBaoHiem || contract.premium_amount || '',
+        HinhThucThanhToan: contract.HinhThucThanhToan || '',
+        GhiChu: contract.GhiChu || contract.notes || ''
       });
+
+      // Set autocomplete values
+      const customer = customers.find(c => 
+        (c.MaKH || c.customer_id) === (contract.MaKH || contract.customer_id)
+      );
+      const vehicle = vehicles.find(v => 
+        (v.MaXe || v.vehicle_id) === (contract.MaXe || contract.vehicle_id)
+      );
+      const pkg = packages.find(p => 
+        (p.MaGoi || p.package_id) === (contract.MaGoi || contract.package_id)
+      );
+
+      setSelectedCustomer(customer || null);
+      setSelectedVehicle(vehicle || null);
+      setSelectedPackage(pkg || null);
     } catch (err) {
       setError('Lỗi khi tải thông tin hợp đồng');
       console.error('Error:', err);
@@ -194,32 +170,29 @@ const ContractForm = () => {
     return dayjs(startDate).add(1, 'year');
   };
 
-  const handleStartDateChange = (value) => {
+  const handleNgayKyChange = (value) => {
     setFormData(prev => ({
       ...prev,
-      start_date: value,
-      end_date: calculateEndDate(value)
+      NgayKy: value,
+      NgayHetHan: calculateEndDate(value)
     }));
   };
 
   const validateForm = () => {
     const errors = [];
 
-    if (!formData.customer_id) errors.push('Vui lòng chọn khách hàng');
-    if (!formData.vehicle_id) errors.push('Vui lòng chọn phương tiện');
-    if (!formData.insurance_type) errors.push('Vui lòng chọn loại bảo hiểm');
-    if (!formData.premium_amount || parseFloat(formData.premium_amount) <= 0) {
+    if (!selectedCustomer) errors.push('Vui lòng chọn khách hàng');
+    if (!selectedVehicle) errors.push('Vui lòng chọn phương tiện');
+    if (!selectedPackage) errors.push('Vui lòng chọn gói bảo hiểm');
+    if (!formData.PhiBaoHiem || parseFloat(formData.PhiBaoHiem) <= 0) {
       errors.push('Phí bảo hiểm phải lớn hơn 0');
     }
-    if (!formData.coverage_amount || parseFloat(formData.coverage_amount) <= 0) {
-      errors.push('Số tiền bảo hiểm phải lớn hơn 0');
-    }
-    if (!formData.start_date) errors.push('Vui lòng chọn ngày bắt đầu');
-    if (!formData.end_date) errors.push('Vui lòng chọn ngày kết thúc');
+    if (!formData.NgayKy) errors.push('Vui lòng chọn ngày ký');
+    if (!formData.NgayHetHan) errors.push('Vui lòng chọn ngày hết hạn');
     
-    if (formData.start_date && formData.end_date) {
-      if (dayjs(formData.end_date).isBefore(dayjs(formData.start_date))) {
-        errors.push('Ngày kết thúc phải sau ngày bắt đầu');
+    if (formData.NgayKy && formData.NgayHetHan) {
+      if (dayjs(formData.NgayHetHan).isBefore(dayjs(formData.NgayKy))) {
+        errors.push('Ngày hết hạn phải sau ngày ký');
       }
     }
 
@@ -240,15 +213,14 @@ const ContractForm = () => {
       setError(null);
 
       const dataToSubmit = {
-        customer_id: parseInt(formData.customer_id),
-        vehicle_id: parseInt(formData.vehicle_id),
-        insurance_type: formData.insurance_type,
-        premium_amount: parseFloat(formData.premium_amount),
-        coverage_amount: parseFloat(formData.coverage_amount),
-        start_date: formData.start_date.format('YYYY-MM-DD'),
-        end_date: formData.end_date.format('YYYY-MM-DD'),
-        notes: formData.notes,
-        status: 'active'
+        MaKH: selectedCustomer.MaKH || selectedCustomer.customer_id,
+        MaXe: selectedVehicle.MaXe || selectedVehicle.vehicle_id,
+        MaGoi: selectedPackage.MaGoi || selectedPackage.package_id,
+        NgayKy: formData.NgayKy.format('YYYY-MM-DD'),
+        NgayHetHan: formData.NgayHetHan.format('YYYY-MM-DD'),
+        PhiBaoHiem: parseFloat(formData.PhiBaoHiem),
+        HinhThucThanhToan: formData.HinhThucThanhToan || null,
+        GhiChu: formData.GhiChu
       };
 
       console.log('Submitting:', dataToSubmit);
@@ -308,95 +280,76 @@ const ContractForm = () => {
             </Typography>
             
             <Grid container spacing={3} sx={{ mb: 4 }}>
-              {/* Customer Selection */}
-              <Grid item xs={12} md={6}>
-                <TextField
-                  select
-                  fullWidth
-                  label="Khách hàng"
-                  name="customer_id"
-                  value={formData.customer_id}
-                  onChange={handleChange}
+              {/* MaHD - Display Only */}
+              {formData.MaHD && (
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Mã hợp đồng"
+                    value={formData.MaHD}
+                    disabled
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <InfoIcon />
+                        </InputAdornment>
+                      ),
+                    }}
+                    helperText="Mã hợp đồng tự động tạo"
+                  />
+                </Grid>
+              )}
+
+              {/* Customer Autocomplete */}
+              <Grid item xs={12} md={formData.MaHD ? 6 : 12}>
+                <CustomerAutocomplete
+                  options={customers}
+                  value={selectedCustomer}
+                  onChange={(event, newValue) => {
+                    setSelectedCustomer(newValue);
+                    // Reset vehicle when customer changes
+                    if (!newValue) {
+                      setSelectedVehicle(null);
+                    }
+                    if (error) setError(null);
+                  }}
                   disabled={isEditMode}
                   required
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <PersonIcon />
-                      </InputAdornment>
-                    ),
-                  }}
-                >
-                  <MenuItem value="">-- Chọn khách hàng --</MenuItem>
-                  {customers.map(customer => {
-                    const customerId = customer.customer_id || customer.MaKH;
-                    const fullName = customer.full_name || customer.HoTen;
-                    const idNumber = customer.id_number || customer.CMND_CCCD;
-                    
-                    return (
-                      <MenuItem key={customerId} value={customerId}>
-                        {fullName} - {idNumber}
-                      </MenuItem>
-                    );
-                  })}
-                </TextField>
-                
-                {selectedCustomer && (
-                  <Paper variant="outlined" sx={{ p: 2, mt: 2, bgcolor: 'primary.lighter' }}>
-                    <Typography variant="body2">
-                      <strong>SĐT:</strong> {selectedCustomer.phone || selectedCustomer.SDT}
-                    </Typography>
-                    <Typography variant="body2">
-                      <strong>Địa chỉ:</strong> {selectedCustomer.address || selectedCustomer.DiaChi}
-                    </Typography>
-                  </Paper>
-                )}
+                  helperText="Chọn khách hàng tham gia hợp đồng"
+                  loading={loadingData}
+                />
               </Grid>
 
-              {/* Vehicle Selection */}
+              {/* Vehicle Autocomplete */}
               <Grid item xs={12} md={6}>
-                <TextField
-                  select
-                  fullWidth
-                  label="Phương tiện"
-                  name="vehicle_id"
-                  value={formData.vehicle_id}
-                  onChange={handleChange}
-                  disabled={!formData.customer_id || isEditMode}
-                  required
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <CarIcon />
-                      </InputAdornment>
-                    ),
+                <VehicleAutocomplete
+                  options={filteredVehicles}
+                  value={selectedVehicle}
+                  onChange={(event, newValue) => {
+                    setSelectedVehicle(newValue);
+                    if (error) setError(null);
                   }}
-                >
-                  <MenuItem value="">-- Chọn phương tiện --</MenuItem>
-                  {vehicles.map(vehicle => {
-                    const vehicleId = vehicle.vehicle_id || vehicle.MaXe;
-                    const licensePlate = vehicle.license_plate || vehicle.BienSo;
-                    const manufacturer = vehicle.manufacturer || vehicle.HangXe;
-                    const model = vehicle.model || vehicle.Model;
-                    
-                    return (
-                      <MenuItem key={vehicleId} value={vehicleId}>
-                        {licensePlate} - {manufacturer} {model}
-                      </MenuItem>
-                    );
-                  })}
-                </TextField>
+                  disabled={!selectedCustomer || isEditMode}
+                  required
+                  helperText={selectedCustomer ? "Chọn xe của khách hàng" : "Chọn khách hàng trước"}
+                  loading={loadingData}
+                />
+              </Grid>
 
-                {selectedVehicle && (
-                  <Paper variant="outlined" sx={{ p: 2, mt: 2, bgcolor: 'success.lighter' }}>
-                    <Typography variant="body2">
-                      <strong>Loại xe:</strong> {selectedVehicle.vehicle_type || selectedVehicle.LoaiXe}
-                    </Typography>
-                    <Typography variant="body2">
-                      <strong>Năm SX:</strong> {selectedVehicle.manufacturing_year || selectedVehicle.NamSX}
-                    </Typography>
-                  </Paper>
-                )}
+              {/* Package Autocomplete */}
+              <Grid item xs={12} md={6}>
+                <PackageAutocomplete
+                  options={packages}
+                  value={selectedPackage}
+                  onChange={(event, newValue) => {
+                    setSelectedPackage(newValue);
+                    if (error) setError(null);
+                  }}
+                  disabled={isEditMode}
+                  required
+                  helperText="Chọn gói bảo hiểm"
+                  loading={loadingData}
+                />
               </Grid>
             </Grid>
 
@@ -409,23 +362,17 @@ const ContractForm = () => {
             </Typography>
             
             <Grid container spacing={3} sx={{ mb: 4 }}>
-              {/* Insurance Type */}
-              <Grid item xs={12}>
-                <TextField
-                  select
-                  fullWidth
-                  label="Loại bảo hiểm"
-                  name="insurance_type"
-                  value={formData.insurance_type}
+              {/* Payment Method (Optional) */}
+              <Grid item xs={12} md={6}>
+                <EnumSelect
+                  name="HinhThucThanhToan"
+                  label="Hình thức thanh toán"
+                  value={formData.HinhThucThanhToan}
                   onChange={handleChange}
-                  required
-                >
-                  {insuranceTypes.map(type => (
-                    <MenuItem key={type.value} value={type.value}>
-                      {type.label}
-                    </MenuItem>
-                  ))}
-                </TextField>
+                  options={PAYMENT_METHOD_OPTIONS}
+                  required={false}
+                  helperText="Tùy chọn - Có thể thanh toán sau"
+                />
               </Grid>
 
               {/* Premium Amount */}
@@ -434,8 +381,8 @@ const ContractForm = () => {
                   fullWidth
                   type="number"
                   label="Phí bảo hiểm"
-                  name="premium_amount"
-                  value={formData.premium_amount}
+                  name="PhiBaoHiem"
+                  value={formData.PhiBaoHiem}
                   onChange={handleChange}
                   required
                   InputProps={{
@@ -449,30 +396,6 @@ const ContractForm = () => {
                     ),
                   }}
                   helperText="Số tiền khách hàng phải trả"
-                />
-              </Grid>
-
-              {/* Coverage Amount */}
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  type="number"
-                  label="Số tiền bảo hiểm"
-                  name="coverage_amount"
-                  value={formData.coverage_amount}
-                  onChange={handleChange}
-                  required
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <MoneyIcon />
-                      </InputAdornment>
-                    ),
-                    endAdornment: (
-                      <InputAdornment position="end">VNĐ</InputAdornment>
-                    ),
-                  }}
-                  helperText="Số tiền bảo hiểm chi trả khi xảy ra sự cố"
                 />
               </Grid>
             </Grid>
@@ -489,15 +412,21 @@ const ContractForm = () => {
               {/* Start Date */}
               <Grid item xs={12} md={6}>
                 <DatePicker
-                  label="Ngày bắt đầu"
-                  value={formData.start_date}
-                  onChange={handleStartDateChange}
+                  label="Ngày ký"
+                  value={formData.NgayKy}
+                  onChange={(value) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      NgayKy: value,
+                      NgayHetHan: value ? dayjs(value).add(1, 'year') : prev.NgayHetHan
+                    }));
+                  }}
                   format="DD/MM/YYYY"
                   slotProps={{
                     textField: {
                       fullWidth: true,
                       required: true,
-                      helperText: 'Ngày bắt đầu có hiệu lực'
+                      helperText: 'Ngày ký hợp đồng'
                     }
                   }}
                 />
@@ -506,16 +435,16 @@ const ContractForm = () => {
               {/* End Date */}
               <Grid item xs={12} md={6}>
                 <DatePicker
-                  label="Ngày kết thúc"
-                  value={formData.end_date}
-                  onChange={(value) => handleDateChange('end_date', value)}
+                  label="Ngày hết hạn"
+                  value={formData.NgayHetHan}
+                  onChange={(value) => setFormData(prev => ({ ...prev, NgayHetHan: value }))}
                   format="DD/MM/YYYY"
-                  minDate={formData.start_date}
+                  minDate={formData.NgayKy}
                   slotProps={{
                     textField: {
                       fullWidth: true,
                       required: true,
-                      helperText: 'Ngày hết hiệu lực (tự động +1 năm)'
+                      helperText: 'Ngày hết hạn hợp đồng (tự động +1 năm)'
                     }
                   }}
                 />
@@ -526,9 +455,9 @@ const ContractForm = () => {
                 <Paper variant="outlined" sx={{ p: 2, bgcolor: 'info.lighter' }}>
                   <Typography variant="body2">
                     <strong>Thời hạn:</strong> {' '}
-                    {formData.start_date && formData.end_date && 
-                      `${formData.end_date.diff(formData.start_date, 'day')} ngày 
-                      (${formData.end_date.diff(formData.start_date, 'month')} tháng)`
+                    {formData.NgayKy && formData.NgayHetHan && 
+                      `${formData.NgayHetHan.diff(formData.NgayKy, 'day')} ngày 
+                      (${formData.NgayHetHan.diff(formData.NgayKy, 'month')} tháng)`
                     }
                   </Typography>
                 </Paper>
@@ -541,8 +470,8 @@ const ContractForm = () => {
             <TextField
               fullWidth
               label="Ghi chú"
-              name="notes"
-              value={formData.notes}
+              name="GhiChu"
+              value={formData.GhiChu}
               onChange={handleChange}
               multiline
               rows={4}
@@ -577,9 +506,10 @@ const ContractForm = () => {
             💡 Lưu ý:
           </Typography>
           <ul style={{ margin: 0, paddingLeft: 20 }}>
-            <li>Hợp đồng sẽ tự động có hiệu lực từ ngày bắt đầu được chọn</li>
-            <li>Thời hạn mặc định là 1 năm kể từ ngày bắt đầu</li>
-            <li>Phí bảo hiểm và số tiền bảo hiểm phải lớn hơn 0</li>
+            <li>Mã hợp đồng (MaHD) tự động tạo theo dịnh dạng HD-YYYYMMDD-XXXX</li>
+            <li>Trạng thái mặc định là 'DRAFT' khi tạo mới</li>
+            <li>Thời hạn mặc định là 1 năm kể từ ngày ký</li>
+            <li>Phí bảo hiểm phải lớn hơn 0</li>
             <li>Kiểm tra kỹ thông tin trước khi lưu</li>
           </ul>
         </Alert>

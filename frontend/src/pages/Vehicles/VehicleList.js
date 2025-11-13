@@ -80,7 +80,6 @@ const VehicleList = () => {
   };
 
   const filteredVehicles = vehicles.filter(v =>
-    v.BienSo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     v.HangXe?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     v.LoaiXe?.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -100,16 +99,6 @@ const VehicleList = () => {
       width: 100,
       renderCell: (row) => (
         <Chip label={row.MaXe} color="primary" size="small" variant="outlined" />
-      )
-    },
-    {
-      field: 'BienSo',
-      headerName: 'Biển số',
-      width: 150,
-      renderCell: (row) => (
-        <Typography variant="body2" fontWeight="bold" color="success.main">
-          {row.BienSo}
-        </Typography>
       )
     },
     { field: 'HangXe', headerName: 'Hãng xe', width: 150, key: 'HangXe' },

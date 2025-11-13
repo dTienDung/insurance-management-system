@@ -129,7 +129,7 @@ const VehicleDetail = () => {
               Chi tiết phương tiện
             </Typography>
             <Typography variant="body1" color="text.secondary">
-              Biển số: {vehicle.license_plate}
+              Mã xe: {vehicle.vehicle_id || vehicle.MaXe}
             </Typography>
           </Box>
           <Stack direction="row" spacing={2}>
@@ -198,18 +198,6 @@ const VehicleDetail = () => {
               </Typography>
               
               <Stack spacing={3}>
-                <Box display="flex" gap={2}>
-                  <CarIcon color="action" sx={{ mt: 0.5 }} />
-                  <Box>
-                    <Typography variant="body2" color="text.secondary">
-                      Biển số xe
-                    </Typography>
-                    <Typography variant="subtitle1" fontWeight="500">
-                      {vehicle.license_plate}
-                    </Typography>
-                  </Box>
-                </Box>
-
                 <Box display="flex" gap={2}>
                   <AssignmentIcon color="action" sx={{ mt: 0.5 }} />
                   <Box>

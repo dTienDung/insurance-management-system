@@ -116,79 +116,82 @@ class VehicleController {
   async create(req, res, next) {
     try {
       const { 
-        hangXe, loaiXe, namSX, maKH, giaTriXe, 
-        mucDichSuDung, tinhTrangKT, tanSuatNam, tanSuatBaoDuong,
-        bienSo // Thêm biển số từ request
+        HangXe, LoaiXe, NamSX, GiaTriXe, 
+        MucDichSuDung, TinhTrangKT, TanSuatNam, TanSuatBaoDuong,
+        SoKhung, SoMay, MauSac, GhiChu
       } = req.body;
 
-      if (!hangXe || !loaiXe || !namSX || !maKH || !giaTriXe) {
+      // Validation: Required fields for vehicle only (no customer)
+      if (!HangXe || !LoaiXe || !NamSX) {
         return res.status(400).json({
           success: false,
-          message: 'Vui lòng nhập đầy đủ thông tin bắt buộc'
+          message: 'Vui lòng nhập đầy đủ thông tin bắt buộc (Hãng xe, Loại xe, Năm SX)'
+        });
+      }
+
+      // Validation: VIN is required and must be unique
+      if (!SoKhung) {
+        return res.status(400).json({
+          success: false,
+          message: 'Vui lòng nhập số khung (VIN)'
+        });
+      }
+
+      if (!SoMay) {
+        return res.status(400).json({
+          success: false,
+          message: 'Vui lòng nhập số máy'
         });
       }
 
       const pool = await getConnection();
       
-      // Kiểm tra biển số đã tồn tại chưa (nếu có nhập)
-      if (bienSo) {
-        const checkBienSo = await pool.request()
-          .input('bienSo', sql.VarChar(15), bienSo)
-          .query('SELECT MaBienSo FROM BienSoXe WHERE BienSo = @bienSo');
+      // Check if VIN already exists
+      const checkVIN = await pool.request()
+        .input('soKhung', sql.VarChar(17), SoKhung)
+        .query('SELECT MaXe FROM Xe WHERE SoKhung_VIN = @soKhung');
 
-        if (checkBienSo.recordset.length > 0) {
-          return res.status(400).json({
-            success: false,
-            message: 'Biển số xe đã tồn tại trong hệ thống'
-          });
-        }
+      if (checkVIN.recordset.length > 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Số khung (VIN) đã tồn tại trong hệ thống'
+        });
       }
 
-      // 1. Tạo xe (không có BienSo và MaKH)
+      // Create vehicle (no customer relationship here - handled via KhachHangXe)
       const request = pool.request()
-        .input('hangXe', sql.NVarChar(30), hangXe)
-        .input('loaiXe', sql.NVarChar(30), loaiXe)
-        .input('namSX', sql.Int, namSX)
-        .input('giaTriXe', sql.Decimal(18, 0), giaTriXe)
-        .input('mucDichSuDung', sql.NVarChar(20), mucDichSuDung || null)
-        .input('tinhTrangKT', sql.NVarChar(12), tinhTrangKT || null)
-        .input('tanSuatNam', sql.Int, tanSuatNam || null)
-        .input('tanSuatBaoDuong', sql.NVarChar(20), tanSuatBaoDuong || null);
+        .input('hangXe', sql.NVarChar(30), HangXe)
+        .input('loaiXe', sql.NVarChar(30), LoaiXe)
+        .input('namSX', sql.Int, NamSX)
+        .input('giaTriXe', sql.Decimal(18, 0), GiaTriXe || null)
+        .input('mucDichSuDung', sql.NVarChar(20), MucDichSuDung || null)
+        .input('tinhTrangKT', sql.NVarChar(12), TinhTrangKT || null)
+        .input('tanSuatNam', sql.Int, TanSuatNam || null)
+        .input('tanSuatBaoDuong', sql.NVarChar(20), TanSuatBaoDuong || null)
+        .input('soKhung', sql.VarChar(17), SoKhung)
+        .input('soMay', sql.VarChar(30), SoMay)
+        .input('mauSac', sql.NVarChar(20), MauSac || null)
+        .input('ghiChu', sql.NVarChar(sql.MAX), GhiChu || null);
 
       const result = await request.query(`
         INSERT INTO Xe (HangXe, LoaiXe, NamSX, GiaTriXe, 
-                       MucDichSuDung, TinhTrangKT, TanSuatNam, TanSuatBaoDuong)
+                       MucDichSuDung, TinhTrangKT, TanSuatNam, TanSuatBaoDuong,
+                       SoKhung_VIN, SoMay, MauSac, GhiChu)
         OUTPUT INSERTED.MaXe
         VALUES (@hangXe, @loaiXe, @namSX, @giaTriXe,
-                @mucDichSuDung, @tinhTrangKT, @tanSuatNam, @tanSuatBaoDuong)
+                @mucDichSuDung, @tinhTrangKT, @tanSuatNam, @tanSuatBaoDuong,
+                @soKhung, @soMay, @mauSac, @ghiChu)
       `);
 
       const maXe = result.recordset[0].MaXe;
 
-      // 2. Tạo quan hệ KhachHangXe
-      await pool.request()
-        .input('maKH', sql.VarChar(10), maKH)
-        .input('maXe', sql.VarChar(10), maXe)
-        .query(`
-          INSERT INTO KhachHangXe (MaKH, MaXe, NgayBatDauSoHuu)
-          VALUES (@maKH, @maXe, GETDATE())
-        `);
-
-      // 3. Tạo BienSoXe (nếu có)
-      if (bienSo) {
-        await pool.request()
-          .input('maKH', sql.VarChar(10), maKH)
-          .input('bienSo', sql.VarChar(15), bienSo)
-          .query(`
-            INSERT INTO BienSoXe (MaKH, BienSo, TrangThai)
-            VALUES (@maKH, @bienSo, N'Hoạt động')
-          `);
-      }
+      // NOTE: Customer ownership is managed separately via KhachHangXe junction table
+      // This should be handled when creating assessments or contracts
 
       res.status(201).json({
         success: true,
         message: 'Thêm phương tiện thành công',
-        data: { maXe }
+        data: { MaXe: maXe }
       });
     } catch (error) {
       next(error);
@@ -199,15 +202,16 @@ class VehicleController {
     try {
       const { id } = req.params;
       const { 
-        hangXe, loaiXe, namSX, giaTriXe, 
-        mucDichSuDung, tinhTrangKT, tanSuatNam, tanSuatBaoDuong 
+        HangXe, LoaiXe, NamSX, GiaTriXe, 
+        MucDichSuDung, TinhTrangKT, TanSuatNam, TanSuatBaoDuong,
+        SoKhung, SoMay, MauSac, GhiChu
       } = req.body;
 
       const pool = await getConnection();
       
       const checkExist = await pool.request()
         .input('maXe', sql.VarChar(10), id)
-        .query('SELECT MaXe FROM Xe WHERE MaXe = @maXe');
+        .query('SELECT MaXe, SoKhung_VIN FROM Xe WHERE MaXe = @maXe');
 
       if (checkExist.recordset.length === 0) {
         return res.status(404).json({
@@ -216,22 +220,43 @@ class VehicleController {
         });
       }
 
+      // If changing VIN, check if new VIN already exists
+      if (SoKhung && SoKhung !== checkExist.recordset[0].SoKhung_VIN) {
+        const checkVIN = await pool.request()
+          .input('soKhung', sql.VarChar(17), SoKhung)
+          .input('maXe', sql.VarChar(10), id)
+          .query('SELECT MaXe FROM Xe WHERE SoKhung_VIN = @soKhung AND MaXe != @maXe');
+
+        if (checkVIN.recordset.length > 0) {
+          return res.status(400).json({
+            success: false,
+            message: 'Số khung (VIN) đã tồn tại trong hệ thống'
+          });
+        }
+      }
+
       await pool.request()
         .input('maXe', sql.VarChar(10), id)
-        .input('hangXe', sql.NVarChar(30), hangXe)
-        .input('loaiXe', sql.NVarChar(30), loaiXe)
-        .input('namSX', sql.Int, namSX)
-        .input('giaTriXe', sql.Decimal(18, 0), giaTriXe)
-        .input('mucDichSuDung', sql.NVarChar(20), mucDichSuDung || null)
-        .input('tinhTrangKT', sql.NVarChar(12), tinhTrangKT || null)
-        .input('tanSuatNam', sql.Int, tanSuatNam || null)
-        .input('tanSuatBaoDuong', sql.NVarChar(20), tanSuatBaoDuong || null)
+        .input('hangXe', sql.NVarChar(30), HangXe)
+        .input('loaiXe', sql.NVarChar(30), LoaiXe)
+        .input('namSX', sql.Int, NamSX)
+        .input('giaTriXe', sql.Decimal(18, 0), GiaTriXe || null)
+        .input('mucDichSuDung', sql.NVarChar(20), MucDichSuDung || null)
+        .input('tinhTrangKT', sql.NVarChar(12), TinhTrangKT || null)
+        .input('tanSuatNam', sql.Int, TanSuatNam || null)
+        .input('tanSuatBaoDuong', sql.NVarChar(20), TanSuatBaoDuong || null)
+        .input('soKhung', sql.VarChar(17), SoKhung || null)
+        .input('soMay', sql.VarChar(30), SoMay || null)
+        .input('mauSac', sql.NVarChar(20), MauSac || null)
+        .input('ghiChu', sql.NVarChar(sql.MAX), GhiChu || null)
         .query(`
           UPDATE Xe 
           SET HangXe = @hangXe, LoaiXe = @loaiXe, NamSX = @namSX, 
               GiaTriXe = @giaTriXe, MucDichSuDung = @mucDichSuDung,
               TinhTrangKT = @tinhTrangKT, TanSuatNam = @tanSuatNam,
-              TanSuatBaoDuong = @tanSuatBaoDuong
+              TanSuatBaoDuong = @tanSuatBaoDuong,
+              SoKhung_VIN = @soKhung, SoMay = @soMay,
+              MauSac = @mauSac, GhiChu = @ghiChu
           WHERE MaXe = @maXe
         `);
 
