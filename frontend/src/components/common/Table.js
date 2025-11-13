@@ -10,7 +10,7 @@ const Table = ({
   loading, 
   emptyMessage = 'Không có dữ liệu',
   pageSize = 10,
-  getRowId,
+  getRowId = (row) => row.id || row.MaTD || row.MaHS || row.MaHD || row.MaKH || row.MaXe || row.MaBH,
   ...props 
 }) => {
   // Convert columns format if needed

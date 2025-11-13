@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import assessmentService from '../../services/assessmentService';
+import ContractFormModal from './ContractFormModal';
+import AssessmentDetailModal from './AssessmentDetailModal';
 import Table from '../../components/common/Table';
 import Button from '../../components/common/Button';
 import { format } from 'date-fns';
@@ -22,10 +24,37 @@ const AssessmentList = () => {
   const [assessments, setAssessments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [selectedAssessmentId, setSelectedAssessmentId] = useState(null);
+  const [contractModalOpen, setContractModalOpen] = useState(false);
+  const [selectedAssessment, setSelectedAssessment] = useState(null);
 
   useEffect(() => {
     fetchAssessments();
   }, []);
+
+  const handleViewDetail = (id) => {
+    setSelectedAssessmentId(id);
+    setDetailModalOpen(true);
+  };
+
+  const handleCreateContract = (assessment) => {
+    setSelectedAssessment(assessment);
+    setContractModalOpen(true);
+  };
+
+  const handleReject = async (id) => {
+    if (!window.confirm('Xác nhận từ chối thẩm định này?')) return;
+    
+    try {
+      await assessmentService.update(id, { KetQua: 'Từ chối' });
+      alert('✅ Đã từ chối thẩm định!');
+      fetchAssessments();
+    } catch (error) {
+      console.error('Error:', error);
+      alert('❌ Lỗi khi từ chối thẩm định!');
+    }
+  };
 
   const fetchAssessments = async () => {
     try {
@@ -115,9 +144,21 @@ const AssessmentList = () => {
       key: 'actions',
       label: 'Thao tác',
       render: (row) => (
-        <Button variant="text" onClick={() => navigate(`/assessments/${row.MaTD}`)}>
-          Xem chi tiết
-        </Button>
+        <Stack direction="row" spacing={1}>
+          <Button variant="text" size="small" onClick={() => handleViewDetail(row.MaTD)}>
+            Chi tiết
+          </Button>
+          {row.KetQua === 'Chấp nhận' && (
+            <Button variant="contained" size="small" color="success" onClick={() => handleCreateContract(row)}>
+              Tạo HĐ
+            </Button>
+          )}
+          {row.KetQua !== 'Từ chối' && (
+            <Button variant="outlined" size="small" color="error" onClick={() => handleReject(row.MaTD)}>
+              Từ chối
+            </Button>
+          )}
+        </Stack>
       )
     }
   ];
@@ -192,6 +233,22 @@ const AssessmentList = () => {
           </Box>
         )}
       </Paper>
+
+      {/* Modals */}
+      <ContractFormModal
+        open={contractModalOpen}
+        onClose={() => setContractModalOpen(false)}
+        onSuccess={() => {
+          fetchAssessments();
+          setContractModalOpen(false);
+        }}
+        assessment={selectedAssessment}
+      />
+      <AssessmentDetailModal
+        open={detailModalOpen}
+        onClose={() => setDetailModalOpen(false)}
+        assessmentId={selectedAssessmentId}
+      />
     </Container>
   );
 };

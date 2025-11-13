@@ -23,6 +23,7 @@ import AssessmentForm from './pages/Assesments/AssessmentForm';
 import AssessmentDetail from './pages/Assesments/AssessmentDetail';
 import HoSoList from './pages/HoSoThamDinh/HoSoList';
 import ReportDashboard from './pages/Reports/ReportDashboard';
+import UserProfile from './pages/UserProfile/UserProfile';
 import { pjicoTheme } from './theme';
 import './App.css';
 
@@ -90,6 +91,9 @@ function AppRoutes() {
 
                 {/* Reports */}
                 <Route path="/reports" element={<ReportDashboard />} />
+                
+                {/* User Profile */}
+                <Route path="/profile" element={<UserProfile />} />
                 
                 <Route path="/" element={<Navigate to="/dashboard" />} />
               </Routes>

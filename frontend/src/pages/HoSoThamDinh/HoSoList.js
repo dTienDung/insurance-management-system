@@ -17,6 +17,7 @@ import {
 } from '@mui/icons-material';
 import Table from '../../components/common/Table';
 import Button from '../../components/common/Button';
+import HoSoModal from './HoSoModal';
 import hosoService from '../../services/hosoService';
 
 // Force rebuild - timestamp: 2025-11-13T07:55:00
@@ -29,6 +30,8 @@ const HoSoList = () => {
   const [filter, setFilter] = useState('all'); // placeholder for future status filter
   const [page] = useState(1);
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0 });
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedHoSoId, setSelectedHoSoId] = useState(null);
 
   useEffect(() => {
     fetchHoso();
@@ -75,6 +78,20 @@ const HoSoList = () => {
     } catch (error) {
       alert('Lỗi: ' + (error.message || error));
     }
+  };
+
+  const handleAdd = () => {
+    setSelectedHoSoId(null);
+    setModalOpen(true);
+  };
+
+  const handleModalClose = () => {
+    setModalOpen(false);
+    setSelectedHoSoId(null);
+  };
+
+  const handleModalSuccess = () => {
+    fetchHoso();
   };
 
   const columns = [
@@ -130,7 +147,7 @@ const HoSoList = () => {
           <Button 
             variant="contained" 
             startIcon={<AddIcon />}
-            onClick={() => navigate('/hoso/tao')}
+            onClick={handleAdd}
           >
             Tạo hồ sơ
           </Button>
@@ -148,6 +165,14 @@ const HoSoList = () => {
           getRowId={(row) => row.MaHS}
         />
       </Paper>
+
+      {/* Modal thêm/sửa */}
+      <HoSoModal
+        open={modalOpen}
+        onClose={handleModalClose}
+        hosoId={selectedHoSoId}
+        onSuccess={handleModalSuccess}
+      />
     </Container>
   );
 };

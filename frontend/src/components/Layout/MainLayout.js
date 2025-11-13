@@ -49,6 +49,11 @@ const MainLayout = ({ children }) => {
       label: t('menu.contracts'),
     },
     {
+      key: '/hoso',
+      icon: <FileTextOutlined />,
+      label: 'Hồ sơ',
+    },
+    {
       key: '/assessments',
       icon: <SafetyCertificateOutlined />,
       label: 'Thẩm định',

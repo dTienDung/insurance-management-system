@@ -19,11 +19,14 @@ import {
 import vehicleService from '../../services/vehicleService';
 import Button from '../../components/common/Button';
 import Table from '../../components/common/Table';
+import VehicleModal from './VehicleModal';
 
 const VehicleList = () => {
   const navigate = useNavigate();
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedVehicleId, setSelectedVehicleId] = useState(null);
 
   useEffect(() => {
     fetchVehicles();
@@ -50,6 +53,25 @@ const VehicleList = () => {
     } catch (error) {
       alert('Lỗi: ' + (error.message || error));
     }
+  };
+
+  const handleAdd = () => {
+    setSelectedVehicleId(null);
+    setModalOpen(true);
+  };
+
+  const handleEdit = (vehicleId) => {
+    setSelectedVehicleId(vehicleId);
+    setModalOpen(true);
+  };
+
+  const handleModalClose = () => {
+    setModalOpen(false);
+    setSelectedVehicleId(null);
+  };
+
+  const handleModalSuccess = () => {
+    fetchVehicles();
   };
 
   const columns = [
@@ -85,7 +107,7 @@ const VehicleList = () => {
               color="warning" 
               onClick={(e) => { 
                 e.stopPropagation(); 
-                if (row.MaXe) navigate(`/vehicles/edit/${row.MaXe}`); 
+                if (row.MaXe) handleEdit(row.MaXe); 
               }}
               disabled={!row.MaXe}
             >
@@ -126,7 +148,7 @@ const VehicleList = () => {
           <Button
             variant="contained"
             startIcon={<AddIcon />}
-            onClick={() => navigate('/vehicles/new')}
+            onClick={handleAdd}
           >
             Thêm xe
           </Button>
@@ -144,6 +166,14 @@ const VehicleList = () => {
           getRowId={(row) => row.MaXe}
         />
       </Paper>
+
+      {/* Modal thêm/sửa */}
+      <VehicleModal
+        open={modalOpen}
+        onClose={handleModalClose}
+        vehicleId={selectedVehicleId}
+        onSuccess={handleModalSuccess}
+      />
     </Container>
   );
 };

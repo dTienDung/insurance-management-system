@@ -18,12 +18,15 @@ import {
 import customerService from '../../services/customerService';
 import Button from '../../components/common/Button';
 import Table from '../../components/common/Table';
+import CustomerModal from './CustomerModal';
 import { formatDate, formatPhone } from '../../utils/formatters';
 
 const CustomerList = () => {
   const navigate = useNavigate();
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedCustomerId, setSelectedCustomerId] = useState(null);
 
   useEffect(() => {
     fetchCustomers();
@@ -50,6 +53,25 @@ const CustomerList = () => {
     } catch (error) {
       alert('Lỗi: ' + (error.message || error));
     }
+  };
+
+  const handleAdd = () => {
+    setSelectedCustomerId(null);
+    setModalOpen(true);
+  };
+
+  const handleEdit = (customerId) => {
+    setSelectedCustomerId(customerId);
+    setModalOpen(true);
+  };
+
+  const handleModalClose = () => {
+    setModalOpen(false);
+    setSelectedCustomerId(null);
+  };
+
+  const handleModalSuccess = () => {
+    fetchCustomers();
   };
 
   const columns = [
@@ -82,7 +104,7 @@ const CustomerList = () => {
               color="warning" 
               onClick={(e) => { 
                 e.stopPropagation(); 
-                if (row.MaKH) navigate(`/customers/edit/${row.MaKH}`); 
+                if (row.MaKH) handleEdit(row.MaKH); 
               }}
               disabled={!row.MaKH}
             >
@@ -123,7 +145,7 @@ const CustomerList = () => {
           <Button
             variant="contained"
             startIcon={<AddIcon />}
-            onClick={() => navigate('/customers/new')}
+            onClick={handleAdd}
           >
             Thêm khách hàng
           </Button>
@@ -141,6 +163,14 @@ const CustomerList = () => {
           getRowId={(row) => row.MaKH}
         />
       </Paper>
+
+      {/* Modal thêm/sửa */}
+      <CustomerModal
+        open={modalOpen}
+        onClose={handleModalClose}
+        customerId={selectedCustomerId}
+        onSuccess={handleModalSuccess}
+      />
     </Container>
   );
 };
