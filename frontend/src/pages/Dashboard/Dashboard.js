@@ -8,7 +8,15 @@ import {
   CardContent,
   Paper,
   Stack,
-  LinearProgress
+  LinearProgress,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Button as MuiButton,
+  IconButton,
+  Tooltip,
+  Chip
 } from '@mui/material';
 import {
   TrendingUp as TrendingUpIcon,
@@ -18,8 +26,11 @@ import {
   Description as ContractIcon,
   AttachMoney as MoneyIcon,
   CheckCircle as ActiveIcon,
-  Cancel as ExpiredIcon
+  Cancel as ExpiredIcon,
+  Refresh as RefreshIcon,
+  Visibility as VisibilityIcon
 } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import {
   BarChart,
   Bar,
@@ -39,7 +50,16 @@ import reportService from '../../services/reportService';
 import { formatCurrency, formatNumber } from '../../utils/formatters';
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState({
+    timeType: 'month',
+    month: new Date().getMonth() + 1,
+    quarter: Math.floor(new Date().getMonth() / 3) + 1,
+    year: new Date().getFullYear(),
+    package: 'all',
+    status: 'all'
+  });
   const [stats, setStats] = useState({
     totalCustomers: 0,
     totalVehicles: 0,
@@ -53,10 +73,12 @@ const Dashboard = () => {
   const [revenueData, setRevenueData] = useState([]);
   const [contractData, setContractData] = useState([]);
   const [riskData, setRiskData] = useState([]);
+  const [expiringContracts, setExpiringContracts] = useState([]);
+  const [pendingAssessments, setPendingAssessments] = useState([]);
 
   useEffect(() => {
     loadDashboardData();
-  }, []);
+  }, [filters]);
 
   const loadDashboardData = async () => {
     try {
@@ -76,12 +98,11 @@ const Dashboard = () => {
       });
 
       // Load revenue data
-      const year = new Date().getFullYear();
-      const revenueRes = await reportService.getMonthlyRevenue({ year });
+      const revenueRes = await reportService.getMonthlyRevenue({ year: filters.year });
       const revenueMonthly = revenueRes.data || [];
       setRevenueData(revenueMonthly.map(item => ({
         month: `T${item.thang}`,
-        doanhThu: item.doanhThu / 1000000, // Convert to millions
+        doanhThu: item.doanhThu / 1000000,
         soHopDong: item.soHopDong
       })));
 
@@ -95,17 +116,40 @@ const Dashboard = () => {
 
       // Load risk assessment data
       const riskRes = await reportService.getAssessmentsByRiskLevel();
-      const riskByLevel = riskRes.data || [];
+      const riskByLevel = riskRes.data?.summary || [];
       setRiskData(riskByLevel.map(item => ({
         name: item.RiskLevel,
-        value: item.SoLuong
+        value: item.SoLuongHoSo
       })));
+
+      // Load expiring contracts (next 15 days)
+      const expiringRes = await reportService.getExpiringContracts({ days: 15 });
+      setExpiringContracts((expiringRes.data || []).slice(0, 10));
+
+      // Load pending assessments
+      const pendingRes = await reportService.getAssessmentsByRiskLevel({ trangThai: 'Chờ thẩm định' });
+      setPendingAssessments((pendingRes.data?.details || []).slice(0, 10));
 
     } catch (error) {
       console.error('Error loading dashboard:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleApplyFilter = () => {
+    loadDashboardData();
+  };
+
+  const handleResetFilter = () => {
+    setFilters({
+      timeType: 'month',
+      month: new Date().getMonth() + 1,
+      quarter: Math.floor(new Date().getMonth() / 3) + 1,
+      year: new Date().getFullYear(),
+      package: 'all',
+      status: 'all'
+    });
   };
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
@@ -174,14 +218,134 @@ const Dashboard = () => {
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
       {/* Header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" fontWeight="bold" gutterBottom>
-          Dashboard
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Tổng quan hệ thống quản lý bảo hiểm
-        </Typography>
+      <Box sx={{ mb: 3 }}>
+        <Stack direction="row" justifyContent="space-between" alignItems="center">
+          <Box>
+            <Typography variant="h4" fontWeight="bold" gutterBottom>
+              Dashboard
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Tổng quan hệ thống quản lý bảo hiểm
+            </Typography>
+          </Box>
+          <IconButton onClick={loadDashboardData} color="primary">
+            <RefreshIcon />
+          </IconButton>
+        </Stack>
       </Box>
+
+      {/* Filter Bar */}
+      <Paper sx={{ p: 2, mb: 3 }}>
+        <Grid container spacing={2} alignItems="center">
+          <Grid item xs={12} md={2}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Loại thời gian</InputLabel>
+              <Select
+                value={filters.timeType}
+                label="Loại thời gian"
+                onChange={(e) => setFilters({ ...filters, timeType: e.target.value })}
+              >
+                <MenuItem value="month">Tháng</MenuItem>
+                <MenuItem value="quarter">Quý</MenuItem>
+                <MenuItem value="year">Năm</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+
+          {filters.timeType === 'month' && (
+            <Grid item xs={12} md={2}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Tháng</InputLabel>
+                <Select
+                  value={filters.month}
+                  label="Tháng"
+                  onChange={(e) => setFilters({ ...filters, month: e.target.value })}
+                >
+                  {Array.from({ length: 12 }, (_, i) => (
+                    <MenuItem key={i + 1} value={i + 1}>Tháng {i + 1}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+          )}
+
+          {filters.timeType === 'quarter' && (
+            <Grid item xs={12} md={2}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Quý</InputLabel>
+                <Select
+                  value={filters.quarter}
+                  label="Quý"
+                  onChange={(e) => setFilters({ ...filters, quarter: e.target.value })}
+                >
+                  {Array.from({ length: 4 }, (_, i) => (
+                    <MenuItem key={i + 1} value={i + 1}>Quý {i + 1}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+          )}
+
+          <Grid item xs={12} md={2}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Năm</InputLabel>
+              <Select
+                value={filters.year}
+                label="Năm"
+                onChange={(e) => setFilters({ ...filters, year: e.target.value })}
+              >
+                {Array.from({ length: 5 }, (_, i) => {
+                  const year = new Date().getFullYear() - i;
+                  return <MenuItem key={year} value={year}>{year}</MenuItem>;
+                })}
+              </Select>
+            </FormControl>
+          </Grid>
+
+          <Grid item xs={12} md={2}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Gói bảo hiểm</InputLabel>
+              <Select
+                value={filters.package}
+                label="Gói bảo hiểm"
+                onChange={(e) => setFilters({ ...filters, package: e.target.value })}
+              >
+                <MenuItem value="all">Tất cả</MenuItem>
+                <MenuItem value="coban">Cơ Bản</MenuItem>
+                <MenuItem value="nangcao">Nâng Cao</MenuItem>
+                <MenuItem value="toandien">Toàn Diện</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+
+          <Grid item xs={12} md={2}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Trạng thái</InputLabel>
+              <Select
+                value={filters.status}
+                label="Trạng thái"
+                onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+              >
+                <MenuItem value="all">Tất cả</MenuItem>
+                <MenuItem value="active">Hiệu lực</MenuItem>
+                <MenuItem value="pending">Chờ duyệt</MenuItem>
+                <MenuItem value="expired">Hết hạn</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+
+          <Grid item xs={12} md={2}>
+            <Stack direction="row" spacing={1}>
+              <MuiButton variant="contained" fullWidth onClick={handleApplyFilter}>
+                Áp dụng
+              </MuiButton>
+              <MuiButton variant="outlined" onClick={handleResetFilter}>
+                Xóa
+              </MuiButton>
+            </Stack>
+          </Grid>
+        </Grid>
+      </Paper>
 
       {/* Stats Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
@@ -352,6 +516,124 @@ const Dashboard = () => {
                 <Line type="monotone" dataKey="soHopDong" stroke="#8884d8" name="Số hợp đồng" />
               </LineChart>
             </ResponsiveContainer>
+          </Paper>
+        </Grid>
+
+        {/* Expiring Contracts Table */}
+        <Grid item xs={12} md={6}>
+          <Paper sx={{ p: 3 }}>
+            <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
+              <Typography variant="h6" fontWeight="bold">
+                Hợp đồng sắp hết hạn (15 ngày)
+              </Typography>
+              <MuiButton size="small" onClick={() => navigate('/contracts')}>
+                Xem tất cả
+              </MuiButton>
+            </Stack>
+            <Box sx={{ maxHeight: 320, overflow: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead style={{ position: 'sticky', top: 0, backgroundColor: '#f5f5f5', zIndex: 1 }}>
+                  <tr>
+                    <th style={{ padding: '8px', textAlign: 'left', fontSize: '0.875rem' }}>Số HĐ</th>
+                    <th style={{ padding: '8px', textAlign: 'left', fontSize: '0.875rem' }}>Khách hàng</th>
+                    <th style={{ padding: '8px', textAlign: 'left', fontSize: '0.875rem' }}>Biển số</th>
+                    <th style={{ padding: '8px', textAlign: 'left', fontSize: '0.875rem' }}>Hết hạn</th>
+                    <th style={{ padding: '8px', textAlign: 'center', fontSize: '0.875rem' }}>Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {expiringContracts.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} style={{ padding: '16px', textAlign: 'center', color: '#999' }}>
+                        Không có hợp đồng sắp hết hạn
+                      </td>
+                    </tr>
+                  ) : (
+                    expiringContracts.map((contract, index) => (
+                      <tr key={index} style={{ borderBottom: '1px solid #eee' }}>
+                        <td style={{ padding: '8px', fontSize: '0.875rem' }}>{contract.SoHD || contract.MaHD}</td>
+                        <td style={{ padding: '8px', fontSize: '0.875rem' }}>{contract.TenKH}</td>
+                        <td style={{ padding: '8px', fontSize: '0.875rem' }}>
+                          <Chip label={contract.BienSo || '-'} size="small" color="primary" />
+                        </td>
+                        <td style={{ padding: '8px', fontSize: '0.875rem' }}>
+                          {contract.NgayKetThuc ? formatDate(contract.NgayKetThuc) : '-'}
+                        </td>
+                        <td style={{ padding: '8px', textAlign: 'center' }}>
+                          <Tooltip title="Xem chi tiết">
+                            <IconButton 
+                              size="small" 
+                              onClick={() => navigate(`/contracts/${contract.MaHD}`)}
+                            >
+                              <VisibilityIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </Box>
+          </Paper>
+        </Grid>
+
+        {/* Pending Assessments Table */}
+        <Grid item xs={12} md={6}>
+          <Paper sx={{ p: 3 }}>
+            <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
+              <Typography variant="h6" fontWeight="bold">
+                Hồ sơ chờ thẩm định
+              </Typography>
+              <MuiButton size="small" onClick={() => navigate('/assessments')}>
+                Xem tất cả
+              </MuiButton>
+            </Stack>
+            <Box sx={{ maxHeight: 320, overflow: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead style={{ position: 'sticky', top: 0, backgroundColor: '#f5f5f5', zIndex: 1 }}>
+                  <tr>
+                    <th style={{ padding: '8px', textAlign: 'left', fontSize: '0.875rem' }}>Mã HS</th>
+                    <th style={{ padding: '8px', textAlign: 'left', fontSize: '0.875rem' }}>Khách hàng</th>
+                    <th style={{ padding: '8px', textAlign: 'left', fontSize: '0.875rem' }}>Biển số</th>
+                    <th style={{ padding: '8px', textAlign: 'left', fontSize: '0.875rem' }}>Ngày tạo</th>
+                    <th style={{ padding: '8px', textAlign: 'center', fontSize: '0.875rem' }}>Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pendingAssessments.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} style={{ padding: '16px', textAlign: 'center', color: '#999' }}>
+                        Không có hồ sơ chờ thẩm định
+                      </td>
+                    </tr>
+                  ) : (
+                    pendingAssessments.map((item, index) => (
+                      <tr key={index} style={{ borderBottom: '1px solid #eee' }}>
+                        <td style={{ padding: '8px', fontSize: '0.875rem' }}>{item.MaHS}</td>
+                        <td style={{ padding: '8px', fontSize: '0.875rem' }}>{item.HoTen}</td>
+                        <td style={{ padding: '8px', fontSize: '0.875rem' }}>
+                          <Chip label={item.BienSo || '-'} size="small" color="warning" />
+                        </td>
+                        <td style={{ padding: '8px', fontSize: '0.875rem' }}>
+                          {item.NgayLap ? formatDate(item.NgayLap) : '-'}
+                        </td>
+                        <td style={{ padding: '8px', textAlign: 'center' }}>
+                          <Tooltip title="Xem chi tiết">
+                            <IconButton 
+                              size="small" 
+                              onClick={() => navigate(`/hoso/${item.MaHS}`)}
+                            >
+                              <VisibilityIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </Box>
           </Paper>
         </Grid>
       </Grid>

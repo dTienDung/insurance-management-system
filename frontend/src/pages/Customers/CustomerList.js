@@ -19,6 +19,7 @@ import customerService from '../../services/customerService';
 import Button from '../../components/common/Button';
 import Table from '../../components/common/Table';
 import CustomerModal from './CustomerModal';
+import CustomerDetailModal from './CustomerDetailModal';
 import { formatDate, formatPhone } from '../../utils/formatters';
 
 const CustomerList = () => {
@@ -27,6 +28,8 @@ const CustomerList = () => {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState(null);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [detailCustomerId, setDetailCustomerId] = useState(null);
 
   useEffect(() => {
     fetchCustomers();
@@ -74,6 +77,11 @@ const CustomerList = () => {
     fetchCustomers();
   };
 
+  const handleViewDetail = (customerId) => {
+    setDetailCustomerId(customerId);
+    setDetailModalOpen(true);
+  };
+
   const columns = [
     { field: 'MaKH', headerName: 'Mã KH', width: 110 },
     { field: 'HoTen', headerName: 'Họ và tên', width: 200 },
@@ -92,7 +100,7 @@ const CustomerList = () => {
             <IconButton 
               size="small" 
               color="primary" 
-              onClick={() => row.MaKH && navigate(`/customers/${row.MaKH}`)}
+              onClick={() => row.MaKH && handleViewDetail(row.MaKH)}
               disabled={!row.MaKH}
             >
               <VisibilityIcon fontSize="small" />
@@ -170,6 +178,13 @@ const CustomerList = () => {
         onClose={handleModalClose}
         customerId={selectedCustomerId}
         onSuccess={handleModalSuccess}
+      />
+
+      {/* Modal xem chi tiết */}
+      <CustomerDetailModal
+        open={detailModalOpen}
+        onClose={() => setDetailModalOpen(false)}
+        customerId={detailCustomerId}
       />
     </Container>
   );

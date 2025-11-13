@@ -18,6 +18,7 @@ import {
 import Table from '../../components/common/Table';
 import Button from '../../components/common/Button';
 import HoSoModal from './HoSoModal';
+import HoSoDetailModal from './HoSoDetailModal';
 import hosoService from '../../services/hosoService';
 
 // Force rebuild - timestamp: 2025-11-13T07:55:00
@@ -32,6 +33,8 @@ const HoSoList = () => {
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0 });
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedHoSoId, setSelectedHoSoId] = useState(null);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [detailHoSoId, setDetailHoSoId] = useState(null);
 
   useEffect(() => {
     fetchHoso();
@@ -94,6 +97,11 @@ const HoSoList = () => {
     fetchHoso();
   };
 
+  const handleViewDetail = (maHS) => {
+    setDetailHoSoId(maHS);
+    setDetailModalOpen(true);
+  };
+
   const columns = [
     { field: 'MaHS', headerName: 'Mã HS', width: 110 },
     { field: 'TenKhach', headerName: 'Khách hàng', width: 180, renderCell: row => row.TenKhach || row.MaKH },
@@ -117,7 +125,7 @@ const HoSoList = () => {
       renderCell: (row) => (
         <Stack direction="row" spacing={0.5}>
           <Tooltip title="Xem chi tiết">
-            <IconButton size="small" color="primary" onClick={() => navigate(`/hoso/${row.MaHS}`)}>
+            <IconButton size="small" color="primary" onClick={() => handleViewDetail(row.MaHS)}>
               <VisibilityIcon fontSize="small" />
             </IconButton>
           </Tooltip>
@@ -172,6 +180,13 @@ const HoSoList = () => {
         onClose={handleModalClose}
         hosoId={selectedHoSoId}
         onSuccess={handleModalSuccess}
+      />
+
+      {/* Modal xem chi tiết */}
+      <HoSoDetailModal
+        open={detailModalOpen}
+        onClose={() => setDetailModalOpen(false)}
+        hosoId={detailHoSoId}
       />
     </Container>
   );

@@ -20,6 +20,7 @@ import vehicleService from '../../services/vehicleService';
 import Button from '../../components/common/Button';
 import Table from '../../components/common/Table';
 import VehicleModal from './VehicleModal';
+import VehicleDetailModal from './VehicleDetailModal';
 
 const VehicleList = () => {
   const navigate = useNavigate();
@@ -27,6 +28,8 @@ const VehicleList = () => {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedVehicleId, setSelectedVehicleId] = useState(null);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [detailVehicleId, setDetailVehicleId] = useState(null);
 
   useEffect(() => {
     fetchVehicles();
@@ -74,6 +77,11 @@ const VehicleList = () => {
     fetchVehicles();
   };
 
+  const handleViewDetail = (vehicleId) => {
+    setDetailVehicleId(vehicleId);
+    setDetailModalOpen(true);
+  };
+
   const columns = [
     { field: 'MaXe', headerName: 'Mã xe', width: 100 },
     { field: 'BienSo', headerName: 'Biển số', width: 130, renderCell: (row) => (
@@ -95,7 +103,7 @@ const VehicleList = () => {
             <IconButton 
               size="small" 
               color="primary" 
-              onClick={() => row.MaXe && navigate(`/vehicles/${row.MaXe}`)}
+              onClick={() => row.MaXe && handleViewDetail(row.MaXe)}
               disabled={!row.MaXe}
             >
               <VisibilityIcon fontSize="small" />
@@ -173,6 +181,13 @@ const VehicleList = () => {
         onClose={handleModalClose}
         vehicleId={selectedVehicleId}
         onSuccess={handleModalSuccess}
+      />
+
+      {/* Modal xem chi tiết */}
+      <VehicleDetailModal
+        open={detailModalOpen}
+        onClose={() => setDetailModalOpen(false)}
+        vehicleId={detailVehicleId}
       />
     </Container>
   );
