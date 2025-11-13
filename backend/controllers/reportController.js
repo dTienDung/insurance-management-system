@@ -1196,6 +1196,316 @@ class ReportController {
       next(error);
     }
   }
+
+  // ============================================
+  // NEW REPORT SYSTEM - 4 TABS
+  // ============================================
+
+  /**
+   * Lấy dữ liệu Dashboard Nghiệp vụ (Tab 1)
+   */
+  async getOperationalDashboard(req, res) {
+    try {
+      const { timeType, year, month, quarter, status, package: packageFilter } = req.query;
+      
+      const pool = await getConnection();
+      const request = pool.request();
+
+      // Build WHERE clause based on filters
+      let whereClause = '1=1';
+      
+      if (timeType === 'month' && year && month) {
+        whereClause += ' AND YEAR(hd.NgayKy) = @year AND MONTH(hd.NgayKy) = @month';
+        request.input('year', sql.Int, parseInt(year));
+        request.input('month', sql.Int, parseInt(month));
+      } else if (timeType === 'quarter' && year && quarter) {
+        whereClause += ' AND YEAR(hd.NgayKy) = @year AND DATEPART(QUARTER, hd.NgayKy) = @quarter';
+        request.input('year', sql.Int, parseInt(year));
+        request.input('quarter', sql.Int, parseInt(quarter));
+      } else if (timeType === 'year' && year) {
+        whereClause += ' AND YEAR(hd.NgayKy) = @year';
+        request.input('year', sql.Int, parseInt(year));
+      }
+
+      if (status && status !== 'all') {
+        whereClause += ' AND hd.TrangThai = @status';
+        request.input('status', sql.NVarChar, status);
+      }
+
+      if (packageFilter && packageFilter !== 'all') {
+        whereClause += ' AND hd.MaGoi = @package';
+        request.input('package', sql.NVarChar, packageFilter);
+      }
+
+      // KPIs
+      const kpis = await request.query(`
+        SELECT 
+          COUNT(*) as totalContracts,
+          COUNT(CASE WHEN DATEDIFF(day, hd.NgayKy, GETDATE()) <= 30 THEN 1 END) as newContracts,
+          COUNT(CASE WHEN hd.TrangThai IN (N'Hiệu lực', N'ACTIVE') THEN 1 END) as activeContracts,
+          COUNT(CASE WHEN DATEDIFF(day, GETDATE(), hd.NgayHetHan) BETWEEN 0 AND 30 THEN 1 END) as expiringContracts,
+          SUM(hd.PhiBaoHiem) as totalRevenue
+        FROM HopDong hd
+        WHERE ${whereClause}
+      `);
+
+      // Revenue trend (last 6 months)
+      const revenueTrend = await pool.request().query(`
+        SELECT TOP 6
+          FORMAT(hd.NgayKy, 'yyyy-MM') as month,
+          SUM(hd.PhiBaoHiem) as revenue
+        FROM HopDong hd
+        WHERE hd.TrangThai IN (N'Hiệu lực', N'ACTIVE')
+        GROUP BY FORMAT(hd.NgayKy, 'yyyy-MM')
+        ORDER BY month DESC
+      `);
+
+      // Revenue by package
+      const revenueByPackage = await pool.request().query(`
+        SELECT 
+          gb.TenGoi as packageName,
+          SUM(hd.PhiBaoHiem) as revenue,
+          COUNT(hd.MaHD) as contractCount
+        FROM HopDong hd
+        INNER JOIN GoiBaoHiem gb ON hd.MaGoi = gb.MaGoi
+        WHERE hd.TrangThai IN (N'Hiệu lực', N'ACTIVE')
+        GROUP BY gb.TenGoi
+      `);
+
+      // Contract list
+      const contracts = await request.query(`
+        SELECT TOP 100
+          hd.SoHD as contractNumber,
+          kh.HoTen as customerName,
+          bs.BienSo as licensePlate,
+          gb.TenGoi as packageName,
+          hd.NgayKy as startDate,
+          hd.NgayHetHan as endDate,
+          hd.TrangThai as status,
+          hd.PhiBaoHiem as premium
+        FROM HopDong hd
+        INNER JOIN KhachHang kh ON hd.MaKH = kh.MaKH
+        LEFT JOIN GoiBaoHiem gb ON hd.MaGoi = gb.MaGoi
+        INNER JOIN Xe x ON hd.MaXe = x.MaXe
+        LEFT JOIN KhachHangXe khxe ON x.MaXe = khxe.MaXe AND kh.MaKH = khxe.MaKH
+        LEFT JOIN BienSoXe bs ON khxe.MaKH = bs.MaKH AND bs.TrangThai = N'Đang sử dụng'
+        WHERE ${whereClause}
+        ORDER BY hd.NgayKy DESC
+      `);
+
+      res.json({
+        success: true,
+        data: {
+          kpis: kpis.recordset[0],
+          revenueTrend: revenueTrend.recordset.reverse(),
+          revenueByPackage: revenueByPackage.recordset,
+          contracts: contracts.recordset
+        }
+      });
+    } catch (error) {
+      console.error('Error getting operational dashboard:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Không thể lấy dữ liệu dashboard nghiệp vụ'
+      });
+    }
+  }
+
+  /**
+   * Lấy dữ liệu Báo cáo Doanh thu (Tab 2)
+   */
+  async getRevenueReportData(req, res) {
+    try {
+      const { timeType, year, month, quarter, package: packageFilter } = req.query;
+      
+      const pool = await getConnection();
+      const request = pool.request();
+
+      let periodStart, periodEnd;
+      if (timeType === 'month') {
+        periodStart = `${year}-${String(month).padStart(2, '0')}-01`;
+        const nextMonth = parseInt(month) === 12 ? 1 : parseInt(month) + 1;
+        const nextYear = parseInt(month) === 12 ? parseInt(year) + 1 : parseInt(year);
+        periodEnd = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`;
+      } else if (timeType === 'quarter') {
+        const startMonth = (parseInt(quarter) - 1) * 3 + 1;
+        periodStart = `${year}-${String(startMonth).padStart(2, '0')}-01`;
+        const endMonth = startMonth + 3;
+        periodEnd = `${year}-${String(endMonth).padStart(2, '0')}-01`;
+      } else {
+        periodStart = `${year}-01-01`;
+        periodEnd = `${parseInt(year) + 1}-01-01`;
+      }
+
+      request.input('periodStart', sql.Date, periodStart);
+      request.input('periodEnd', sql.Date, periodEnd);
+
+      // Total revenue
+      const revenue = await request.query(`
+        SELECT 
+          SUM(hd.PhiBaoHiem) as totalRevenue,
+          COUNT(hd.MaHD) as contractCount
+        FROM HopDong hd
+        WHERE hd.NgayKy >= @periodStart AND hd.NgayKy < @periodEnd
+          AND hd.TrangThai IN (N'Hiệu lực', N'ACTIVE')
+      `);
+
+      // Package breakdown
+      const breakdown = await pool.request()
+        .input('periodStart', sql.Date, periodStart)
+        .input('periodEnd', sql.Date, periodEnd)
+        .query(`
+          SELECT 
+            gb.TenGoi as package,
+            SUM(hd.PhiBaoHiem) as revenue,
+            CAST(SUM(hd.PhiBaoHiem) * 100.0 / (SELECT SUM(PhiBaoHiem) FROM HopDong WHERE NgayKy >= @periodStart AND NgayKy < @periodEnd AND TrangThai IN (N'Hiệu lực', N'ACTIVE')) AS DECIMAL(5,2)) as percentage
+          FROM HopDong hd
+          INNER JOIN GoiBaoHiem gb ON hd.MaGoi = gb.MaGoi
+          WHERE hd.NgayKy >= @periodStart AND hd.NgayKy < @periodEnd
+            AND hd.TrangThai IN (N'Hiệu lực', N'ACTIVE')
+          GROUP BY gb.TenGoi
+        `);
+
+      res.json({
+        success: true,
+        data: {
+          totalRevenue: revenue.recordset[0].totalRevenue || 0,
+          contractCount: revenue.recordset[0].contractCount || 0,
+          packageBreakdown: breakdown.recordset
+        }
+      });
+    } catch (error) {
+      console.error('Error getting revenue report data:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Không thể lấy dữ liệu báo cáo doanh thu'
+      });
+    }
+  }
+
+  /**
+   * Lấy dữ liệu Báo cáo Tái tục (Tab 3)
+   */
+  async getRenewalReportData(req, res) {
+    try {
+      const { timeType, year, month, quarter } = req.query;
+      
+      const pool = await getConnection();
+      const request = pool.request();
+
+      let periodStart, periodEnd;
+      if (timeType === 'month') {
+        periodStart = `${year}-${String(month).padStart(2, '0')}-01`;
+        const nextMonth = parseInt(month) === 12 ? 1 : parseInt(month) + 1;
+        const nextYear = parseInt(month) === 12 ? parseInt(year) + 1 : parseInt(year);
+        periodEnd = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`;
+      } else if (timeType === 'quarter') {
+        const startMonth = (parseInt(quarter) - 1) * 3 + 1;
+        periodStart = `${year}-${String(startMonth).padStart(2, '0')}-01`;
+        const endMonth = startMonth + 3;
+        periodEnd = `${year}-${String(endMonth).padStart(2, '0')}-01`;
+      } else {
+        periodStart = `${year}-01-01`;
+        periodEnd = `${parseInt(year) + 1}-01-01`;
+      }
+
+      request.input('periodStart', sql.Date, periodStart);
+      request.input('periodEnd', sql.Date, periodEnd);
+
+      // Renewal stats
+      const stats = await request.query(`
+        SELECT 
+          COUNT(DISTINCT hd.MaHD) as totalExpiring,
+          COUNT(DISTINCT hr.MaHD_Moi) as renewed
+        FROM HopDong hd
+        LEFT JOIN HopDongRelation hr ON hd.MaHD = hr.MaHD_Goc AND hr.LoaiQuanHe = 'TAI_TUC'
+        WHERE hd.NgayHetHan >= @periodStart AND hd.NgayHetHan < @periodEnd
+      `);
+
+      const renewalRate = stats.recordset[0].totalExpiring > 0 
+        ? (stats.recordset[0].renewed / stats.recordset[0].totalExpiring * 100).toFixed(2)
+        : 0;
+
+      res.json({
+        success: true,
+        data: {
+          totalExpiring: stats.recordset[0].totalExpiring || 0,
+          renewed: stats.recordset[0].renewed || 0,
+          notRenewed: (stats.recordset[0].totalExpiring || 0) - (stats.recordset[0].renewed || 0),
+          renewalRate: parseFloat(renewalRate)
+        }
+      });
+    } catch (error) {
+      console.error('Error getting renewal report data:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Không thể lấy dữ liệu báo cáo tái tục'
+      });
+    }
+  }
+
+  /**
+   * Lấy dữ liệu Báo cáo Hỗ trợ Thẩm định (Tab 4)
+   */
+  async getAssessmentReportData(req, res) {
+    try {
+      const { timeType, year, month, quarter, riskLevel } = req.query;
+      
+      const pool = await getConnection();
+      const request = pool.request();
+
+      let periodStart, periodEnd;
+      if (timeType === 'month') {
+        periodStart = `${year}-${String(month).padStart(2, '0')}-01`;
+        const nextMonth = parseInt(month) === 12 ? 1 : parseInt(month) + 1;
+        const nextYear = parseInt(month) === 12 ? parseInt(year) + 1 : parseInt(year);
+        periodEnd = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`;
+      } else if (timeType === 'quarter') {
+        const startMonth = (parseInt(quarter) - 1) * 3 + 1;
+        periodStart = `${year}-${String(startMonth).padStart(2, '0')}-01`;
+        const endMonth = startMonth + 3;
+        periodEnd = `${year}-${String(endMonth).padStart(2, '0')}-01`;
+      } else {
+        periodStart = `${year}-01-01`;
+        periodEnd = `${parseInt(year) + 1}-01-01`;
+      }
+
+      request.input('periodStart', sql.Date, periodStart);
+      request.input('periodEnd', sql.Date, periodEnd);
+
+      // Risk distribution
+      const distribution = await request.query(`
+        SELECT 
+          RiskLevel as level,
+          COUNT(*) as count,
+          CAST(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM HoSoThamDinh WHERE NgayLap >= @periodStart AND NgayLap < @periodEnd) AS DECIMAL(5,2)) as percentage
+        FROM HoSoThamDinh
+        WHERE NgayLap >= @periodStart AND NgayLap < @periodEnd
+        GROUP BY RiskLevel
+        ORDER BY 
+          CASE RiskLevel 
+            WHEN 'LOW' THEN 1
+            WHEN 'MEDIUM' THEN 2
+            WHEN 'HIGH' THEN 3
+            ELSE 4
+          END
+      `);
+
+      res.json({
+        success: true,
+        data: {
+          totalAssessments: distribution.recordset.reduce((sum, r) => sum + r.count, 0),
+          riskDistribution: distribution.recordset
+        }
+      });
+    } catch (error) {
+      console.error('Error getting assessment report data:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Không thể lấy dữ liệu báo cáo thẩm định'
+      });
+    }
+  }
 }
 
 module.exports = new ReportController();

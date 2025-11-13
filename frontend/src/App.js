@@ -22,7 +22,7 @@ import AssessmentList from './pages/Assesments/AssessmentList';
 import AssessmentForm from './pages/Assesments/AssessmentForm';
 import AssessmentDetail from './pages/Assesments/AssessmentDetail';
 import HoSoList from './pages/HoSoThamDinh/HoSoList';
-import ReportDashboard from './pages/Reports/ReportDashboard';
+import ReportDashboardNew from './pages/Reports/ReportDashboardNew';
 import UserProfile from './pages/UserProfile/UserProfile';
 import { pjicoTheme } from './theme';
 import './App.css';
@@ -90,7 +90,7 @@ function AppRoutes() {
                 <Route path="/hoso/:id" element={<AssessmentDetail />} />
 
                 {/* Reports */}
-                <Route path="/reports" element={<ReportDashboard />} />
+                <Route path="/reports" element={<ReportDashboardNew />} />
                 
                 {/* User Profile */}
                 <Route path="/profile" element={<UserProfile />} />

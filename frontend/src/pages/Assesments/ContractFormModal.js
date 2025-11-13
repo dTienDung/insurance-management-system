@@ -17,15 +17,18 @@ import {
   FormHelperText,
   Divider,
   Paper,
-  Stack
+  Stack,
+  CircularProgress
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import contractService from '../../services/contractService';
+import packageService from '../../services/packageService';
 
 const ContractFormModal = ({ open, onClose, onSuccess, assessment }) => {
   const [formData, setFormData] = useState({
     MaTD: '',
-    GoiBaoHiem: 'Cơ bản',
+    MaGoi: '',
+    GoiBaoHiem: '',
     PhiBaoHiem: 0,
     NgayBatDau: new Date().toISOString().split('T')[0],
     NgayKetThuc: '',
@@ -34,14 +37,39 @@ const ContractFormModal = ({ open, onClose, onSuccess, assessment }) => {
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [loadingPackages, setLoadingPackages] = useState(false);
   const [feeDetails, setFeeDetails] = useState(null);
+  const [packages, setPackages] = useState([]);
 
-  // Package details based on design doc
-  const packages = {
-    'Cơ bản': { base: 3000000, description: 'Bảo hiểm bắt buộc trách nhiệm dân sự' },
-    'Nâng cao': { base: 5000000, description: 'TNDS + Thiệt hại vật chất' },
-    'Cao cấp': { base: 8000000, description: 'TNDS + Vật chất + Người ngồi trên xe' },
-    'VIP': { base: 12000000, description: 'Toàn diện + Hỗ trợ 24/7' }
+  // Load packages from backend
+  useEffect(() => {
+    if (open) {
+      loadPackages();
+    }
+  }, [open]);
+
+  const loadPackages = async () => {
+    try {
+      setLoadingPackages(true);
+      const response = await packageService.getAll();
+      const packageList = response.data || response.list || response || [];
+      setPackages(packageList);
+      
+      // Set default package if available
+      if (packageList.length > 0 && !formData.MaGoi) {
+        setFormData(prev => ({
+          ...prev,
+          MaGoi: packageList[0].MaGoi,
+          GoiBaoHiem: packageList[0].TenGoi
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading packages:', error);
+      // Fallback to empty array
+      setPackages([]);
+    } finally {
+      setLoadingPackages(false);
+    }
   };
 
   useEffect(() => {
@@ -56,18 +84,26 @@ const ContractFormModal = ({ open, onClose, onSuccess, assessment }) => {
   }, [assessment, open]);
 
   useEffect(() => {
-    if (formData.GoiBaoHiem && assessment) {
+    if (formData.MaGoi && assessment && packages.length > 0) {
       calculateFee();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formData.GoiBaoHiem, assessment]);
+  }, [formData.MaGoi, assessment, packages]);
 
   const calculateFee = () => {
-    const pkg = packages[formData.GoiBaoHiem];
-    if (!pkg) return;
+    const pkg = packages.find(p => p.MaGoi === formData.MaGoi);
+    if (!pkg || !assessment) return;
 
-    // Base fee from package
-    let fee = pkg.base;
+    // Giá trị xe (ước tính)
+    const vehicleValue = assessment.GiaTriXe || 200000000; // 200M default
+    
+    // Tính phí cơ bản = Giá trị xe × Tỷ lệ phí
+    const baseRate = pkg.TyLePhiCoBan || 1.5;
+    let baseFee = (vehicleValue * baseRate) / 100;
+
+    // Tính phí cơ bản = Giá trị xe × Tỷ lệ phí
+    const baseRate = pkg.TyLePhiCoBan || 1.5;
+    let baseFee = (vehicleValue * baseRate) / 100;
 
     // Adjust by risk level (from assessment)
     const riskMultiplier = {
@@ -77,27 +113,44 @@ const ContractFormModal = ({ open, onClose, onSuccess, assessment }) => {
       'Rất cao': 2.0
     };
     const multiplier = riskMultiplier[assessment.MucDoRuiRo] || 1.0;
-    fee = fee * multiplier;
+    const riskAdjustedFee = baseFee * multiplier;
 
-    // Adjust by age (if available in assessment data)
-    // Assuming we have vehicle age info
+    // Adjust by vehicle age
     const vehicleAge = new Date().getFullYear() - (assessment.NamSX || 2020);
-    if (vehicleAge > 10) fee = fee * 1.3;
-    else if (vehicleAge > 5) fee = fee * 1.15;
+    let ageMultiplier = 1.0;
+    if (vehicleAge > 10) ageMultiplier = 1.3;
+    else if (vehicleAge > 5) ageMultiplier = 1.15;
+    
+    const finalFee = riskAdjustedFee * ageMultiplier;
 
     setFeeDetails({
-      baseFee: pkg.base,
+      baseFee: Math.round(baseFee),
       riskMultiplier: multiplier,
-      ageAdjustment: vehicleAge > 10 ? 1.3 : (vehicleAge > 5 ? 1.15 : 1.0),
-      finalFee: Math.round(fee)
+      riskAdjustedFee: Math.round(riskAdjustedFee),
+      ageMultiplier: ageMultiplier,
+      finalFee: Math.round(finalFee),
+      vehicleValue: vehicleValue,
+      baseRate: baseRate
     });
 
-    setFormData(prev => ({ ...prev, PhiBaoHiem: Math.round(fee) }));
+    setFormData(prev => ({ ...prev, PhiBaoHiem: Math.round(finalFee) }));
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Nếu chọn gói mới, cập nhật cả MaGoi và GoiBaoHiem
+    if (name === 'MaGoi') {
+      const selectedPkg = packages.find(p => p.MaGoi === value);
+      setFormData(prev => ({ 
+        ...prev, 
+        MaGoi: value,
+        GoiBaoHiem: selectedPkg?.TenGoi || ''
+      }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
+    
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -106,7 +159,7 @@ const ContractFormModal = ({ open, onClose, onSuccess, assessment }) => {
   const validate = () => {
     const newErrors = {};
     if (!formData.MaTD) newErrors.MaTD = 'Thiếu mã thẩm định';
-    if (!formData.GoiBaoHiem) newErrors.GoiBaoHiem = 'Vui lòng chọn gói bảo hiểm';
+    if (!formData.MaGoi) newErrors.MaGoi = 'Vui lòng chọn gói bảo hiểm';
     if (!formData.NgayBatDau) newErrors.NgayBatDau = 'Vui lòng chọn ngày bắt đầu';
     if (!formData.NgayKetThuc) newErrors.NgayKetThuc = 'Vui lòng chọn ngày kết thúc';
     if (formData.NgayBatDau && formData.NgayKetThuc && new Date(formData.NgayKetThuc) <= new Date(formData.NgayBatDau)) {
@@ -140,7 +193,8 @@ const ContractFormModal = ({ open, onClose, onSuccess, assessment }) => {
   const handleClose = () => {
     setFormData({
       MaTD: '',
-      GoiBaoHiem: 'Cơ bản',
+      MaGoi: '',
+      GoiBaoHiem: '',
       PhiBaoHiem: 0,
       NgayBatDau: new Date().toISOString().split('T')[0],
       NgayKetThuc: '',
@@ -187,24 +241,36 @@ const ContractFormModal = ({ open, onClose, onSuccess, assessment }) => {
         <Grid container spacing={3}>
           {/* Package Selection */}
           <Grid item xs={12}>
-            <FormControl fullWidth error={!!errors.GoiBaoHiem}>
+            <FormControl fullWidth error={!!errors.MaGoi}>
               <InputLabel>Gói bảo hiểm *</InputLabel>
               <Select
-                name="GoiBaoHiem"
-                value={formData.GoiBaoHiem}
+                name="MaGoi"
+                value={formData.MaGoi}
                 onChange={handleChange}
                 label="Gói bảo hiểm *"
+                disabled={loadingPackages}
               >
-                {Object.entries(packages).map(([key, pkg]) => (
-                  <MenuItem key={key} value={key}>
-                    <Box>
-                      <Typography variant="body1">{key}</Typography>
-                      <Typography variant="caption" color="text.secondary">{pkg.description}</Typography>
-                    </Box>
+                {loadingPackages ? (
+                  <MenuItem disabled>
+                    <CircularProgress size={20} sx={{ mr: 1 }} />
+                    Đang tải...
                   </MenuItem>
-                ))}
+                ) : packages.length === 0 ? (
+                  <MenuItem disabled>Không có gói bảo hiểm</MenuItem>
+                ) : (
+                  packages.map((pkg) => (
+                    <MenuItem key={pkg.MaGoi} value={pkg.MaGoi}>
+                      <Box>
+                        <Typography variant="body1">{pkg.TenGoi}</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {pkg.MoTa} (Tỷ lệ phí: {pkg.TyLePhiCoBan}%)
+                        </Typography>
+                      </Box>
+                    </MenuItem>
+                  ))
+                )}
               </Select>
-              {errors.GoiBaoHiem && <FormHelperText>{errors.GoiBaoHiem}</FormHelperText>}
+              {errors.MaGoi && <FormHelperText>{errors.MaGoi}</FormHelperText>}
             </FormControl>
           </Grid>
 
@@ -215,16 +281,20 @@ const ContractFormModal = ({ open, onClose, onSuccess, assessment }) => {
                 <Typography variant="subtitle2" gutterBottom>Chi tiết phí bảo hiểm</Typography>
                 <Stack spacing={1}>
                   <Box display="flex" justifyContent="space-between">
-                    <Typography variant="body2">Phí gốc (gói {formData.GoiBaoHiem}):</Typography>
+                    <Typography variant="body2">Giá trị xe:</Typography>
+                    <Typography variant="body2">{feeDetails.vehicleValue.toLocaleString('vi-VN')} ₫</Typography>
+                  </Box>
+                  <Box display="flex" justifyContent="space-between">
+                    <Typography variant="body2">Tỷ lệ phí cơ bản ({feeDetails.baseRate}%):</Typography>
                     <Typography variant="body2">{feeDetails.baseFee.toLocaleString('vi-VN')} ₫</Typography>
                   </Box>
                   <Box display="flex" justifyContent="space-between">
                     <Typography variant="body2">Hệ số rủi ro (x{feeDetails.riskMultiplier}):</Typography>
-                    <Typography variant="body2">{(feeDetails.baseFee * feeDetails.riskMultiplier).toLocaleString('vi-VN')} ₫</Typography>
+                    <Typography variant="body2">{feeDetails.riskAdjustedFee.toLocaleString('vi-VN')} ₫</Typography>
                   </Box>
                   <Box display="flex" justifyContent="space-between">
-                    <Typography variant="body2">Điều chỉnh tuổi xe (x{feeDetails.ageAdjustment}):</Typography>
-                    <Typography variant="body2">{(feeDetails.baseFee * feeDetails.riskMultiplier * feeDetails.ageAdjustment).toLocaleString('vi-VN')} ₫</Typography>
+                    <Typography variant="body2">Điều chỉnh tuổi xe (x{feeDetails.ageMultiplier}):</Typography>
+                    <Typography variant="body2">{feeDetails.finalFee.toLocaleString('vi-VN')} ₫</Typography>
                   </Box>
                   <Divider />
                   <Box display="flex" justifyContent="space-between">

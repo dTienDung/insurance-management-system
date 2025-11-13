@@ -134,4 +134,20 @@ router.post('/save', reportController.saveReport);
 // Xóa báo cáo đã lưu
 router.delete('/saved/:id', reportController.deleteReport);
 
+// ============================================
+// NEW REPORT SYSTEM - 4 TABS
+// ============================================
+
+// Tab 1: Operational Dashboard
+router.get('/operational-dashboard', reportController.getOperationalDashboard);
+
+// Tab 2: Revenue Report Data
+router.get('/revenue-report-data', reportController.getRevenueReportData);
+
+// Tab 3: Renewal Report Data
+router.get('/renewal-report-data', reportController.getRenewalReportData);
+
+// Tab 4: Assessment Report Data
+router.get('/assessment-report-data', reportController.getAssessmentReportData);
+
 module.exports = router;
