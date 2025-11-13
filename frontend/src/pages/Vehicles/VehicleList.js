@@ -19,6 +19,7 @@ import {
 import vehicleService from '../../services/vehicleService';
 import Button from '../../components/common/Button';
 import Table from '../../components/common/Table';
+import SearchBar from '../../components/common/SearchBar';
 import VehicleModal from './VehicleModal';
 import VehicleDetailModal from './VehicleDetailModal';
 
@@ -31,18 +32,22 @@ const VehicleList = () => {
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [detailVehicleId, setDetailVehicleId] = useState(null);
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0 });
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     fetchVehicles();
-  }, [pagination.page, pagination.limit]);
+  }, [pagination.page, pagination.limit, searchTerm]);
 
   const fetchVehicles = async () => {
     try {
       setLoading(true);
-      const response = await vehicleService.getAll({ 
+      const params = { 
         page: pagination.page, 
-        limit: pagination.limit 
-      });
+        limit: pagination.limit
+      };
+      if (searchTerm) params.search = searchTerm;
+      
+      const response = await vehicleService.getAll(params);
       setVehicles(response.data || response.list || []);
       if (response.pagination) {
         setPagination(prev => ({ ...prev, total: response.pagination.total }));
@@ -60,6 +65,11 @@ const VehicleList = () => {
 
   const handlePageSizeChange = (newPageSize) => {
     setPagination(prev => ({ ...prev, limit: newPageSize, page: 1 }));
+  };
+
+  const handleSearch = (value) => {
+    setSearchTerm(value);
+    setPagination(prev => ({ ...prev, page: 1 }));
   };
 
   const handleDelete = async (row) => {
@@ -176,6 +186,14 @@ const VehicleList = () => {
             Thêm xe
           </Button>
         </Stack>
+      </Box>
+
+      {/* Search Bar */}
+      <Box sx={{ mb: 2 }}>
+        <SearchBar
+          placeholder="Tìm kiếm theo biển số, hãng xe, chủ xe..."
+          onSearch={handleSearch}
+        />
       </Box>
 
       {/* Bảng danh sách */}

@@ -18,6 +18,7 @@ import {
 import customerService from '../../services/customerService';
 import Button from '../../components/common/Button';
 import Table from '../../components/common/Table';
+import SearchBar from '../../components/common/SearchBar';
 import CustomerModal from './CustomerModal';
 import CustomerDetailModal from './CustomerDetailModal';
 import { formatDate, formatPhone } from '../../utils/formatters';
@@ -31,18 +32,22 @@ const CustomerList = () => {
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [detailCustomerId, setDetailCustomerId] = useState(null);
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0 });
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     fetchCustomers();
-  }, [pagination.page, pagination.limit]);
+  }, [pagination.page, pagination.limit, searchTerm]);
 
   const fetchCustomers = async () => {
     try {
       setLoading(true);
-      const response = await customerService.getAll({ 
+      const params = { 
         page: pagination.page, 
-        limit: pagination.limit 
-      });
+        limit: pagination.limit
+      };
+      if (searchTerm) params.search = searchTerm;
+      
+      const response = await customerService.getAll(params);
       setCustomers(response.data || response.list || []);
       if (response.pagination) {
         setPagination(prev => ({ ...prev, total: response.pagination.total }));
@@ -60,6 +65,11 @@ const CustomerList = () => {
 
   const handlePageSizeChange = (newPageSize) => {
     setPagination(prev => ({ ...prev, limit: newPageSize, page: 1 }));
+  };
+
+  const handleSearch = (value) => {
+    setSearchTerm(value);
+    setPagination(prev => ({ ...prev, page: 1 })); // Reset về trang 1 khi search
   };
 
   const handleDelete = async (row) => {
@@ -173,6 +183,14 @@ const CustomerList = () => {
             Thêm khách hàng
           </Button>
         </Stack>
+      </Box>
+
+      {/* Search Bar */}
+      <Box sx={{ mb: 2 }}>
+        <SearchBar
+          placeholder="Tìm kiếm theo tên, CCCD, SĐT..."
+          onSearch={handleSearch}
+        />
       </Box>
 
       {/* Bảng danh sách */}

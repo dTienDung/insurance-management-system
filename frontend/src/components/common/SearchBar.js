@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   TextField,
@@ -18,8 +18,34 @@ const SearchBar = ({
   onSearch, 
   placeholder = 'Tìm kiếm...', 
   filters = [],
-  actions = []
+  actions = [],
+  debounceMs = 500
 }) => {
+  const [localValue, setLocalValue] = useState(searchTerm || '');
+
+  // Debounce search
+  useEffect(() => {
+    if (onSearch && !onSearchChange) {
+      const timer = setTimeout(() => {
+        onSearch(localValue);
+      }, debounceMs);
+      return () => clearTimeout(timer);
+    }
+  }, [localValue, onSearch, onSearchChange, debounceMs]);
+
+  const handleChange = (value) => {
+    setLocalValue(value);
+    if (onSearchChange) {
+      onSearchChange(value);
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && onSearch) {
+      onSearch(localValue);
+    }
+  };
+
   return (
     <Box sx={{ mb: 3 }}>
       <Stack 
@@ -31,13 +57,9 @@ const SearchBar = ({
         <TextField
           fullWidth
           placeholder={placeholder}
-          value={searchTerm}
-          onChange={(e) => onSearchChange(e.target.value)}
-          onKeyPress={(e) => {
-            if (e.key === 'Enter' && onSearch) {
-              onSearch();
-            }
-          }}
+          value={onSearchChange ? searchTerm : localValue}
+          onChange={(e) => handleChange(e.target.value)}
+          onKeyPress={handleKeyPress}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -49,10 +71,10 @@ const SearchBar = ({
         />
 
         {/* Search Button (optional) */}
-        {onSearch && (
+        {onSearch && onSearchChange && (
           <Button 
             variant="outlined" 
-            onClick={onSearch}
+            onClick={() => onSearch(localValue)}
             sx={{ minWidth: 120 }}
           >
             Tìm kiếm
