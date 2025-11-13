@@ -13,15 +13,25 @@ const Table = ({
   ...props 
 }) => {
   // Convert columns format if needed
-  const muiColumns = columns.map(col => ({
-    field: col.key || col.field,
-    headerName: col.label || col.headerName,
-    width: col.width || 150,
-    flex: col.flex,
-    sortable: col.sortable !== false,
-    renderCell: col.render ? (params) => col.render(params.row) : undefined,
-    ...col
-  }));
+  const muiColumns = columns.map(col => {
+    // Xử lý renderCell - nếu có thì wrap lại để nhận params từ MUI
+    let renderCell = col.renderCell;
+    if (renderCell && typeof renderCell === 'function') {
+      renderCell = (params) => col.renderCell(params.row, params);
+    } else if (col.render && typeof col.render === 'function') {
+      renderCell = (params) => col.render(params.row, params);
+    }
+
+    return {
+      field: col.key || col.field,
+      headerName: col.label || col.headerName,
+      width: col.width || 150,
+      flex: col.flex,
+      sortable: col.sortable !== false,
+      renderCell,
+      ...col
+    };
+  });
 
   // Loading state
   if (loading) {

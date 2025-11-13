@@ -12,6 +12,12 @@ router.get('/cho-tham-dinh', hosoController.getHoSoChoThamDinh);
 // Thao tác với hồ sơ cụ thể
 router.get('/:id', hosoController.getById);
 router.post('/', hosoController.create);
+
+// Duyệt/Từ chối hồ sơ
+router.put('/:id/approve', hosoController.approve);
+router.put('/:id/reject', hosoController.reject);
+
+// Legacy endpoint - deprecated
 router.put('/:id/tham-dinh', hosoController.updateThamDinh);
 
 // Chuyển đổi hồ sơ thành hợp đồng

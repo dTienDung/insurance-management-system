@@ -39,15 +39,29 @@ class HoSoController {
   }
 
   async getHoSoChoThamDinh(req, res, next) {
-  try {
-    const result = await pool.request()
-      .query(`SELECT * FROM v_HoSo_ChoThamDinh ORDER BY NgayLap DESC`);
-    res.status(200).json(result.recordset);
-  } catch (error) {
-    console.error('Lỗi getHoSoChoThamDinh:', error);
-    res.status(500).json({ message: error.message });
+    try {
+      const pool = await getConnection();
+      const result = await pool.request()
+        .query(`
+          SELECT hs.*, kh.HoTen AS TenKhach, xe.HangXe, xe.LoaiXe,
+                 bs.BienSo
+          FROM HoSoThamDinh hs
+          JOIN KhachHang kh ON hs.MaKH = kh.MaKH
+          JOIN Xe xe ON hs.MaXe = xe.MaXe
+          LEFT JOIN KhachHangXe kxe ON xe.MaXe = kxe.MaXe AND kxe.NgayKetThucSoHuu IS NULL
+          LEFT JOIN BienSoXe bs ON kxe.MaKH = bs.MaKH AND bs.TrangThai = N'Hoạt động'
+          WHERE hs.TrangThai = N'Chờ thẩm định'
+          ORDER BY hs.NgayLap DESC
+        `);
+      
+      res.json({
+        success: true,
+        data: result.recordset
+      });
+    } catch (error) {
+      next(error);
+    }
   }
-};
 
 // ============================
 // Lấy chi tiết hồ sơ
@@ -56,14 +70,20 @@ async getById(req, res, next) {
   try {
     const { id } = req.params;
     const pool = await getConnection();
+    
+    // Lấy thông tin hồ sơ
     const result = await pool.request()
       .input('MaHS', sql.VarChar(10), id)
       .query(`
-        SELECT hs.*, kh.HoTen AS TenKhach, xe.BienSo, td.MucDoRuiRo, td.KetQua AS KetQuaTD
+        SELECT hs.*, 
+               kh.HoTen AS TenKhach, kh.CMND_CCCD, kh.SDT, kh.NgaySinh,
+               xe.HangXe, xe.LoaiXe, xe.NamSX, xe.SoKhung, xe.GiaTriXe,
+               bs.BienSo
         FROM HoSoThamDinh hs
         JOIN KhachHang kh ON hs.MaKH = kh.MaKH
         JOIN Xe xe ON hs.MaXe = xe.MaXe
-        LEFT JOIN ThamDinh td ON hs.MaHS = td.MaHS
+        LEFT JOIN KhachHangXe kxe ON xe.MaXe = kxe.MaXe AND kxe.NgayKetThucSoHuu IS NULL
+        LEFT JOIN BienSoXe bs ON kxe.MaKH = bs.MaKH AND bs.TrangThai = N'Hoạt động'
         WHERE hs.MaHS = @MaHS
       `);
 
@@ -74,9 +94,23 @@ async getById(req, res, next) {
       });
     }
 
+    // Lấy chi tiết điểm thẩm định nếu đã được thẩm định
+    const scoreResult = await pool.request()
+      .input('MaHS', sql.VarChar(10), id)
+      .query(`
+        SELECT hsd.*, mt.TenTieuChi, mt.MoTa AS MoTaTieuChi
+        FROM HoSoThamDinh_ChiTiet hsd
+        JOIN MaTranThamDinh mt ON hsd.MaTieuChi = mt.MaTieuChi
+        WHERE hsd.MaHS = @MaHS
+        ORDER BY hsd.MaTieuChi
+      `);
+
     res.json({
       success: true,
-      data: result.recordset[0]
+      data: {
+        ...result.recordset[0],
+        ChiTietDiem: scoreResult.recordset
+      }
     });
   } catch (error) {
     next(error);
@@ -84,13 +118,14 @@ async getById(req, res, next) {
 }
 
 // ============================
-// Tạo hồ sơ mới
+// Tạo hồ sơ mới - TỰ ĐỘNG THẨM ĐỊNH
 // ============================
 async create(req, res, next) {
   try {
-    const { MaKH, MaXe, MaNV_Nhap, PhiDuKien, GhiChu } = req.body;
+    const { MaKH, MaXe, GhiChu } = req.body;
+    const { maNV } = req.user;
 
-    if (!MaKH || !MaXe || !MaNV_Nhap) {
+    if (!MaKH || !MaXe) {
       return res.status(400).json({
         success: false,
         message: 'Vui lòng nhập đầy đủ thông tin bắt buộc'
@@ -114,30 +149,61 @@ async create(req, res, next) {
       });
     }
 
+    // Insert hồ sơ
     const result = await pool.request()
       .input('MaKH', sql.VarChar(10), MaKH)
       .input('MaXe', sql.VarChar(10), MaXe)
-      .input('MaNV_Nhap', sql.VarChar(10), MaNV_Nhap)
-      .input('PhiDuKien', sql.Decimal(18, 0), PhiDuKien || 0)
+      .input('MaNV_Nhap', sql.VarChar(10), maNV)
       .input('GhiChu', sql.NVarChar(500), GhiChu || null)
       .query(`
-        INSERT INTO HoSoThamDinh (MaKH, MaXe, MaNV_Nhap, PhiDuKien, GhiChu, TrangThai)
+        INSERT INTO HoSoThamDinh (MaKH, MaXe, MaNV_Nhap, GhiChu, TrangThai)
         OUTPUT INSERTED.MaHS
-        VALUES (@MaKH, @MaXe, @MaNV_Nhap, @PhiDuKien, @GhiChu, N'Chờ thẩm định')
+        VALUES (@MaKH, @MaXe, @MaNV_Nhap, @GhiChu, N'Chờ thẩm định')
       `);
 
-    res.status(201).json({
-      success: true,
-      message: 'Đã tạo hồ sơ thẩm định mới.',
-      data: { MaHS: result.recordset[0].MaHS }
-    });
+    const MaHS = result.recordset[0].MaHS;
+
+    // TỰ ĐỘNG THẨM ĐỊNH - Gọi stored procedure
+    try {
+      await pool.request()
+        .input('MaHS', sql.VarChar(10), MaHS)
+        .execute('sp_TinhDiemThamDinh');
+
+      // Lấy kết quả thẩm định
+      const assessResult = await pool.request()
+        .input('MaHS', sql.VarChar(10), MaHS)
+        .query(`
+          SELECT RiskLevel, PhiDuKien 
+          FROM HoSoThamDinh 
+          WHERE MaHS = @MaHS
+        `);
+
+      res.status(201).json({
+        success: true,
+        message: 'Đã tạo hồ sơ thẩm định mới và hoàn tất thẩm định tự động',
+        data: {
+          MaHS,
+          RiskLevel: assessResult.recordset[0].RiskLevel,
+          PhiDuKien: assessResult.recordset[0].PhiDuKien
+        }
+      });
+    } catch (assessError) {
+      // Nếu thẩm định tự động lỗi, vẫn trả về hồ sơ đã tạo
+      console.error('Lỗi thẩm định tự động:', assessError);
+      res.status(201).json({
+        success: true,
+        message: 'Đã tạo hồ sơ nhưng thẩm định tự động gặp lỗi',
+        data: { MaHS },
+        warning: 'Vui lòng thẩm định thủ công'
+      });
+    }
   } catch (error) {
     next(error);
   }
 }
 
 // ============================
-// Cập nhật kết quả thẩm định
+// Cập nhật kết quả thẩm định (DEPRECATED - use approve/reject instead)
 // ============================
 async updateThamDinh(req, res, next) {
   try {
@@ -181,20 +247,139 @@ async updateThamDinh(req, res, next) {
       .query(`
         UPDATE HoSoThamDinh
         SET MaNV_ThamDinh = @MaNV_ThamDinh,
-            KetQua = @KetQua,
             PhiDuKien = @PhiDuKien,
             GhiChu = @GhiChu,
-            TrangThai = CASE WHEN @KetQua = N'Đạt' THEN N'Đã thẩm định' ELSE N'Từ chối' END,
-            NgayThamDinh = GETDATE()
-        WHERE MaHS = @MaHS;
-
-        INSERT INTO ThamDinh (MaHS, NgayThamDinh, KetQua, GhiChu)
-        VALUES (@MaHS, GETDATE(), @KetQua, @GhiChu);
+            TrangThai = CASE WHEN @KetQua = N'Đạt' THEN N'Chấp nhận' ELSE N'Từ chối' END
+        WHERE MaHS = @MaHS
       `);
 
     res.json({
       success: true,
       message: 'Đã cập nhật kết quả thẩm định thành công'
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+// ============================
+// Duyệt hồ sơ (APPROVE)
+// ============================
+async approve(req, res, next) {
+  try {
+    const { id } = req.params;
+    const { GhiChu } = req.body;
+    const { maNV } = req.user;
+
+    const pool = await getConnection();
+
+    // Kiểm tra trạng thái
+    const checkStatus = await pool.request()
+      .input('MaHS', sql.VarChar(10), id)
+      .query(`
+        SELECT TrangThai, RiskLevel 
+        FROM HoSoThamDinh 
+        WHERE MaHS = @MaHS
+      `);
+
+    if (checkStatus.recordset.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy hồ sơ'
+      });
+    }
+
+    if (checkStatus.recordset[0].TrangThai !== 'Chờ thẩm định') {
+      return res.status(400).json({
+        success: false,
+        message: 'Hồ sơ này không trong trạng thái chờ thẩm định'
+      });
+    }
+
+    // Kiểm tra RiskLevel - chỉ duyệt nếu <= XEM XÉT
+    const riskLevel = checkStatus.recordset[0].RiskLevel;
+    if (riskLevel === 'TỪ CHỐI') {
+      return res.status(400).json({
+        success: false,
+        message: 'Hồ sơ có mức rủi ro quá cao (TỪ CHỐI), không thể duyệt'
+      });
+    }
+
+    // Cập nhật trạng thái
+    await pool.request()
+      .input('MaHS', sql.VarChar(10), id)
+      .input('MaNV_ThamDinh', sql.VarChar(10), maNV)
+      .input('GhiChu', sql.NVarChar(500), GhiChu || null)
+      .query(`
+        UPDATE HoSoThamDinh
+        SET TrangThai = N'Chấp nhận',
+            MaNV_ThamDinh = @MaNV_ThamDinh,
+            GhiChu = ISNULL(@GhiChu, GhiChu)
+        WHERE MaHS = @MaHS
+      `);
+
+    res.json({
+      success: true,
+      message: 'Đã duyệt hồ sơ thành công. Có thể lập hợp đồng.'
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+// ============================
+// Từ chối hồ sơ (REJECT)
+// ============================
+async reject(req, res, next) {
+  try {
+    const { id } = req.params;
+    const { LyDoTuChoi } = req.body;
+    const { maNV } = req.user;
+
+    if (!LyDoTuChoi) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng nhập lý do từ chối'
+      });
+    }
+
+    const pool = await getConnection();
+
+    // Kiểm tra trạng thái
+    const checkStatus = await pool.request()
+      .input('MaHS', sql.VarChar(10), id)
+      .query('SELECT TrangThai FROM HoSoThamDinh WHERE MaHS = @MaHS');
+
+    if (checkStatus.recordset.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy hồ sơ'
+      });
+    }
+
+    if (checkStatus.recordset[0].TrangThai !== 'Chờ thẩm định') {
+      return res.status(400).json({
+        success: false,
+        message: 'Hồ sơ này không trong trạng thái chờ thẩm định'
+      });
+    }
+
+    // Cập nhật trạng thái
+    await pool.request()
+      .input('MaHS', sql.VarChar(10), id)
+      .input('MaNV_ThamDinh', sql.VarChar(10), maNV)
+      .input('LyDoTuChoi', sql.NVarChar(500), LyDoTuChoi)
+      .query(`
+        UPDATE HoSoThamDinh
+        SET TrangThai = N'Từ chối',
+            MaNV_ThamDinh = @MaNV_ThamDinh,
+            GhiChu = @LyDoTuChoi
+        WHERE MaHS = @MaHS
+      `);
+
+    res.json({
+      success: true,
+      message: 'Đã từ chối hồ sơ'
     });
   } catch (error) {
     next(error);

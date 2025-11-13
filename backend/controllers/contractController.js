@@ -3,6 +3,9 @@ const {
   paymentStatusToDB, 
   paymentMethodToDB 
 } = require('../utils/mapping');  // ← IMPORT MAPPING
+const documentService = require('../services/documentService');
+const path = require('path');
+const fs = require('fs');
 
 class ContractController {
   async getAll(req, res, next) {
@@ -257,27 +260,52 @@ class ContractController {
     try {
       const { id } = req.params;
       const { lyDo } = req.body;
+      const { maNV } = req.user;
 
-      const pool = await getConnection();
-      
-      const result = await pool.request()
-        .input('maHD', sql.VarChar(10), id)
-        .query(`
-          UPDATE HopDong 
-          SET TrangThai = N'Huỷ'
-          WHERE MaHD = @maHD AND TrangThai = N'Hiệu lực'
-        `);
-
-      if (result.rowsAffected[0] === 0) {
+      if (!lyDo) {
         return res.status(400).json({
           success: false,
-          message: 'Không thể hủy hợp đồng này'
+          message: 'Vui lòng nhập lý do hủy hợp đồng'
         });
       }
 
+      const pool = await getConnection();
+      
+      // Kiểm tra trạng thái hợp đồng
+      const checkStatus = await pool.request()
+        .input('maHD', sql.VarChar(10), id)
+        .query(`
+          SELECT TrangThai, NgayKy, NgayHetHan, PhiBaoHiem
+          FROM HopDong 
+          WHERE MaHD = @maHD
+        `);
+
+      if (checkStatus.recordset.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Không tìm thấy hợp đồng'
+        });
+      }
+
+      const contract = checkStatus.recordset[0];
+      
+      if (contract.TrangThai !== 'ACTIVE') {
+        return res.status(400).json({
+          success: false,
+          message: 'Chỉ có thể hủy hợp đồng đang có hiệu lực'
+        });
+      }
+
+      // Sử dụng SP hoàn tiền
+      await pool.request()
+        .input('maHD', sql.VarChar(10), id)
+        .input('lyDo', sql.NVarChar(500), lyDo)
+        .input('maNV', sql.VarChar(10), maNV)
+        .execute('sp_HoanTienHopDong');
+
       res.json({
         success: true,
-        message: 'Hủy hợp đồng thành công'
+        message: 'Đã hủy hợp đồng và hoàn tiền thành công'
       });
     } catch (error) {
       next(error);
@@ -320,33 +348,355 @@ class ContractController {
   async renewContract(req, res, next) {
     try {
       const { id } = req.params;
-      const { ngayKy, ngayHetHan, phiBaoHiem } = req.body;
       const { maNV } = req.user;
 
       const pool = await getConnection();
       
+      // Kiểm tra trạng thái hợp đồng cũ
+      const checkStatus = await pool.request()
+        .input('maHD', sql.VarChar(10), id)
+        .query(`
+          SELECT TrangThai 
+          FROM HopDong 
+          WHERE MaHD = @maHD
+        `);
+
+      if (checkStatus.recordset.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Không tìm thấy hợp đồng'
+        });
+      }
+
+      const trangThai = checkStatus.recordset[0].TrangThai;
+      if (trangThai !== 'ACTIVE' && trangThai !== 'EXPIRED') {
+        return res.status(400).json({
+          success: false,
+          message: 'Chỉ có thể tái tục hợp đồng đang hiệu lực hoặc đã hết hạn'
+        });
+      }
+
       // Sử dụng SP tái tục
-      await pool.request()
+      const result = await pool.request()
         .input('maHDCu', sql.VarChar(10), id)
         .input('maNV', sql.VarChar(10), maNV)
         .execute('sp_RenewHopDong');
 
       // Lấy hợp đồng mới vừa tạo
-      const result = await pool.request()
+      const newContract = await pool.request()
         .input('maHDCu', sql.VarChar(10), id)
         .query(`
-          SELECT MaHD_Moi 
+          SELECT TOP 1 MaHD_Moi 
           FROM HopDongRelation 
           WHERE MaHD_Goc = @maHDCu AND LoaiQuanHe = 'TAI_TUC'
           ORDER BY ID DESC
         `);
 
-      const maHDMoi = result.recordset[0]?.MaHD_Moi;
+      const maHDMoi = newContract.recordset[0]?.MaHD_Moi;
 
       res.status(201).json({
         success: true,
         message: 'Tái tục hợp đồng thành công',
         data: { maHDMoi }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // ============================
+  // Chuyển nhượng hợp đồng (Transfer ownership)
+  // ============================
+  async transferContract(req, res, next) {
+    try {
+      const { id } = req.params;
+      const { maKHMoi, lyDo } = req.body;
+      const { maNV } = req.user;
+
+      if (!maKHMoi) {
+        return res.status(400).json({
+          success: false,
+          message: 'Vui lòng chọn khách hàng mới'
+        });
+      }
+
+      const pool = await getConnection();
+
+      // Kiểm tra trạng thái hợp đồng
+      const checkContract = await pool.request()
+        .input('maHD', sql.VarChar(10), id)
+        .query(`
+          SELECT TrangThai, MaXe 
+          FROM HopDong 
+          WHERE MaHD = @maHD
+        `);
+
+      if (checkContract.recordset.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Không tìm thấy hợp đồng'
+        });
+      }
+
+      if (checkContract.recordset[0].TrangThai !== 'ACTIVE') {
+        return res.status(400).json({
+          success: false,
+          message: 'Chỉ có thể chuyển nhượng hợp đồng đang hiệu lực'
+        });
+      }
+
+      const maXe = checkContract.recordset[0].MaXe;
+
+      // Sử dụng SP chuyển quyền
+      const result = await pool.request()
+        .input('maHDCu', sql.VarChar(10), id)
+        .input('maKHMoi', sql.VarChar(10), maKHMoi)
+        .input('lyDo', sql.NVarChar(500), lyDo || 'Chuyển quyền sở hữu')
+        .input('maNV', sql.VarChar(10), maNV)
+        .execute('sp_ChuyenQuyenHopDong');
+
+      // NOTE: Theo yêu cầu, sau khi chuyển quyền cần THẨM ĐỊNH LẠI
+      // Tạo hồ sơ thẩm định mới cho khách hàng mới
+      const newAssessment = await pool.request()
+        .input('MaKH', sql.VarChar(10), maKHMoi)
+        .input('MaXe', sql.VarChar(10), maXe)
+        .input('MaNV_Nhap', sql.VarChar(10), maNV)
+        .input('GhiChu', sql.NVarChar(500), `Thẩm định lại sau chuyển nhượng từ HĐ ${id}`)
+        .query(`
+          INSERT INTO HoSoThamDinh (MaKH, MaXe, MaNV_Nhap, GhiChu, TrangThai)
+          OUTPUT INSERTED.MaHS
+          VALUES (@MaKH, @MaXe, @MaNV_Nhap, @GhiChu, N'Chờ thẩm định')
+        `);
+
+      const maHS = newAssessment.recordset[0].MaHS;
+
+      // Tự động thẩm định
+      try {
+        await pool.request()
+          .input('MaHS', sql.VarChar(10), maHS)
+          .execute('sp_TinhDiemThamDinh');
+      } catch (assessError) {
+        console.error('Lỗi thẩm định tự động sau chuyển nhượng:', assessError);
+      }
+
+      res.status(201).json({
+        success: true,
+        message: 'Đã chuyển nhượng hợp đồng. Vui lòng kiểm tra hồ sơ thẩm định để lập hợp đồng mới.',
+        data: { 
+          maHSMoi: maHS,
+          note: 'Cần duyệt hồ sơ thẩm định trước khi lập hợp đồng mới'
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // ============================
+  // Lấy lịch sử quan hệ hợp đồng (renewal/transfer history)
+  // ============================
+  async getContractRelations(req, res, next) {
+    try {
+      const { id } = req.params;
+
+      const pool = await getConnection();
+      
+      // Lấy cả hợp đồng cha và con
+      const result = await pool.request()
+        .input('maHD', sql.VarChar(10), id)
+        .query(`
+          SELECT hr.*, 
+                 hd_goc.NgayKy AS NgayKy_Goc, hd_goc.TrangThai AS TrangThai_Goc,
+                 hd_moi.NgayKy AS NgayKy_Moi, hd_moi.TrangThai AS TrangThai_Moi
+          FROM HopDongRelation hr
+          LEFT JOIN HopDong hd_goc ON hr.MaHD_Goc = hd_goc.MaHD
+          LEFT JOIN HopDong hd_moi ON hr.MaHD_Moi = hd_moi.MaHD
+          WHERE hr.MaHD_Goc = @maHD OR hr.MaHD_Moi = @maHD
+          ORDER BY hr.NgayTao DESC
+        `);
+
+      res.json({
+        success: true,
+        data: result.recordset
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // ============================
+  // TẢI CHỨNG TỪ - GIẤY TỜ
+  // ============================
+  
+  /**
+   * Tải Giấy chứng nhận bảo hiểm
+   */
+  async downloadCertificate(req, res, next) {
+    try {
+      const { id } = req.params;
+
+      const pool = await getConnection();
+      
+      // Lấy thông tin đầy đủ hợp đồng
+      const result = await pool.request()
+        .input('maHD', sql.VarChar(10), id)
+        .query(`
+          SELECT hd.*, 
+                 kh.HoTen as TenKhachHang, 
+                 kh.CMND_CCCD,
+                 kh.DiaChi as DiaChiKhachHang,
+                 kh.SDT as SDTKhachHang,
+                 xe.HangXe, 
+                 xe.LoaiXe,
+                 xe.NamSX,
+                 xe.SoKhung,
+                 xe.SoMay,
+                 gb.TenGoi as TenGoiBaoHiem,
+                 bs.BienSo
+          FROM HopDong hd
+          LEFT JOIN KhachHang kh ON hd.MaKH = kh.MaKH
+          LEFT JOIN Xe xe ON hd.MaXe = xe.MaXe
+          LEFT JOIN GoiBaoHiem gb ON hd.MaGoi = gb.MaGoi
+          LEFT JOIN KhachHangXe kxe ON xe.MaXe = kxe.MaXe AND kxe.NgayKetThucSoHuu IS NULL
+          LEFT JOIN BienSoXe bs ON kxe.MaKH = bs.MaKH AND bs.TrangThai = N'Hoạt động'
+          WHERE hd.MaHD = @maHD
+        `);
+
+      if (result.recordset.length === 0) {
+        return res.status(404).json({ message: 'Không tìm thấy hợp đồng' });
+      }
+
+      const contractData = result.recordset[0];
+
+      // Tạo file PDF
+      const tempDir = path.join(__dirname, '../temp');
+      if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+      }
+
+      const fileName = `ChungNhan_${id}_${Date.now()}.pdf`;
+      const filePath = path.join(tempDir, fileName);
+
+      await documentService.generateInsuranceCertificate(contractData, filePath);
+
+      // Gửi file về client
+      res.download(filePath, `ChungNhan_BaoHiem_${id}.pdf`, (err) => {
+        // Xóa file sau khi tải xong
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+        if (err) next(err);
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Tải Hợp đồng bảo hiểm chi tiết
+   */
+  async downloadContract(req, res, next) {
+    try {
+      const { id } = req.params;
+
+      const pool = await getConnection();
+      
+      const result = await pool.request()
+        .input('maHD', sql.VarChar(10), id)
+        .query(`
+          SELECT hd.*, 
+                 kh.HoTen as TenKhachHang, 
+                 kh.CMND_CCCD,
+                 kh.DiaChi as DiaChiKhachHang,
+                 kh.SDT as SDTKhachHang,
+                 xe.HangXe, 
+                 xe.LoaiXe,
+                 xe.NamSX,
+                 xe.SoKhung,
+                 xe.SoMay,
+                 gb.TenGoi as TenGoiBaoHiem,
+                 bs.BienSo
+          FROM HopDong hd
+          LEFT JOIN KhachHang kh ON hd.MaKH = kh.MaKH
+          LEFT JOIN Xe xe ON hd.MaXe = xe.MaXe
+          LEFT JOIN GoiBaoHiem gb ON hd.MaGoi = gb.MaGoi
+          LEFT JOIN KhachHangXe kxe ON xe.MaXe = kxe.MaXe AND kxe.NgayKetThucSoHuu IS NULL
+          LEFT JOIN BienSoXe bs ON kxe.MaKH = bs.MaKH AND bs.TrangThai = N'Hoạt động'
+          WHERE hd.MaHD = @maHD
+        `);
+
+      if (result.recordset.length === 0) {
+        return res.status(404).json({ message: 'Không tìm thấy hợp đồng' });
+      }
+
+      const contractData = result.recordset[0];
+
+      const tempDir = path.join(__dirname, '../temp');
+      if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+      }
+
+      const fileName = `HopDong_${id}_${Date.now()}.pdf`;
+      const filePath = path.join(tempDir, fileName);
+
+      await documentService.generateContract(contractData, filePath);
+
+      res.download(filePath, `HopDong_BaoHiem_${id}.pdf`, (err) => {
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+        if (err) next(err);
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Tải Biên lai thu phí theo thanh toán
+   */
+  async downloadReceipt(req, res, next) {
+    try {
+      const { paymentId } = req.params;
+
+      const pool = await getConnection();
+      
+      const result = await pool.request()
+        .input('maTT', sql.VarChar(10), paymentId)
+        .query(`
+          SELECT tt.*, 
+                 kh.HoTen as TenKhachHang,
+                 bs.BienSo
+          FROM ThanhToan tt
+          LEFT JOIN HopDong hd ON tt.MaHD = hd.MaHD
+          LEFT JOIN KhachHang kh ON hd.MaKH = kh.MaKH
+          LEFT JOIN Xe xe ON hd.MaXe = xe.MaXe
+          LEFT JOIN KhachHangXe kxe ON xe.MaXe = kxe.MaXe AND kxe.NgayKetThucSoHuu IS NULL
+          LEFT JOIN BienSoXe bs ON kxe.MaKH = bs.MaKH AND bs.TrangThai = N'Hoạt động'
+          WHERE tt.MaTT = @maTT
+        `);
+
+      if (result.recordset.length === 0) {
+        return res.status(404).json({ message: 'Không tìm thấy giao dịch thanh toán' });
+      }
+
+      const paymentData = result.recordset[0];
+
+      const tempDir = path.join(__dirname, '../temp');
+      if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+      }
+
+      const fileName = `BienLai_${paymentId}_${Date.now()}.pdf`;
+      const filePath = path.join(tempDir, fileName);
+
+      await documentService.generateReceipt(paymentData, filePath);
+
+      res.download(filePath, `BienLai_${paymentId}.pdf`, (err) => {
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+        if (err) next(err);
       });
     } catch (error) {
       next(error);

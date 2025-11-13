@@ -106,7 +106,13 @@ router.get('/summary', reportController.getSummaryReport);
 // Export báo cáo Excel
 router.post('/export/excel', reportController.exportToExcel);
 
-// Export báo cáo PDF
+// Export báo cáo PDF - CHUẨN VIỆT NAM
+router.get('/export/pdf/revenue', reportController.exportRevenuePDF);
+router.get('/export/pdf/renewal', reportController.exportRenewalPDF);
+router.get('/export/pdf/assessment', reportController.exportAssessmentPDF);
+router.get('/export/pdf/business', reportController.exportBusinessPDF);
+
+// Export báo cáo PDF (legacy)
 router.post('/export/pdf', reportController.exportToPDF);
 
 // Export báo cáo Word

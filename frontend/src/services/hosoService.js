@@ -14,9 +14,10 @@ function normalizeListResponse(res) {
 }
 
 const hosoService = {
+  // Lấy tất cả hồ sơ
   async getAll({ status, page = 1, limit = 10 } = {}) {
     const params = {};
-    if (status && status !== 'all') params.status = status; // if later backend supports status filtering
+    if (status && status !== 'all') params.status = status;
     params.page = page;
     params.limit = limit;
 
@@ -26,9 +27,60 @@ const hosoService = {
     return { list, pagination };
   },
 
+  // Lấy hồ sơ chờ thẩm định
+  async getHoSoChoThamDinh() {
+    try {
+      const response = await api.get('/hoso/cho-tham-dinh');
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
+  // Lấy chi tiết hồ sơ (bao gồm điểm thẩm định)
   async getById(id) {
     const response = await api.get(`/hoso/${id}`);
-    return response.data?.data || response.data; // supports both {success,data} and raw object
+    return response.data?.data || response.data;
+  },
+
+  // Tạo hồ sơ mới (tự động thẩm định)
+  async create(data) {
+    try {
+      const response = await api.post('/hoso', data);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
+  // Duyệt hồ sơ
+  async approve(id, data = {}) {
+    try {
+      const response = await api.put(`/hoso/${id}/approve`, data);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
+  // Từ chối hồ sơ
+  async reject(id, data) {
+    try {
+      const response = await api.put(`/hoso/${id}/reject`, data);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
+  // Lập hợp đồng từ hồ sơ
+  async lapHopDong(data) {
+    try {
+      const response = await api.post('/hoso/lap-hopdong', data);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
   }
 };
 

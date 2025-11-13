@@ -1,17 +1,46 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Row, Col, Statistic, Spin } from 'antd';
 import {
-  UserOutlined,
-  CarOutlined,
-  FileProtectOutlined,
-  DollarOutlined,
-  ArrowUpOutlined,
-  ArrowDownOutlined
-} from '@ant-design/icons';
-import './Dashboard.css';
+  Container,
+  Box,
+  Typography,
+  Grid,
+  Card,
+  CardContent,
+  Paper,
+  Stack,
+  Chip,
+  LinearProgress
+} from '@mui/material';
+import {
+  TrendingUp as TrendingUpIcon,
+  TrendingDown as TrendingDownIcon,
+  People as PeopleIcon,
+  DirectionsCar as CarIcon,
+  Description as ContractIcon,
+  AttachMoney as MoneyIcon,
+  CheckCircle as ActiveIcon,
+  Cancel as ExpiredIcon
+} from '@mui/icons-material';
+import {
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer
+} from 'recharts';
+import reportService from '../../services/reportService';
+import { formatCurrency, formatNumber, formatShortNumber } from '../../utils/formatters';
 
 const Dashboard = () => {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalCustomers: 0,
     totalVehicles: 0,
@@ -19,154 +48,311 @@ const Dashboard = () => {
     totalRevenue: 0,
     activeContracts: 0,
     expiredContracts: 0,
-    monthlyGrowth: 0,
-    yearlyGrowth: 0
+    pendingContracts: 0,
+    monthlyGrowth: 0
   });
+  const [revenueData, setRevenueData] = useState([]);
+  const [contractData, setContractData] = useState([]);
+  const [riskData, setRiskData] = useState([]);
 
   useEffect(() => {
-    // Function định nghĩa bên trong useEffect để tránh hoisting error
-    const loadDashboardData = async () => {
-      setLoading(true);
-      try {
-        // Mock data - sau này sẽ gọi API thật
-        setTimeout(() => {
-          setStats({
-            totalCustomers: 456,
-            totalVehicles: 567,
-            totalContracts: 1234,
-            totalRevenue: 5678900000,
-            activeContracts: 892,
-            expiredContracts: 234,
-            monthlyGrowth: 12.5,
-            yearlyGrowth: 23.8
-          });
-          setLoading(false);
-        }, 1000);
-      } catch (error) {
-        console.error('Error loading dashboard:', error);
-        setLoading(false);
-      }
-    };
-
     loadDashboardData();
   }, []);
 
-  // Format currency
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND'
-    }).format(value);
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+      
+      // Load stats
+      const dashboardStats = await reportService.getDashboardStats();
+      setStats(dashboardStats.data || {
+        totalCustomers: 0,
+        totalVehicles: 0,
+        totalContracts: 0,
+        totalRevenue: 0,
+        activeContracts: 0,
+        expiredContracts: 0,
+        pendingContracts: 0,
+        monthlyGrowth: 0
+      });
+
+      // Load revenue data
+      const year = new Date().getFullYear();
+      const revenueRes = await reportService.getMonthlyRevenue({ year });
+      const revenueMonthly = revenueRes.data || [];
+      setRevenueData(revenueMonthly.map(item => ({
+        month: `T${item.thang}`,
+        doanhThu: item.doanhThu / 1000000, // Convert to millions
+        soHopDong: item.soHopDong
+      })));
+
+      // Load contract by status
+      const contractRes = await reportService.getContractsByStatus();
+      const contractByStatus = contractRes.data || [];
+      setContractData(contractByStatus.map(item => ({
+        name: item.TrangThai,
+        value: item.SoLuong
+      })));
+
+      // Load risk assessment data
+      const riskRes = await reportService.getAssessmentsByRiskLevel();
+      const riskByLevel = riskRes.data || [];
+      setRiskData(riskByLevel.map(item => ({
+        name: item.RiskLevel,
+        value: item.SoLuong
+      })));
+
+    } catch (error) {
+      console.error('Error loading dashboard:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Format number
-  const formatNumber = (value) => {
-    return new Intl.NumberFormat('vi-VN').format(value);
+  const formatCurrency = (value) => {
+    return new Intl.NumberFormat('vi-VN').format(value) + ' VNĐ';
   };
+
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+
+  const StatCard = ({ title, value, icon: Icon, color, growth, subtitle }) => (
+    <Card sx={{ height: '100%', position: 'relative', overflow: 'visible' }}>
+      <CardContent>
+        <Stack spacing={2}>
+          <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+            <Box>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                {title}
+              </Typography>
+              <Typography variant="h4" fontWeight="bold" color={color}>
+                {value}
+              </Typography>
+              {subtitle && (
+                <Typography variant="caption" color="text.secondary">
+                  {subtitle}
+                </Typography>
+              )}
+            </Box>
+            <Box
+              sx={{
+                bgcolor: `${color}.lighter`,
+                borderRadius: 2,
+                p: 1.5,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <Icon sx={{ fontSize: 32, color: color }} />
+            </Box>
+          </Stack>
+          
+          {growth !== undefined && (
+            <Stack direction="row" spacing={1} alignItems="center">
+              {growth >= 0 ? (
+                <TrendingUpIcon sx={{ color: 'success.main', fontSize: 20 }} />
+              ) : (
+                <TrendingDownIcon sx={{ color: 'error.main', fontSize: 20 }} />
+              )}
+              <Typography
+                variant="body2"
+                color={growth >= 0 ? 'success.main' : 'error.main'}
+                fontWeight="medium"
+              >
+                {Math.abs(growth)}% so với tháng trước
+              </Typography>
+            </Stack>
+          )}
+        </Stack>
+      </CardContent>
+    </Card>
+  );
 
   if (loading) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh' 
-      }}>
-        <Spin size="large" tip="Đang tải dữ liệu..." />
-      </div>
+      <Container maxWidth="xl" sx={{ py: 4 }}>
+        <LinearProgress />
+      </Container>
     );
   }
 
   return (
-    <div className="dashboard-container">
-      <h1>Dashboard - Tổng quan hệ thống</h1>
-      
-      <Row gutter={[16, 16]}>
-        <Col xs={24} sm={12} lg={6}>
-          <Card>
-            <Statistic
-              title="Tổng khách hàng"
-              value={stats.totalCustomers}
-              prefix={<UserOutlined />}
-              valueStyle={{ color: '#3f8600' }}
-              formatter={(value) => formatNumber(value)}
-            />
-          </Card>
-        </Col>
-        
-        <Col xs={24} sm={12} lg={6}>
-          <Card>
-            <Statistic
-              title="Tổng xe"
-              value={stats.totalVehicles}
-              prefix={<CarOutlined />}
-              valueStyle={{ color: '#1890ff' }}
-              formatter={(value) => formatNumber(value)}
-            />
-          </Card>
-        </Col>
-        
-        <Col xs={24} sm={12} lg={6}>
-          <Card>
-            <Statistic
-              title="Tổng hợp đồng"
-              value={stats.totalContracts}
-              prefix={<FileProtectOutlined />}
-              valueStyle={{ color: '#cf1322' }}
-              formatter={(value) => formatNumber(value)}
-            />
-          </Card>
-        </Col>
-        
-        <Col xs={24} sm={12} lg={6}>
-          <Card>
-            <Statistic
-              title="Tổng doanh thu"
-              value={stats.totalRevenue}
-              prefix={<DollarOutlined />}
-              formatter={(value) => formatCurrency(value)}
-            />
-          </Card>
-        </Col>
-      </Row>
+    <Container maxWidth="xl" sx={{ py: 4 }}>
+      {/* Header */}
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" fontWeight="bold" gutterBottom>
+          Dashboard
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Tổng quan hệ thống quản lý bảo hiểm
+        </Typography>
+      </Box>
 
-      <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
-        <Col xs={24} sm={12} lg={8}>
-          <Card title="Hợp đồng hiệu lực">
-            <Statistic
-              value={stats.activeContracts}
-              valueStyle={{ color: '#3f8600' }}
-              prefix={<ArrowUpOutlined />}
-              suffix={` / ${stats.totalContracts}`}
-            />
-          </Card>
-        </Col>
-        
-        <Col xs={24} sm={12} lg={8}>
-          <Card title="Hợp đồng hết hạn">
-            <Statistic
-              value={stats.expiredContracts}
-              valueStyle={{ color: '#cf1322' }}
-              prefix={<ArrowDownOutlined />}
-              suffix={` / ${stats.totalContracts}`}
-            />
-          </Card>
-        </Col>
-        
-        <Col xs={24} sm={12} lg={8}>
-          <Card title="Tăng trưởng">
-            <div>
-              <p>Tháng này: <span style={{ color: '#3f8600', fontWeight: 'bold' }}>
-                +{stats.monthlyGrowth}%
-              </span></p>
-              <p>Năm nay: <span style={{ color: '#3f8600', fontWeight: 'bold' }}>
-                +{stats.yearlyGrowth}%
-              </span></p>
-            </div>
-          </Card>
-        </Col>
-      </Row>
-    </div>
+      {/* Stats Cards */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard
+            title="Tổng khách hàng"
+            value={stats.totalCustomers || 0}
+            icon={PeopleIcon}
+            color="primary.main"
+            growth={stats.customerGrowth}
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard
+            title="Tổng phương tiện"
+            value={stats.totalVehicles || 0}
+            icon={CarIcon}
+            color="info.main"
+            growth={stats.vehicleGrowth}
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard
+            title="Hợp đồng hiệu lực"
+            value={stats.activeContracts || 0}
+            icon={ActiveIcon}
+            color="success.main"
+            subtitle={`Tổng: ${stats.totalContracts || 0} hợp đồng`}
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard
+            title="Doanh thu tháng"
+            value={formatCurrency(stats.monthlyRevenue || 0)}
+            icon={MoneyIcon}
+            color="warning.main"
+            growth={stats.monthlyGrowth}
+          />
+        </Grid>
+      </Grid>
+
+      {/* Secondary Stats */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} md={4}>
+          <Paper sx={{ p: 3, bgcolor: 'success.lighter', borderLeft: 4, borderColor: 'success.main' }}>
+            <Stack direction="row" justifyContent="space-between" alignItems="center">
+              <Box>
+                <Typography variant="body2" color="text.secondary">Hợp đồng mới</Typography>
+                <Typography variant="h5" fontWeight="bold">{stats.pendingContracts || 0}</Typography>
+              </Box>
+              <ContractIcon sx={{ fontSize: 40, color: 'success.main', opacity: 0.6 }} />
+            </Stack>
+          </Paper>
+        </Grid>
+        <Grid item xs={12} md={4}>
+          <Paper sx={{ p: 3, bgcolor: 'warning.lighter', borderLeft: 4, borderColor: 'warning.main' }}>
+            <Stack direction="row" justifyContent="space-between" alignItems="center">
+              <Box>
+                <Typography variant="body2" color="text.secondary">Sắp hết hạn</Typography>
+                <Typography variant="h5" fontWeight="bold">{stats.expiringContracts || 0}</Typography>
+              </Box>
+              <ExpiredIcon sx={{ fontSize: 40, color: 'warning.main', opacity: 0.6 }} />
+            </Stack>
+          </Paper>
+        </Grid>
+        <Grid item xs={12} md={4}>
+          <Paper sx={{ p: 3, bgcolor: 'error.lighter', borderLeft: 4, borderColor: 'error.main' }}>
+            <Stack direction="row" justifyContent="space-between" alignItems="center">
+              <Box>
+                <Typography variant="body2" color="text.secondary">Hợp đồng hết hạn</Typography>
+                <Typography variant="h5" fontWeight="bold">{stats.expiredContracts || 0}</Typography>
+              </Box>
+              <ExpiredIcon sx={{ fontSize: 40, color: 'error.main', opacity: 0.6 }} />
+            </Stack>
+          </Paper>
+        </Grid>
+      </Grid>
+
+      {/* Charts */}
+      <Grid container spacing={3}>
+        {/* Revenue Chart */}
+        <Grid item xs={12} md={8}>
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h6" fontWeight="bold" gutterBottom>
+              Doanh thu theo tháng (triệu VNĐ)
+            </Typography>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={revenueData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip formatter={(value) => [value.toFixed(1) + 'M VNĐ', 'Doanh thu']} />
+                <Legend />
+                <Bar dataKey="doanhThu" fill="#8884d8" name="Doanh thu" />
+              </BarChart>
+            </ResponsiveContainer>
+          </Paper>
+        </Grid>
+
+        {/* Contract Status Pie */}
+        <Grid item xs={12} md={4}>
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h6" fontWeight="bold" gutterBottom>
+              Hợp đồng theo trạng thái
+            </Typography>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={contractData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={(entry) => `${entry.name}: ${entry.value}`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {contractData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </Paper>
+        </Grid>
+
+        {/* Risk Assessment Chart */}
+        <Grid item xs={12} md={6}>
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h6" fontWeight="bold" gutterBottom>
+              Thẩm định theo mức rủi ro
+            </Typography>
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={riskData} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis type="number" />
+                <YAxis dataKey="name" type="category" />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="value" fill="#82ca9d" name="Số lượng" />
+              </BarChart>
+            </ResponsiveContainer>
+          </Paper>
+        </Grid>
+
+        {/* Contract Growth */}
+        <Grid item xs={12} md={6}>
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h6" fontWeight="bold" gutterBottom>
+              Số lượng hợp đồng theo tháng
+            </Typography>
+            <ResponsiveContainer width="100%" height={250}>
+              <LineChart data={revenueData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Line type="monotone" dataKey="soHopDong" stroke="#8884d8" name="Số hợp đồng" />
+              </LineChart>
+            </ResponsiveContainer>
+          </Paper>
+        </Grid>
+      </Grid>
+    </Container>
   );
 };
 

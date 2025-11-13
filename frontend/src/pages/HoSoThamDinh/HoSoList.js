@@ -5,10 +5,17 @@ import {
   Box,
   Typography,
   Stack,
-  ToggleButtonGroup,
-  ToggleButton,
-  Chip
+  Chip,
+  Paper,
+  IconButton,
+  Tooltip
 } from '@mui/material';
+import {
+  Add as AddIcon,
+  Visibility as VisibilityIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon
+} from '@mui/icons-material';
 import Table from '../../components/common/Table';
 import Button from '../../components/common/Button';
 import hosoService from '../../services/hosoService';
@@ -50,54 +57,85 @@ const HoSoList = () => {
     return <Chip label={cfg.label} color={cfg.color} size="small" />;
   }
 
+  const handleDelete = async (row) => {
+    if (!window.confirm(`Xác nhận xóa hồ sơ ${row.MaHS}?`)) return;
+    try {
+      await hosoService.delete(row.MaHS);
+      alert('✅ Đã xóa hồ sơ');
+      fetchHoso();
+    } catch (error) {
+      alert('Lỗi: ' + (error.message || error));
+    }
+  };
+
   const columns = [
     { field: 'MaHS', headerName: 'Mã HS', width: 110 },
     { field: 'TenKhach', headerName: 'Khách hàng', width: 180, renderCell: row => row.TenKhach || row.MaKH },
-    { field: 'MaXe', headerName: 'Mã xe', width: 100 },
+    { field: 'BienSo', headerName: 'Biển số', width: 120 },
+    { field: 'RiskScore', headerName: 'Điểm rủi ro', width: 110, renderCell: row => row.RiskScore || '-' },
+    { field: 'RiskLevel', headerName: 'Mức rủi ro', width: 140, renderCell: row => {
+      if (!row.RiskLevel) return '-';
+      const colorMap = {
+        'CHẤP NHẬN': 'success',
+        'XEM XÉT': 'warning',
+        'TỪ CHỐI': 'error'
+      };
+      return <Chip label={row.RiskLevel} color={colorMap[row.RiskLevel] || 'default'} size="small" />;
+    }},
     { field: 'TrangThai', headerName: 'Trạng thái', width: 150, renderCell: row => getStatusChip(row.TrangThai) },
-    { field: 'NgayLap', headerName: 'Ngày lập', width: 140, renderCell: row => row.NgayLap ? new Date(row.NgayLap).toLocaleDateString() : '' }
+    { field: 'NgayLap', headerName: 'Ngày lập', width: 140, renderCell: row => row.NgayLap ? new Date(row.NgayLap).toLocaleDateString('vi-VN') : '' },
+    {
+      field: 'actions',
+      headerName: 'Thao tác',
+      width: 150,
+      renderCell: (row) => (
+        <Stack direction="row" spacing={0.5}>
+          <Tooltip title="Xem chi tiết">
+            <IconButton size="small" color="primary" onClick={() => navigate(`/hoso/${row.MaHS}`)}>
+              <VisibilityIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Xóa">
+            <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); handleDelete(row); }}>
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Stack>
+      )
+    }
   ];
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
-      <Box sx={{ mb: 4 }}>
+      {/* Header */}
+      <Box sx={{ mb: 3 }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center">
           <Box>
             <Typography variant="h4" fontWeight="bold" gutterBottom>
               Hồ sơ thẩm định
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Danh sách các hồ sơ thẩm định
+              Quản lý hồ sơ thẩm định rủi ro
             </Typography>
           </Box>
-          <Button variant="primary" onClick={() => navigate('/hoso/tao')}>
+          <Button 
+            variant="contained" 
+            startIcon={<AddIcon />}
+            onClick={() => navigate('/hoso/tao')}
+          >
             Tạo hồ sơ
           </Button>
         </Stack>
       </Box>
 
-      <Box sx={{ mb: 3 }}>
-        <ToggleButtonGroup
-          value={filter}
-          exclusive
-          onChange={(e, val) => val && setFilter(val)}
-          size="small"
-        >
-          <ToggleButton value="all">Tất cả</ToggleButton>
-          <ToggleButton value="pending">Chờ thẩm định</ToggleButton>
-          <ToggleButton value="approved">Đã thẩm định</ToggleButton>
-          <ToggleButton value="rejected">Từ chối</ToggleButton>
-        </ToggleButtonGroup>
-      </Box>
-
-      <Box sx={{ bgcolor: 'white', borderRadius: 2, overflow: 'hidden' }}>
+      {/* Bảng danh sách */}
+      <Paper sx={{ borderRadius: 2, overflow: 'hidden' }}>
         <Table
           columns={columns}
           data={data}
           loading={loading}
           emptyMessage="Chưa có hồ sơ nào"
           pageSize={pagination.limit || 10}
-          onRowClick={(row) => navigate(`/hoso/${row.MaHS}`)}
           getRowId={(row) => row.MaHS}
         />
       </Box>

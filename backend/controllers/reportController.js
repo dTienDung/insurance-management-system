@@ -7,6 +7,9 @@ const { getConnection, sql } = require('../config/database');
 const { mapReportData, formatCurrency, formatDate } = require('../utils/mapping');
 const ExcelJS = require('exceljs');
 const PDFDocument = require('pdfkit');
+const pdfReportService = require('../services/pdfReportService');
+const path = require('path');
+const fs = require('fs');
 
 class ReportController {
   // ============================================
@@ -895,6 +898,294 @@ class ReportController {
       success: true,
       message: 'Xóa báo cáo thành công'
     });
+  }
+
+  // ============================================
+  // XUẤT BÁO CÁO PDF (THEO CHUẨN VIỆT NAM)
+  // ============================================
+
+  /**
+   * Xuất báo cáo doanh thu PDF
+   */
+  async exportRevenuePDF(req, res, next) {
+    try {
+      const { year = new Date().getFullYear(), month } = req.query;
+      
+      const pool = await getConnection();
+      const result = await pool.request()
+        .input('year', sql.Int, year)
+        .query(`
+          SELECT 
+            MONTH(hd.NgayKy) as Thang,
+            SUM(hd.PhiBaoHiem) as DoanhThu,
+            COUNT(hd.MaHD) as SoHopDong,
+            CASE 
+              WHEN LAG(SUM(hd.PhiBaoHiem)) OVER (ORDER BY MONTH(hd.NgayKy)) > 0 
+              THEN CAST((SUM(hd.PhiBaoHiem) - LAG(SUM(hd.PhiBaoHiem)) OVER (ORDER BY MONTH(hd.NgayKy))) * 100.0 / LAG(SUM(hd.PhiBaoHiem)) OVER (ORDER BY MONTH(hd.NgayKy)) AS DECIMAL(5,2))
+              ELSE 0
+            END as TangTruong
+          FROM HopDong hd
+          WHERE YEAR(hd.NgayKy) = @year
+            AND hd.TrangThai IN (N'ACTIVE', N'Hiệu lực')
+          GROUP BY MONTH(hd.NgayKy)
+          ORDER BY Thang
+        `);
+
+      const chiTiet = result.recordset.map(row => ({
+        Thang: `Tháng ${row.Thang}`,
+        DoanhThu: row.DoanhThu?.toLocaleString('vi-VN') || '0',
+        SoHopDong: row.SoHopDong || 0,
+        TangTruong: (row.TangTruong || 0).toFixed(2) + '%'
+      }));
+
+      const reportData = {
+        nguoiBaoCao: req.user?.hoTen || 'Hệ thống',
+        chucVu: req.user?.chucVu || 'Quản trị viên',
+        tuNgay: `01/01/${year}`,
+        denNgay: `31/12/${year}`,
+        kyBaoCao: `Năm ${year}`,
+        chiTiet
+      };
+
+      const fileName = `BaoCao_DoanhThu_${year}_${Date.now()}.pdf`;
+      const outputPath = path.join(__dirname, '../temp', fileName);
+
+      // Đảm bảo thư mục temp tồn tại
+      const tempDir = path.join(__dirname, '../temp');
+      if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+      }
+
+      await pdfReportService.generateRevenueReport(reportData, outputPath);
+
+      res.download(outputPath, fileName, (err) => {
+        if (err) {
+          console.error('Error downloading file:', err);
+        }
+        // Xóa file sau khi download
+        fs.unlinkSync(outputPath);
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Xuất báo cáo tái tục PDF
+   */
+  async exportRenewalPDF(req, res, next) {
+    try {
+      const { year = new Date().getFullYear() } = req.query;
+      
+      const pool = await getConnection();
+      const result = await pool.request()
+        .input('year', sql.Int, year)
+        .query(`
+          SELECT 
+            MONTH(hd.NgayHetHan) as Thang,
+            COUNT(DISTINCT hd.MaHD) as TongDenHan,
+            COUNT(DISTINCT CASE WHEN hr.LoaiQuanHe = 'TAI_TUC' THEN hr.MaHD_Moi END) as TaiTucThanhCong,
+            CAST(COUNT(DISTINCT CASE WHEN hr.LoaiQuanHe = 'TAI_TUC' THEN hr.MaHD_Moi END) * 100.0 / 
+                 NULLIF(COUNT(DISTINCT hd.MaHD), 0) AS DECIMAL(5,2)) as TyLe
+          FROM HopDong hd
+          LEFT JOIN HopDongRelation hr ON hd.MaHD = hr.MaHD_Goc
+          WHERE YEAR(hd.NgayHetHan) = @year
+            AND hd.TrangThai IN (N'EXPIRED', N'RENEWED')
+          GROUP BY MONTH(hd.NgayHetHan)
+          ORDER BY Thang
+        `);
+
+      const chiTiet = result.recordset.map(row => ({
+        Thang: `Tháng ${row.Thang}`,
+        HDDenHan: row.TongDenHan || 0,
+        TaiTucThanhCong: row.TaiTucThanhCong || 0,
+        TyLe: (row.TyLe || 0).toFixed(2) + '%'
+      }));
+
+      const reportData = {
+        nguoiBaoCao: req.user?.hoTen || 'Hệ thống',
+        chucVu: req.user?.chucVu || 'Nhân viên',
+        tuNgay: `01/01/${year}`,
+        denNgay: `31/12/${year}`,
+        kyBaoCao: `Năm ${year}`,
+        chiTiet
+      };
+
+      const fileName = `BaoCao_TaiTuc_${year}_${Date.now()}.pdf`;
+      const outputPath = path.join(__dirname, '../temp', fileName);
+
+      const tempDir = path.join(__dirname, '../temp');
+      if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+      }
+
+      await pdfReportService.generateRenewalReport(reportData, outputPath);
+
+      res.download(outputPath, fileName, (err) => {
+        if (err) {
+          console.error('Error downloading file:', err);
+        }
+        fs.unlinkSync(outputPath);
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Xuất báo cáo thẩm định PDF
+   */
+  async exportAssessmentPDF(req, res, next) {
+    try {
+      const { year = new Date().getFullYear() } = req.query;
+      
+      const pool = await getConnection();
+      const result = await pool.request()
+        .input('year', sql.Int, year)
+        .query(`
+          SELECT 
+            RiskLevel,
+            COUNT(*) as SoLuong,
+            CAST(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM HoSoThamDinh WHERE YEAR(NgayLap) = @year) AS DECIMAL(5,2)) as TyLe,
+            CASE 
+              WHEN RiskLevel = N'CHẤP NHẬN' THEN N'Rủi ro thấp'
+              WHEN RiskLevel = N'XEM XÉT' THEN N'Rủi ro trung bình'
+              WHEN RiskLevel = N'TỪ CHỐI' THEN N'Rủi ro cao'
+              ELSE N'Chưa đánh giá'
+            END as GhiChu
+          FROM HoSoThamDinh
+          WHERE YEAR(NgayLap) = @year
+          GROUP BY RiskLevel
+          ORDER BY 
+            CASE 
+              WHEN RiskLevel = N'CHẤP NHẬN' THEN 1
+              WHEN RiskLevel = N'XEM XÉT' THEN 2
+              WHEN RiskLevel = N'TỪ CHỐI' THEN 3
+              ELSE 4
+            END
+        `);
+
+      const chiTiet = result.recordset.map(row => ({
+        MucRuiRo: row.RiskLevel || 'N/A',
+        SoLuong: row.SoLuong || 0,
+        TyLe: (row.TyLe || 0).toFixed(2) + '%',
+        GhiChu: row.GhiChu || ''
+      }));
+
+      const reportData = {
+        nguoiBaoCao: req.user?.hoTen || 'Hệ thống',
+        chucVu: req.user?.chucVu || 'Chuyên viên thẩm định',
+        tuNgay: `01/01/${year}`,
+        denNgay: `31/12/${year}`,
+        kyBaoCao: `Năm ${year}`,
+        chiTiet
+      };
+
+      const fileName = `BaoCao_ThamDinh_${year}_${Date.now()}.pdf`;
+      const outputPath = path.join(__dirname, '../temp', fileName);
+
+      const tempDir = path.join(__dirname, '../temp');
+      if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+      }
+
+      await pdfReportService.generateAssessmentReport(reportData, outputPath);
+
+      res.download(outputPath, fileName, (err) => {
+        if (err) {
+          console.error('Error downloading file:', err);
+        }
+        fs.unlinkSync(outputPath);
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Xuất báo cáo quản trị nghiệp vụ PDF
+   */
+  async exportBusinessPDF(req, res, next) {
+    try {
+      const { year = new Date().getFullYear() } = req.query;
+      
+      const pool = await getConnection();
+      
+      // Lấy các chỉ tiêu nghiệp vụ
+      const stats = await pool.request()
+        .input('year', sql.Int, year)
+        .query(`
+          SELECT 
+            'Tổng hợp đồng phát hành' as ChiTieu,
+            COUNT(*) as KetQua,
+            1000 as MucTieu,
+            CAST(COUNT(*) * 100.0 / 1000 AS DECIMAL(5,2)) as Dat
+          FROM HopDong
+          WHERE YEAR(NgayKy) = @year
+          UNION ALL
+          SELECT 
+            N'Doanh thu phí (triệu VNĐ)' as ChiTieu,
+            CAST(SUM(PhiBaoHiem) / 1000000 AS INT) as KetQua,
+            50000 as MucTieu,
+            CAST(SUM(PhiBaoHiem) / 1000000 * 100.0 / 50000 AS DECIMAL(5,2)) as Dat
+          FROM HopDong
+          WHERE YEAR(NgayKy) = @year AND TrangThai IN (N'ACTIVE', N'Hiệu lực')
+          UNION ALL
+          SELECT 
+            N'Khách hàng mới' as ChiTieu,
+            COUNT(*) as KetQua,
+            500 as MucTieu,
+            CAST(COUNT(*) * 100.0 / 500 AS DECIMAL(5,2)) as Dat
+          FROM KhachHang
+          WHERE YEAR(NgayTao) = @year
+          UNION ALL
+          SELECT 
+            N'Tỷ lệ tái tục (%)' as ChiTieu,
+            CAST(COUNT(DISTINCT CASE WHEN hr.LoaiQuanHe = 'TAI_TUC' THEN hr.MaHD_Moi END) * 100.0 / 
+                 NULLIF(COUNT(DISTINCT hd.MaHD), 0) AS INT) as KetQua,
+            70 as MucTieu,
+            CAST(COUNT(DISTINCT CASE WHEN hr.LoaiQuanHe = 'TAI_TUC' THEN hr.MaHD_Moi END) * 100.0 / 
+                 NULLIF(COUNT(DISTINCT hd.MaHD), 0) * 100.0 / 70 AS DECIMAL(5,2)) as Dat
+          FROM HopDong hd
+          LEFT JOIN HopDongRelation hr ON hd.MaHD = hr.MaHD_Goc
+          WHERE YEAR(hd.NgayHetHan) = @year
+        `);
+
+      const chiTiet = stats.recordset.map(row => ({
+        ChiTieu: row.ChiTieu,
+        KetQua: (row.KetQua || 0).toLocaleString('vi-VN'),
+        MucTieu: (row.MucTieu || 0).toLocaleString('vi-VN'),
+        Dat: (row.Dat || 0).toFixed(2) + '%'
+      }));
+
+      const reportData = {
+        nguoiBaoCao: req.user?.hoTen || 'Hệ thống',
+        chucVu: req.user?.chucVu || 'Trưởng phòng',
+        tuNgay: `01/01/${year}`,
+        denNgay: `31/12/${year}`,
+        kyBaoCao: `Năm ${year}`,
+        chiTiet
+      };
+
+      const fileName = `BaoCao_QuanTriNghiepVu_${year}_${Date.now()}.pdf`;
+      const outputPath = path.join(__dirname, '../temp', fileName);
+
+      const tempDir = path.join(__dirname, '../temp');
+      if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+      }
+
+      await pdfReportService.generateBusinessReport(reportData, outputPath);
+
+      res.download(outputPath, fileName, (err) => {
+        if (err) {
+          console.error('Error downloading file:', err);
+        }
+        fs.unlinkSync(outputPath);
+      });
+    } catch (error) {
+      next(error);
+    }
   }
 }
 

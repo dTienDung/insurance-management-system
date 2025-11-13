@@ -31,6 +31,7 @@ import dayjs from 'dayjs';
 import contractService from '../../services/contractService';
 import customerService from '../../services/customerService';
 import vehicleService from '../../services/vehicleService';
+import packageService from '../../services/packageService';
 import Button from '../../components/common/Button';
 import { CustomerAutocomplete, VehicleAutocomplete, PackageAutocomplete } from '../../components/common/EntityAutocomplete';
 import EnumSelect from '../../components/common/EnumSelect';
@@ -104,9 +105,13 @@ const ContractForm = () => {
         setVehicles(vehiclesRes);
       }
 
-      // TODO: Load packages when API is ready
-      // const packagesRes = await packageService.getAll();
-      // setPackages(packagesRes.data || []);
+      // Load packages (active only)
+      const packagesRes = await packageService.getActive();
+      if (packagesRes.data) {
+        setPackages(Array.isArray(packagesRes.data) ? packagesRes.data : []);
+      } else if (Array.isArray(packagesRes)) {
+        setPackages(packagesRes);
+      }
     } catch (err) {
       console.error('Error loading data:', err);
       setError('Lỗi khi tải dữ liệu');

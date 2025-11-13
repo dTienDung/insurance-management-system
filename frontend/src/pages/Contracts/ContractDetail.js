@@ -104,33 +104,31 @@ const ContractDetail = () => {
 
   const handlePrintReceipt = async () => {
     try {
-      const blob = await exportService.exportBienLai(contract.payment_id || id);
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `BienLai_${contract.contract_number}_${new Date().getTime()}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      // Giả sử lấy payment ID từ contract data
+      const paymentId = contract.MaTT || contract.payment_id;
+      if (!paymentId) {
+        alert('Không tìm thấy thông tin thanh toán');
+        return;
+      }
+      await contractService.downloadReceipt(paymentId);
     } catch (err) {
-      alert('Lỗi khi xuất biên lai: ' + err.message);
+      alert('Lỗi khi tải biên lai: ' + (err.message || err));
     }
   };
 
   const handleExportContract = async () => {
     try {
-      const blob = await exportService.exportHopDong(id);
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `HopDong_${contract.contract_number}_${new Date().getTime()}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      await contractService.downloadContract(id);
     } catch (err) {
-      alert('Lỗi khi xuất hợp đồng: ' + err.message);
+      alert('Lỗi khi tải hợp đồng: ' + (err.message || err));
+    }
+  };
+
+  const handleDownloadCertificate = async () => {
+    try {
+      await contractService.downloadCertificate(id);
+    } catch (err) {
+      alert('Lỗi khi tải giấy chứng nhận: ' + (err.message || err));
     }
   };
 
@@ -200,7 +198,8 @@ const ContractDetail = () => {
 
           <Stack direction="row" spacing={1}>
             <Button variant="outlined" startIcon={<ArrowBackIcon />} onClick={() => navigate('/contracts')}>Quay lại</Button>
-            <Button variant="contained" startIcon={<PrintIcon />} onClick={handleExportContract}>In hợp đồng</Button>
+            <Button variant="contained" color="primary" startIcon={<PrintIcon />} onClick={handleDownloadCertificate}>Giấy chứng nhận</Button>
+            <Button variant="contained" color="secondary" startIcon={<PrintIcon />} onClick={handleExportContract}>Hợp đồng</Button>
             <Button variant="contained" startIcon={<EditIcon />} onClick={handleEdit}>Chỉnh sửa</Button>
             <Button variant="contained" color="error" startIcon={<DeleteIcon />} onClick={handleDelete}>Xóa</Button>
           </Stack>
