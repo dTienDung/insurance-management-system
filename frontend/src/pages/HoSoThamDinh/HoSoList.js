@@ -30,7 +30,6 @@ const HoSoList = () => {
   const [loading, setLoading] = useState(true);
   // eslint-disable-next-line no-unused-vars
   const [filter, setFilter] = useState('all'); // placeholder for future status filter
-  const [page] = useState(1);
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0 });
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedHoSoId, setSelectedHoSoId] = useState(null);
@@ -41,12 +40,16 @@ const HoSoList = () => {
   useEffect(() => {
     fetchHoso();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filter, page, searchTerm]);
+  }, [filter, pagination.page, pagination.limit, searchTerm]);
 
   async function fetchHoso() {
     try {
       setLoading(true);
-      const params = { status: filter, page };
+      const params = { 
+        status: filter, 
+        page: pagination.page,
+        limit: pagination.limit
+      };
       if (searchTerm) params.search = searchTerm;
       
       const { list, pagination: pg } = await hosoService.getAll(params);
@@ -77,6 +80,14 @@ const HoSoList = () => {
     return <Chip label={cfg.label} color={cfg.color} size="small" />;
   }
 
+  const handlePageChange = (newPage) => {
+    setPagination(prev => ({ ...prev, page: newPage + 1 }));
+  };
+
+  const handlePageSizeChange = (newPageSize) => {
+    setPagination(prev => ({ ...prev, limit: newPageSize, page: 1 }));
+  };
+
   const handleDelete = async (row) => {
     if (!window.confirm(`Xác nhận xóa hồ sơ ${row.MaHS}?`)) return;
     try {
@@ -90,6 +101,7 @@ const HoSoList = () => {
 
   const handleSearch = (value) => {
     setSearchTerm(value);
+    setPagination(prev => ({ ...prev, page: 1 }));
   };
 
   const handleAdd = () => {
@@ -186,7 +198,12 @@ const HoSoList = () => {
           data={data}
           loading={loading}
           emptyMessage="Chưa có hồ sơ nào"
-          pageSize={pagination.limit || 10}
+          pageSize={pagination.limit}
+          rowCount={pagination.total}
+          page={pagination.page - 1}
+          onPageChange={handlePageChange}
+          onPageSizeChange={handlePageSizeChange}
+          paginationMode="server"
           getRowId={(row) => row.MaHS}
         />
       </Paper>

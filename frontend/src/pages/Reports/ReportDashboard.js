@@ -16,7 +16,8 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Alert
+  Alert,
+  TextField
 } from '@mui/material';
 import {
   Assessment as AssessmentIcon,
@@ -31,10 +32,20 @@ const ReportDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-
-  // Danh sách năm (5 năm gần nhất)
-  const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
+  
+  // Default: last 30 days
+  const getDefaultFromDate = () => {
+    const date = new Date();
+    date.setDate(date.getDate() - 30);
+    return date.toISOString().split('T')[0];
+  };
+  
+  const getDefaultToDate = () => {
+    return new Date().toISOString().split('T')[0];
+  };
+  
+  const [fromDate, setFromDate] = useState(getDefaultFromDate());
+  const [toDate, setToDate] = useState(getDefaultToDate());
 
   useEffect(() => {
     loadDashboardStats();
@@ -53,19 +64,19 @@ const ReportDashboard = () => {
 
       switch (reportType) {
         case 'revenue':
-          await reportService.exportRevenuePDF(selectedYear);
+          await reportService.exportRevenuePDF(fromDate, toDate);
           setSuccess('Đã xuất báo cáo doanh thu thành công!');
           break;
         case 'renewal':
-          await reportService.exportRenewalPDF(selectedYear);
+          await reportService.exportRenewalPDF(fromDate, toDate);
           setSuccess('Đã xuất báo cáo tái tục thành công!');
           break;
         case 'assessment':
-          await reportService.exportAssessmentPDF(selectedYear);
+          await reportService.exportAssessmentPDF(fromDate, toDate);
           setSuccess('Đã xuất báo cáo thẩm định thành công!');
           break;
         case 'business':
-          await reportService.exportBusinessPDF(selectedYear);
+          await reportService.exportBusinessPDF(fromDate, toDate);
           setSuccess('Đã xuất báo cáo quản trị nghiệp vụ thành công!');
           break;
         default:
@@ -137,20 +148,26 @@ const ReportDashboard = () => {
           </Alert>
         )}
 
-        {/* Chọn năm */}
+        {/* Chọn khoảng thời gian */}
         <Box sx={{ mb: 4 }}>
-          <FormControl sx={{ minWidth: 200 }}>
-            <InputLabel>Năm báo cáo</InputLabel>
-            <Select
-              value={selectedYear}
-              label="Năm báo cáo"
-              onChange={(e) => setSelectedYear(e.target.value)}
-            >
-              {years.map(year => (
-                <MenuItem key={year} value={year}>{year}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          <Stack direction="row" spacing={2}>
+            <TextField
+              type="date"
+              label="Từ ngày"
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              sx={{ minWidth: 200 }}
+            />
+            <TextField
+              type="date"
+              label="Đến ngày"
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              sx={{ minWidth: 200 }}
+            />
+          </Stack>
         </Box>
 
         {/* Các loại báo cáo */}
@@ -212,7 +229,7 @@ const ReportDashboard = () => {
             <br />
             • Bao gồm đầy đủ: Quốc hiệu, Tiêu ngữ, Thông tin người báo cáo, Chữ ký xác nhận
             <br />
-            • Dữ liệu được tính toán tự động từ hệ thống theo năm đã chọn
+            • Dữ liệu được tính toán tự động từ hệ thống theo khoảng thời gian đã chọn
             <br />
             • File PDF sẽ được tải xuống tự động sau khi tạo thành công
           </Typography>

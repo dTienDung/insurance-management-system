@@ -44,6 +44,7 @@ const AssessmentList = () => {
 
   useEffect(() => {
     fetchAssessments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter, pagination.page, pagination.limit, searchTerm]);
 
   const handleViewDetail = (id) => {
@@ -166,27 +167,27 @@ const AssessmentList = () => {
       field: 'NgayThamDinh',
       headerName: 'Ngày thẩm định',
       width: 140,
-      renderCell: (row) => row.NgayThamDinh ? format(new Date(row.NgayThamDinh), 'dd/MM/yyyy') : '-'
+      renderCell: (params) => params.row.NgayThamDinh ? format(new Date(params.row.NgayThamDinh), 'dd/MM/yyyy') : '-'
     },
     {
       field: 'MucDoRuiRo',
       headerName: 'Mức rủi ro',
       width: 140,
-      renderCell: (row) => getRiskBadge(row.MucDoRuiRo)
+      renderCell: (params) => getRiskBadge(params.row.MucDoRuiRo)
     },
     {
       field: 'KetQua',
       headerName: 'Kết quả',
       width: 150,
-      renderCell: (row) => getResultBadge(row.KetQua)
+      renderCell: (params) => getResultBadge(params.row.KetQua)
     },
     { 
       field: 'GhiChu', 
       headerName: 'Ghi chú',
       width: 200,
-      renderCell: (row) => (
-        <div title={row.GhiChu} style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {row.GhiChu || '-'}
+      renderCell: (params) => (
+        <div title={params.row.GhiChu} style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {params.row.GhiChu || '-'}
         </div>
       )
     },
@@ -194,34 +195,35 @@ const AssessmentList = () => {
       field: 'actions',
       headerName: 'Thao tác',
       width: 200,
-      renderCell: (row) => (
+      sortable: false,
+      renderCell: (params) => (
         <Stack direction="row" spacing={0.5}>
           <Tooltip title="Xem chi tiết">
-            <IconButton size="small" color="primary" onClick={() => handleViewDetail(row.MaTD)}>
+            <IconButton size="small" color="primary" onClick={(e) => { e.stopPropagation(); handleViewDetail(params.row.MaTD); }}>
               <VisibilityIcon fontSize="small" />
             </IconButton>
           </Tooltip>
           <Tooltip title="Chỉnh sửa">
-            <IconButton size="small" color="warning" onClick={() => handleEdit(row.MaTD)}>
+            <IconButton size="small" color="warning" onClick={(e) => { e.stopPropagation(); handleEdit(params.row.MaTD); }}>
               <EditIcon fontSize="small" />
             </IconButton>
           </Tooltip>
-          {row.KetQua === 'Chấp nhận' && (
+          {params.row.KetQua === 'Chấp nhận' && (
             <Tooltip title="Tạo hợp đồng">
-              <IconButton size="small" color="success" onClick={() => handleCreateContract(row)}>
+              <IconButton size="small" color="success" onClick={(e) => { e.stopPropagation(); handleCreateContract(params.row); }}>
                 <DocumentIcon fontSize="small" />
               </IconButton>
             </Tooltip>
           )}
-          {row.KetQua !== 'Từ chối' && (
+          {params.row.KetQua !== 'Từ chối' && (
             <Tooltip title="Từ chối">
-              <IconButton size="small" color="error" onClick={() => handleReject(row.MaTD)}>
+              <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); handleReject(params.row.MaTD); }}>
                 <CancelIcon fontSize="small" />
               </IconButton>
             </Tooltip>
           )}
           <Tooltip title="Xóa">
-            <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); handleDelete(row); }}>
+            <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); handleDelete(params.row); }}>
               <DeleteIcon fontSize="small" />
             </IconButton>
           </Tooltip>

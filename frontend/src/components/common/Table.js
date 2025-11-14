@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { DataGrid } from '@mui/x-data-grid';
 import { Box, Typography, CircularProgress } from '@mui/material';
 import { Description as FileTextIcon } from '@mui/icons-material';
@@ -18,6 +18,13 @@ const Table = ({
   getRowId = (row) => row.id || row.MaTD || row.MaHS || row.MaHD || row.MaKH || row.MaXe || row.MaBH,
   ...props 
 }) => {
+  console.log('[Table] Render with page:', page, 'pageSize:', pageSize, 'rowCount:', rowCount);
+  
+  // Memoize paginationModel to prevent unnecessary re-renders
+  const paginationModel = useMemo(() => ({
+    page: page !== undefined ? page : 0,
+    pageSize: pageSize || 10
+  }), [page, pageSize]);
   // Convert columns format if needed
   const muiColumns = columns.map(col => {
     // Xử lý renderCell - nếu có thì wrap lại để nhận params từ MUI
@@ -78,9 +85,8 @@ const Table = ({
       pageSizeOptions={[5, 10, 25, 50, 100]}
       paginationMode={paginationMode}
       rowCount={rowCount || data.length}
-      page={page}
-      pageSize={pageSize}
       onPaginationModelChange={(model) => {
+        console.log('[Table] onPaginationModelChange:', model, 'current page:', page);
         if (onPageChange && model.page !== page) {
           onPageChange(model.page);
         }
@@ -88,10 +94,7 @@ const Table = ({
           onPageSizeChange(model.pageSize);
         }
       }}
-      paginationModel={{
-        page: page || 0,
-        pageSize: pageSize
-      }}
+      paginationModel={paginationModel}
       disableRowSelectionOnClick
       onRowClick={(params) => onRowClick && onRowClick(params.row)}
       autoHeight

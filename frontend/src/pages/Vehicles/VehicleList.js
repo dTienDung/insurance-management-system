@@ -36,11 +36,13 @@ const VehicleList = () => {
 
   useEffect(() => {
     fetchVehicles();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pagination.page, pagination.limit, searchTerm]);
 
   const fetchVehicles = async () => {
     try {
       setLoading(true);
+      console.log('[VehicleList] Fetching with pagination:', { page: pagination.page, limit: pagination.limit });
       const params = { 
         page: pagination.page, 
         limit: pagination.limit
@@ -60,6 +62,7 @@ const VehicleList = () => {
   };
 
   const handlePageChange = (newPage) => {
+    console.log('[VehicleList] Page change:', newPage, '→', newPage + 1);
     setPagination(prev => ({ ...prev, page: newPage + 1 }));
   };
 
@@ -109,8 +112,8 @@ const VehicleList = () => {
 
   const columns = [
     { field: 'MaXe', headerName: 'Mã xe', width: 100 },
-    { field: 'BienSo', headerName: 'Biển số', width: 130, renderCell: (row) => (
-      <Chip label={row.BienSo || '-'} color="primary" size="small" />
+    { field: 'BienSo', headerName: 'Biển số', width: 130, renderCell: (params) => (
+      <Chip label={params.row.BienSo || '-'} color="primary" size="small" />
     )},
     { field: 'HangXe', headerName: 'Hãng xe', width: 150 },
     { field: 'LoaiXe', headerName: 'Loại xe', width: 150 },
@@ -122,14 +125,17 @@ const VehicleList = () => {
       field: 'actions',
       headerName: 'Thao tác',
       width: 150,
-      renderCell: (row) => (
+      sortable: false,
+      renderCell: (params) => (
         <Stack direction="row" spacing={0.5}>
           <Tooltip title="Xem chi tiết">
             <IconButton 
               size="small" 
               color="primary" 
-              onClick={() => row.MaXe && handleViewDetail(row.MaXe)}
-              disabled={!row.MaXe}
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                handleViewDetail(params.row.MaXe);
+              }}
             >
               <VisibilityIcon fontSize="small" />
             </IconButton>
@@ -140,9 +146,8 @@ const VehicleList = () => {
               color="warning" 
               onClick={(e) => { 
                 e.stopPropagation(); 
-                if (row.MaXe) handleEdit(row.MaXe); 
+                handleEdit(params.row.MaXe); 
               }}
-              disabled={!row.MaXe}
             >
               <EditIcon fontSize="small" />
             </IconButton>
@@ -153,9 +158,8 @@ const VehicleList = () => {
               color="error" 
               onClick={(e) => { 
                 e.stopPropagation(); 
-                if (row.MaXe) handleDelete(row); 
+                handleDelete(params.row); 
               }}
-              disabled={!row.MaXe}
             >
               <DeleteIcon fontSize="small" />
             </IconButton>

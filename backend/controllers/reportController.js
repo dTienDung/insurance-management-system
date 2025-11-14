@@ -18,18 +18,37 @@ class ReportController {
 
   async getMonthlyRevenue(req, res) {
     try {
-      let { year } = req.query;
-      
-      // Parse year properly - handle both {year: 2025} and year=2025
-      if (typeof year === 'object' && year.year) {
-        year = year.year;
-      }
-      year = parseInt(year) || new Date().getFullYear();
+      let { year, fromDate, toDate } = req.query;
       
       const pool = await getConnection();
-      const result = await pool.request()
-        .input('year', sql.Int, year)
-        .query(`
+      let query = '';
+      const request = pool.request();
+      
+      // Nếu có fromDate và toDate, dùng date range
+      if (fromDate && toDate) {
+        query = `
+          SELECT 
+            MONTH(hd.NgayKy) as Thang,
+            YEAR(hd.NgayKy) as Nam,
+            COUNT(DISTINCT hd.MaHD) as SoHopDong,
+            SUM(hd.PhiBaoHiem) as DoanhThu,
+            COUNT(DISTINCT hd.MaKH) as SoKhachHang
+          FROM HopDong hd
+          WHERE hd.NgayKy BETWEEN @fromDate AND @toDate
+            AND hd.TrangThai IN (N'Hiệu lực', N'ACTIVE')
+          GROUP BY YEAR(hd.NgayKy), MONTH(hd.NgayKy)
+          ORDER BY Nam, Thang
+        `;
+        request.input('fromDate', sql.Date, fromDate);
+        request.input('toDate', sql.Date, toDate);
+      } else {
+        // Fallback về year nếu không có date range
+        if (typeof year === 'object' && year.year) {
+          year = year.year;
+        }
+        year = parseInt(year) || new Date().getFullYear();
+        
+        query = `
           SELECT 
             MONTH(hd.NgayKy) as Thang,
             COUNT(DISTINCT hd.MaHD) as SoHopDong,
@@ -40,10 +59,15 @@ class ReportController {
             AND hd.TrangThai IN (N'Hiệu lực', N'ACTIVE')
           GROUP BY MONTH(hd.NgayKy)
           ORDER BY Thang
-        `);
+        `;
+        request.input('year', sql.Int, year);
+      }
+      
+      const result = await request.query(query);
 
       const data = result.recordset.map(row => ({
         thang: row.Thang,
+        nam: row.Nam,
         soHopDong: row.SoHopDong,
         doanhThu: row.DoanhThu || 0,
         soKhachHang: row.SoKhachHang
@@ -174,7 +198,6 @@ class ReportController {
         .query(`
           SELECT 
             hd.MaHD,
-            hd.SoHD,
             kh.HoTen as TenKH,
             bs.BienSo,
             hd.NgayHetHan as NgayKetThuc,

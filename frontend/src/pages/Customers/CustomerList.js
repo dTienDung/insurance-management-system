@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -36,9 +36,9 @@ const CustomerList = () => {
 
   useEffect(() => {
     fetchCustomers();
-  }, [pagination.page, pagination.limit, searchTerm]);
+  }, [fetchCustomers]);
 
-  const fetchCustomers = async () => {
+  const fetchCustomers = useCallback(async () => {
     try {
       setLoading(true);
       const params = { 
@@ -57,7 +57,7 @@ const CustomerList = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [pagination.page, pagination.limit, searchTerm]);
 
   const handlePageChange = (newPage) => {
     setPagination(prev => ({ ...prev, page: newPage + 1 })); // MUI uses 0-based index
@@ -111,22 +111,25 @@ const CustomerList = () => {
     { field: 'MaKH', headerName: 'Mã KH', width: 110 },
     { field: 'HoTen', headerName: 'Họ và tên', width: 200 },
     { field: 'CMND_CCCD', headerName: 'CMND/CCCD', width: 140 },
-    { field: 'NgaySinh', headerName: 'Ngày sinh', width: 120, renderCell: (row) => formatDate(row.NgaySinh) },
-    { field: 'SDT', headerName: 'Số điện thoại', width: 130, renderCell: (row) => formatPhone(row.SDT) },
+    { field: 'NgaySinh', headerName: 'Ngày sinh', width: 120, renderCell: (params) => formatDate(params.row.NgaySinh) },
+    { field: 'SDT', headerName: 'Số điện thoại', width: 130, renderCell: (params) => formatPhone(params.row.SDT) },
     { field: 'Email', headerName: 'Email', width: 220 },
     { field: 'DiaChi', headerName: 'Địa chỉ', width: 200 },
     {
       field: 'actions',
       headerName: 'Thao tác',
       width: 150,
-      renderCell: (row) => (
+      sortable: false,
+      renderCell: (params) => (
         <Stack direction="row" spacing={0.5}>
           <Tooltip title="Xem chi tiết">
             <IconButton 
               size="small" 
               color="primary" 
-              onClick={() => row.MaKH && handleViewDetail(row.MaKH)}
-              disabled={!row.MaKH}
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                handleViewDetail(params.row.MaKH);
+              }}
             >
               <VisibilityIcon fontSize="small" />
             </IconButton>
@@ -137,9 +140,8 @@ const CustomerList = () => {
               color="warning" 
               onClick={(e) => { 
                 e.stopPropagation(); 
-                if (row.MaKH) handleEdit(row.MaKH); 
+                handleEdit(params.row.MaKH); 
               }}
-              disabled={!row.MaKH}
             >
               <EditIcon fontSize="small" />
             </IconButton>
@@ -150,9 +152,8 @@ const CustomerList = () => {
               color="error" 
               onClick={(e) => { 
                 e.stopPropagation(); 
-                if (row.MaKH) handleDelete(row); 
+                handleDelete(params.row); 
               }}
-              disabled={!row.MaKH}
             >
               <DeleteIcon fontSize="small" />
             </IconButton>

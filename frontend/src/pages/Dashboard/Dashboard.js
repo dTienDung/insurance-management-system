@@ -16,7 +16,8 @@ import {
   Button as MuiButton,
   IconButton,
   Tooltip,
-  Chip
+  Chip,
+  TextField
 } from '@mui/material';
 import {
   TrendingUp as TrendingUpIcon,
@@ -52,11 +53,21 @@ import { formatCurrency, formatNumber, formatDate } from '../../utils/formatters
 const Dashboard = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  
+  // Default: last 30 days
+  const getDefaultFromDate = () => {
+    const date = new Date();
+    date.setDate(date.getDate() - 30);
+    return date.toISOString().split('T')[0];
+  };
+  
+  const getDefaultToDate = () => {
+    return new Date().toISOString().split('T')[0];
+  };
+  
   const [filters, setFilters] = useState({
-    timeType: 'month',
-    month: new Date().getMonth() + 1,
-    quarter: Math.floor(new Date().getMonth() / 3) + 1,
-    year: new Date().getFullYear(),
+    fromDate: getDefaultFromDate(),
+    toDate: getDefaultToDate(),
     package: 'all',
     status: 'all'
   });
@@ -98,11 +109,14 @@ const Dashboard = () => {
         monthlyGrowth: 0
       });
 
-      // Load revenue data
-      const revenueRes = await reportService.getMonthlyRevenue({ year: filters.year });
+      // Load revenue data with date range
+      const revenueRes = await reportService.getMonthlyRevenue({ 
+        fromDate: filters.fromDate, 
+        toDate: filters.toDate 
+      });
       const revenueMonthly = revenueRes.data || [];
       setRevenueData(revenueMonthly.map(item => ({
-        month: `T${item.thang}`,
+        month: item.nam ? `T${item.thang}/${item.nam}` : `T${item.thang}`,
         doanhThu: item.doanhThu / 1000000,
         soHopDong: item.soHopDong
       })));
@@ -124,7 +138,7 @@ const Dashboard = () => {
       })));
 
       // Load expiring contracts (next 15 days)
-      const expiringRes = await reportService.getExpiringContracts({ days: 15 });
+      const expiringRes = await reportService.getExpiringContracts(15);
       setExpiringContracts((expiringRes.data || []).slice(0, 10));
 
       // Load pending assessments
@@ -144,10 +158,8 @@ const Dashboard = () => {
 
   const handleResetFilter = () => {
     setFilters({
-      timeType: 'month',
-      month: new Date().getMonth() + 1,
-      quarter: Math.floor(new Date().getMonth() / 3) + 1,
-      year: new Date().getFullYear(),
+      fromDate: getDefaultFromDate(),
+      toDate: getDefaultToDate(),
       package: 'all',
       status: 'all'
     });
@@ -238,69 +250,28 @@ const Dashboard = () => {
       {/* Filter Bar */}
       <Paper sx={{ p: 2, mb: 3 }}>
         <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} md={2}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Loại thời gian</InputLabel>
-              <Select
-                value={filters.timeType}
-                label="Loại thời gian"
-                onChange={(e) => setFilters({ ...filters, timeType: e.target.value })}
-              >
-                <MenuItem value="month">Tháng</MenuItem>
-                <MenuItem value="quarter">Quý</MenuItem>
-                <MenuItem value="year">Năm</MenuItem>
-              </Select>
-            </FormControl>
+          <Grid item xs={12} md={3}>
+            <TextField
+              fullWidth
+              size="small"
+              type="date"
+              label="Từ ngày"
+              value={filters.fromDate}
+              onChange={(e) => setFilters({ ...filters, fromDate: e.target.value })}
+              InputLabelProps={{ shrink: true }}
+            />
           </Grid>
 
-          {filters.timeType === 'month' && (
-            <Grid item xs={12} md={2}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Tháng</InputLabel>
-                <Select
-                  value={filters.month}
-                  label="Tháng"
-                  onChange={(e) => setFilters({ ...filters, month: e.target.value })}
-                >
-                  {Array.from({ length: 12 }, (_, i) => (
-                    <MenuItem key={i + 1} value={i + 1}>Tháng {i + 1}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-          )}
-
-          {filters.timeType === 'quarter' && (
-            <Grid item xs={12} md={2}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Quý</InputLabel>
-                <Select
-                  value={filters.quarter}
-                  label="Quý"
-                  onChange={(e) => setFilters({ ...filters, quarter: e.target.value })}
-                >
-                  {Array.from({ length: 4 }, (_, i) => (
-                    <MenuItem key={i + 1} value={i + 1}>Quý {i + 1}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-          )}
-
-          <Grid item xs={12} md={2}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Năm</InputLabel>
-              <Select
-                value={filters.year}
-                label="Năm"
-                onChange={(e) => setFilters({ ...filters, year: e.target.value })}
-              >
-                {Array.from({ length: 5 }, (_, i) => {
-                  const year = new Date().getFullYear() - i;
-                  return <MenuItem key={year} value={year}>{year}</MenuItem>;
-                })}
-              </Select>
-            </FormControl>
+          <Grid item xs={12} md={3}>
+            <TextField
+              fullWidth
+              size="small"
+              type="date"
+              label="Đến ngày"
+              value={filters.toDate}
+              onChange={(e) => setFilters({ ...filters, toDate: e.target.value })}
+              InputLabelProps={{ shrink: true }}
+            />
           </Grid>
 
           <Grid item xs={12} md={2}>
