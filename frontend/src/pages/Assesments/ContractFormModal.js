@@ -42,6 +42,7 @@ const ContractFormModal = ({ open, onClose, onSuccess, assessment }) => {
   const [packages, setPackages] = useState([]);
 
   // Load packages from backend
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (open) {
       loadPackages();
@@ -97,10 +98,6 @@ const ContractFormModal = ({ open, onClose, onSuccess, assessment }) => {
     // Giá trị xe (ước tính)
     const vehicleValue = assessment.GiaTriXe || 200000000; // 200M default
     
-    // Tính phí cơ bản = Giá trị xe × Tỷ lệ phí
-    const baseRate = pkg.TyLePhiCoBan || 1.5;
-    let baseFee = (vehicleValue * baseRate) / 100;
-
     // Tính phí cơ bản = Giá trị xe × Tỷ lệ phí
     const baseRate = pkg.TyLePhiCoBan || 1.5;
     let baseFee = (vehicleValue * baseRate) / 100;
