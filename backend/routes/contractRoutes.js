@@ -25,6 +25,9 @@ router.post('/', authMiddleware, contractController.create);
 // UPDATE contract
 router.put('/:id', authMiddleware, contractController.update);
 
+// DELETE contract (only draft/pending)
+router.delete('/:id', authMiddleware, contractController.delete);
+
 // CANCEL contract (with refund)
 router.post('/:id/cancel', authMiddleware, contractController.cancel);
 

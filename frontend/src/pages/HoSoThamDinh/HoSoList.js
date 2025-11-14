@@ -17,6 +17,7 @@ import {
 } from '@mui/icons-material';
 import Table from '../../components/common/Table';
 import Button from '../../components/common/Button';
+import SearchBar from '../../components/common/SearchBar';
 import HoSoModal from './HoSoModal';
 import HoSoDetailModal from './HoSoDetailModal';
 import hosoService from '../../services/hosoService';
@@ -35,16 +36,20 @@ const HoSoList = () => {
   const [selectedHoSoId, setSelectedHoSoId] = useState(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [detailHoSoId, setDetailHoSoId] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     fetchHoso();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filter, page]);
+  }, [filter, page, searchTerm]);
 
   async function fetchHoso() {
     try {
       setLoading(true);
-      const { list, pagination: pg } = await hosoService.getAll({ status: filter, page });
+      const params = { status: filter, page };
+      if (searchTerm) params.search = searchTerm;
+      
+      const { list, pagination: pg } = await hosoService.getAll(params);
       console.log('[HoSoList] Raw list from API:', list);
       // Transform data to add id field
       const transformedList = list.map(item => ({
@@ -81,6 +86,10 @@ const HoSoList = () => {
     } catch (error) {
       alert('Lỗi: ' + (error.message || error));
     }
+  };
+
+  const handleSearch = (value) => {
+    setSearchTerm(value);
   };
 
   const handleAdd = () => {
@@ -160,6 +169,14 @@ const HoSoList = () => {
             Tạo hồ sơ
           </Button>
         </Stack>
+      </Box>
+
+      {/* Search Bar */}
+      <Box sx={{ mb: 2 }}>
+        <SearchBar
+          placeholder="Tìm kiếm theo mã hồ sơ, khách hàng, biển số..."
+          onSearch={handleSearch}
+        />
       </Box>
 
       {/* Bảng danh sách */}

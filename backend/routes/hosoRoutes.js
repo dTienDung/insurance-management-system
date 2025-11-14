@@ -12,6 +12,7 @@ router.get('/cho-tham-dinh', hosoController.getHoSoChoThamDinh);
 // Thao tác với hồ sơ cụ thể
 router.get('/:id', hosoController.getById);
 router.post('/', hosoController.create);
+router.delete('/:id', hosoController.delete);
 
 // Duyệt/Từ chối hồ sơ
 router.put('/:id/approve', hosoController.approve);

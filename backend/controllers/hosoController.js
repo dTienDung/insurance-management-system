@@ -395,6 +395,57 @@ async reject(req, res, next) {
 }
 
 // ============================
+// Xóa hồ sơ
+// ============================
+async delete(req, res, next) {
+  try {
+    const { id } = req.params;
+    const pool = await getConnection();
+
+    // Kiểm tra xem hồ sơ có tồn tại không
+    const checkHoSo = await pool.request()
+      .input('MaHS', sql.VarChar(10), id)
+      .query('SELECT TrangThai FROM HoSoThamDinh WHERE MaHS = @MaHS');
+
+    if (checkHoSo.recordset.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy hồ sơ'
+      });
+    }
+
+    // Kiểm tra xem có hợp đồng nào liên quan không
+    const checkContract = await pool.request()
+      .input('MaHS', sql.VarChar(10), id)
+      .query('SELECT COUNT(*) as count FROM HopDong WHERE MaHS = @MaHS');
+
+    if (checkContract.recordset[0].count > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Không thể xóa hồ sơ đã có hợp đồng liên quan'
+      });
+    }
+
+    // Xóa chi tiết thẩm định trước
+    await pool.request()
+      .input('MaHS', sql.VarChar(10), id)
+      .query('DELETE FROM HoSoThamDinh_ChiTiet WHERE MaHS = @MaHS');
+
+    // Xóa hồ sơ
+    await pool.request()
+      .input('MaHS', sql.VarChar(10), id)
+      .query('DELETE FROM HoSoThamDinh WHERE MaHS = @MaHS');
+
+    res.json({
+      success: true,
+      message: 'Đã xóa hồ sơ thành công'
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+// ============================
 // Lập hợp đồng từ hồ sơ
 // ============================
 async lapHopDongTuHoSo(req, res, next) {

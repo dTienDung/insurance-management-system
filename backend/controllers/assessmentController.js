@@ -233,6 +233,116 @@ class AssessmentController {
       next(error);
     }
   }
+
+  // Cập nhật thông tin thẩm định
+  async update(req, res, next) {
+    try {
+      const { id } = req.params;
+      const { ghiChu, riskLevel, ketQua } = req.body;
+
+      const pool = await getConnection();
+
+      // Kiểm tra hồ sơ tồn tại
+      const checkHoSo = await pool.request()
+        .input('MaHS', sql.VarChar(10), id)
+        .query('SELECT * FROM HoSoThamDinh WHERE MaHS = @MaHS');
+
+      if (checkHoSo.recordset.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Không tìm thấy hồ sơ thẩm định'
+        });
+      }
+
+      // Cập nhật thông tin
+      const request = pool.request().input('MaHS', sql.VarChar(10), id);
+      
+      let updateFields = [];
+      if (ghiChu !== undefined) {
+        updateFields.push('GhiChu = @ghiChu');
+        request.input('ghiChu', sql.NVarChar(255), ghiChu);
+      }
+      if (riskLevel !== undefined) {
+        updateFields.push('RiskLevel = @riskLevel');
+        request.input('riskLevel', sql.NVarChar(20), riskLevel);
+      }
+      if (ketQua !== undefined) {
+        updateFields.push('KetQua = @ketQua');
+        request.input('ketQua', sql.NVarChar(50), ketQua);
+      }
+
+      if (updateFields.length > 0) {
+        await request.query(`
+          UPDATE HoSoThamDinh 
+          SET ${updateFields.join(', ')}
+          WHERE MaHS = @MaHS
+        `);
+      }
+
+      res.json({
+        success: true,
+        message: 'Đã cập nhật thông tin thẩm định'
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // Xóa bản ghi thẩm định
+  async delete(req, res, next) {
+    try {
+      const { id } = req.params;
+      const pool = await getConnection();
+
+      // Kiểm tra hồ sơ tồn tại
+      const checkHoSo = await pool.request()
+        .input('MaHS', sql.VarChar(10), id)
+        .query('SELECT TrangThai FROM HoSoThamDinh WHERE MaHS = @MaHS');
+
+      if (checkHoSo.recordset.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Không tìm thấy hồ sơ thẩm định'
+        });
+      }
+
+      // Kiểm tra có hợp đồng liên quan không
+      const checkContract = await pool.request()
+        .input('MaHS', sql.VarChar(10), id)
+        .query('SELECT COUNT(*) as count FROM HopDong WHERE MaHS = @MaHS');
+
+      if (checkContract.recordset[0].count > 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Không thể xóa hồ sơ đã có hợp đồng liên quan'
+        });
+      }
+
+      // Xóa chi tiết thẩm định trước
+      await pool.request()
+        .input('MaHS', sql.VarChar(10), id)
+        .query('DELETE FROM HoSoThamDinh_ChiTiet WHERE MaHS = @MaHS');
+
+      // Reset các trường thẩm định thay vì xóa hồ sơ
+      await pool.request()
+        .input('MaHS', sql.VarChar(10), id)
+        .query(`
+          UPDATE HoSoThamDinh 
+          SET RiskLevel = NULL, 
+              KetQua = NULL, 
+              PhiDuKien = NULL,
+              TrangThai = N'Chờ thẩm định'
+          WHERE MaHS = @MaHS
+        `);
+
+      res.json({
+        success: true,
+        message: 'Đã xóa kết quả thẩm định'
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = new AssessmentController();

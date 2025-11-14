@@ -81,6 +81,16 @@ const hosoService = {
     } catch (error) {
       throw error.response?.data || error;
     }
+  },
+
+  // Xóa hồ sơ
+  async delete(id) {
+    try {
+      const response = await api.delete(`/hoso/${id}`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
   }
 };
 

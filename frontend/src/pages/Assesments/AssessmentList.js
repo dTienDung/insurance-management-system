@@ -5,6 +5,7 @@ import ContractFormModal from './ContractFormModal';
 import AssessmentDetailModal from './AssessmentDetailModal';
 import Table from '../../components/common/Table';
 import Button from '../../components/common/Button';
+import SearchBar from '../../components/common/SearchBar';
 import { format } from 'date-fns';
 import {
   Container,
@@ -16,8 +17,18 @@ import {
   ToggleButtonGroup,
   ToggleButton,
   Chip,
-  CircularProgress
+  CircularProgress,
+  IconButton,
+  Tooltip
 } from '@mui/material';
+import {
+  Add as AddIcon,
+  Visibility as VisibilityIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Description as DocumentIcon,
+  Cancel as CancelIcon
+} from '@mui/icons-material';
 
 const AssessmentList = () => {
   const navigate = useNavigate();
@@ -28,14 +39,44 @@ const AssessmentList = () => {
   const [selectedAssessmentId, setSelectedAssessmentId] = useState(null);
   const [contractModalOpen, setContractModalOpen] = useState(false);
   const [selectedAssessment, setSelectedAssessment] = useState(null);
+  const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0 });
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     fetchAssessments();
-  }, []);
+  }, [filter, pagination.page, pagination.limit, searchTerm]);
 
   const handleViewDetail = (id) => {
     setSelectedAssessmentId(id);
     setDetailModalOpen(true);
+  };
+
+  const handleEdit = (id) => {
+    navigate(`/assessments/edit/${id}`);
+  };
+
+  const handleDelete = async (row) => {
+    if (!window.confirm(`Xác nhận xóa thẩm định ${row.MaTD}?`)) return;
+    try {
+      await assessmentService.delete(row.MaTD);
+      alert('✅ Đã xóa thẩm định');
+      fetchAssessments();
+    } catch (error) {
+      alert('Lỗi: ' + (error.message || error));
+    }
+  };
+
+  const handlePageChange = (newPage) => {
+    setPagination(prev => ({ ...prev, page: newPage + 1 }));
+  };
+
+  const handlePageSizeChange = (newPageSize) => {
+    setPagination(prev => ({ ...prev, limit: newPageSize, page: 1 }));
+  };
+
+  const handleSearch = (value) => {
+    setSearchTerm(value);
+    setPagination(prev => ({ ...prev, page: 1 }));
   };
 
   const handleCreateContract = (assessment) => {
@@ -59,7 +100,18 @@ const AssessmentList = () => {
   const fetchAssessments = async () => {
     try {
       setLoading(true);
-      const data = await assessmentService.getAll();
+      const params = {
+        page: pagination.page,
+        limit: pagination.limit
+      };
+      if (searchTerm) params.search = searchTerm;
+      if (filter !== 'all') {
+        if (filter === 'pending') params.ketQua = 'Yêu cầu bổ sung';
+        if (filter === 'approved') params.ketQua = 'Chấp nhận';
+        if (filter === 'rejected') params.ketQua = 'Từ chối';
+      }
+      
+      const data = await assessmentService.getAll(params);
 
       // Normalize possible response shapes
       let list = [];
@@ -76,6 +128,9 @@ const AssessmentList = () => {
       }
 
       setAssessments(list);
+      if (data && data.pagination) {
+        setPagination(prev => ({ ...prev, total: data.pagination.total }));
+      }
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -104,60 +159,72 @@ const AssessmentList = () => {
     return <Chip label={cfg.label} color={cfg.color} size="small" />;
   };
 
-  const filteredData = filter === 'all' 
-    ? assessments 
-    : assessments.filter(a => {
-        if (filter === 'pending') return a.KetQua === 'Yêu cầu bổ sung';
-        if (filter === 'approved') return a.KetQua === 'Chấp nhận';
-        if (filter === 'rejected') return a.KetQua === 'Từ chối';
-        return true;
-      });
-
   const columns = [
-    { key: 'MaTD', label: 'Mã thẩm định' },
-    { key: 'MaHD', label: 'Hợp đồng' },
+    { field: 'MaTD', headerName: 'Mã thẩm định', width: 130 },
+    { field: 'MaHD', headerName: 'Hợp đồng', width: 130 },
     {
-      key: 'NgayThamDinh',
-      label: 'Ngày thẩm định',
-      render: (row) => format(new Date(row.NgayThamDinh), 'dd/MM/yyyy')
+      field: 'NgayThamDinh',
+      headerName: 'Ngày thẩm định',
+      width: 140,
+      renderCell: (row) => row.NgayThamDinh ? format(new Date(row.NgayThamDinh), 'dd/MM/yyyy') : '-'
     },
     {
-      key: 'MucDoRuiRo',
-      label: 'Mức rủi ro',
-      render: (row) => getRiskBadge(row.MucDoRuiRo)
+      field: 'MucDoRuiRo',
+      headerName: 'Mức rủi ro',
+      width: 140,
+      renderCell: (row) => getRiskBadge(row.MucDoRuiRo)
     },
     {
-      key: 'KetQua',
-      label: 'Kết quả',
-      render: (row) => getResultBadge(row.KetQua)
+      field: 'KetQua',
+      headerName: 'Kết quả',
+      width: 150,
+      renderCell: (row) => getResultBadge(row.KetQua)
     },
     { 
-      key: 'GhiChu', 
-      label: 'Ghi chú',
-      render: (row) => (
-        <div title={row.GhiChu} style={{ maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {row.GhiChu}
+      field: 'GhiChu', 
+      headerName: 'Ghi chú',
+      width: 200,
+      renderCell: (row) => (
+        <div title={row.GhiChu} style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {row.GhiChu || '-'}
         </div>
       )
     },
     {
-      key: 'actions',
-      label: 'Thao tác',
-      render: (row) => (
-        <Stack direction="row" spacing={1}>
-          <Button variant="text" size="small" onClick={() => handleViewDetail(row.MaTD)}>
-            Chi tiết
-          </Button>
+      field: 'actions',
+      headerName: 'Thao tác',
+      width: 200,
+      renderCell: (row) => (
+        <Stack direction="row" spacing={0.5}>
+          <Tooltip title="Xem chi tiết">
+            <IconButton size="small" color="primary" onClick={() => handleViewDetail(row.MaTD)}>
+              <VisibilityIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Chỉnh sửa">
+            <IconButton size="small" color="warning" onClick={() => handleEdit(row.MaTD)}>
+              <EditIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
           {row.KetQua === 'Chấp nhận' && (
-            <Button variant="contained" size="small" color="success" onClick={() => handleCreateContract(row)}>
-              Tạo HĐ
-            </Button>
+            <Tooltip title="Tạo hợp đồng">
+              <IconButton size="small" color="success" onClick={() => handleCreateContract(row)}>
+                <DocumentIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
           )}
           {row.KetQua !== 'Từ chối' && (
-            <Button variant="outlined" size="small" color="error" onClick={() => handleReject(row.MaTD)}>
-              Từ chối
-            </Button>
+            <Tooltip title="Từ chối">
+              <IconButton size="small" color="error" onClick={() => handleReject(row.MaTD)}>
+                <CancelIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
           )}
+          <Tooltip title="Xóa">
+            <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); handleDelete(row); }}>
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
         </Stack>
       )
     }
@@ -180,7 +247,7 @@ const AssessmentList = () => {
         <ToggleButtonGroup
           value={filter}
           exclusive
-          onChange={(e, v) => v && setFilter(v)}
+          onChange={(e, v) => { if (v) setFilter(v); setPagination(prev => ({ ...prev, page: 1 })); }}
           size="small"
         >
           <ToggleButton value="all">Tất cả</ToggleButton>
@@ -188,6 +255,14 @@ const AssessmentList = () => {
           <ToggleButton value="approved">Đã duyệt</ToggleButton>
           <ToggleButton value="rejected">Từ chối</ToggleButton>
         </ToggleButtonGroup>
+      </Box>
+
+      {/* Search Bar */}
+      <Box sx={{ mb: 2 }}>
+        <SearchBar
+          placeholder="Tìm kiếm theo mã thẩm định, hợp đồng..."
+          onSearch={handleSearch}
+        />
       </Box>
 
       {/* Stats */}
@@ -225,9 +300,15 @@ const AssessmentList = () => {
           <Box p={2}>
             <Table
               columns={columns}
-              data={filteredData}
+              data={assessments}
               loading={loading}
               emptyMessage="Chưa có thẩm định nào"
+              pageSize={pagination.limit}
+              rowCount={pagination.total}
+              page={pagination.page - 1}
+              onPageChange={handlePageChange}
+              onPageSizeChange={handlePageSizeChange}
+              paginationMode="server"
               getRowId={(row) => row.MaTD}
             />
           </Box>

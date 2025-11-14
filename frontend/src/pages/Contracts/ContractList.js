@@ -29,6 +29,7 @@ import {
 } from '@mui/icons-material';
 import Table from '../../components/common/Table';
 import Button from '../../components/common/Button';
+import SearchBar from '../../components/common/SearchBar';
 import contractService from '../../services/contractService';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 
@@ -38,6 +39,7 @@ const ContractList = () => {
   const [contracts, setContracts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0 });
+  const [searchTerm, setSearchTerm] = useState('');
   const [stats, setStats] = useState({
     active: 0,
     pending: 0,
@@ -47,7 +49,7 @@ const ContractList = () => {
   useEffect(() => {
     fetchContracts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, pagination.page, pagination.limit]);
+  }, [activeTab, pagination.page, pagination.limit, searchTerm]);
 
   const fetchContracts = async () => {
     try {
@@ -56,6 +58,8 @@ const ContractList = () => {
         page: pagination.page,
         limit: pagination.limit
       };
+      
+      if (searchTerm) params.search = searchTerm;
       
       if (activeTab === 1) {
         // Phát hành: hợp đồng mới tạo, chưa ký
@@ -107,6 +111,11 @@ const ContractList = () => {
 
   const handlePageSizeChange = (newPageSize) => {
     setPagination(prev => ({ ...prev, limit: newPageSize, page: 1 }));
+  };
+
+  const handleSearch = (value) => {
+    setSearchTerm(value);
+    setPagination(prev => ({ ...prev, page: 1 }));
   };
 
   const handleRenew = async (row) => {
@@ -365,6 +374,14 @@ const ContractList = () => {
           <Tab label="Quản lý tái tục" />
         </Tabs>
       </Paper>
+
+      {/* Search Bar */}
+      <Box sx={{ mb: 2 }}>
+        <SearchBar
+          placeholder="Tìm kiếm theo số HĐ, khách hàng, biển số..."
+          onSearch={handleSearch}
+        />
+      </Box>
 
       {/* Table */}
       <Paper sx={{ borderRadius: 2, overflow: 'hidden' }}>

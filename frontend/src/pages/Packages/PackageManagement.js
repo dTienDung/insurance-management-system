@@ -23,35 +23,41 @@ import {
 } from '@mui/icons-material';
 import Table from '../../components/common/Table';
 import Button from '../../components/common/Button';
+import SearchBar from '../../components/common/SearchBar';
 import packageService from '../../services/packageService';
-import { formatCurrency } from '../../utils/formatters';
 
 const PackageManagement = () => {
   const [packages, setPackages] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0 });
+  const [searchTerm, setSearchTerm] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [currentPackage, setCurrentPackage] = useState(null);
   const [formData, setFormData] = useState({
     TenGoi: '',
     MoTa: '',
-    PhiCoBan: '',
-    BaoHiemTNDS: '',
-    BaoHiemVatChat: '',
-    BaoHiemNguoi: '',
-    HeSoPhi: '',
+    TyLePhiCoBan: '',
+    LoaiPhamVi: '',
     TrangThai: 'Hoạt động'
   });
 
   useEffect(() => {
     fetchPackages();
-  }, []);
+  }, [pagination.page, pagination.limit, searchTerm]);
 
   const fetchPackages = async () => {
     try {
       setLoading(true);
-      const response = await packageService.getAll();
+      const response = await packageService.getAll({
+        page: pagination.page,
+        limit: pagination.limit,
+        search: searchTerm
+      });
       setPackages(response.data || response.list || []);
+      if (response.pagination) {
+        setPagination(prev => ({ ...prev, total: response.pagination.total }));
+      }
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -66,11 +72,8 @@ const PackageManagement = () => {
       setFormData({
         TenGoi: pkg.TenGoi || '',
         MoTa: pkg.MoTa || '',
-        PhiCoBan: pkg.PhiCoBan || '',
-        BaoHiemTNDS: pkg.BaoHiemTNDS || '',
-        BaoHiemVatChat: pkg.BaoHiemVatChat || '',
-        BaoHiemNguoi: pkg.BaoHiemNguoi || '',
-        HeSoPhi: pkg.HeSoPhi || '',
+        TyLePhiCoBan: pkg.TyLePhiCoBan || '',
+        LoaiPhamVi: pkg.LoaiPhamVi || '',
         TrangThai: pkg.TrangThai || 'Hoạt động'
       });
     } else {
@@ -79,11 +82,8 @@ const PackageManagement = () => {
       setFormData({
         TenGoi: '',
         MoTa: '',
-        PhiCoBan: '',
-        BaoHiemTNDS: '',
-        BaoHiemVatChat: '',
-        BaoHiemNguoi: '',
-        HeSoPhi: '',
+        TyLePhiCoBan: '',
+        LoaiPhamVi: '',
         TrangThai: 'Hoạt động'
       });
     }
@@ -123,14 +123,25 @@ const PackageManagement = () => {
     }
   };
 
+  const handlePageChange = (newPage) => {
+    setPagination(prev => ({ ...prev, page: newPage + 1 }));
+  };
+
+  const handlePageSizeChange = (newPageSize) => {
+    setPagination(prev => ({ ...prev, limit: newPageSize, page: 1 }));
+  };
+
+  const handleSearch = (value) => {
+    setSearchTerm(value);
+    setPagination(prev => ({ ...prev, page: 1 }));
+  };
+
   const columns = [
     { field: 'MaGoi', headerName: 'Mã gói', width: 100 },
-    { field: 'TenGoi', headerName: 'Tên gói', width: 200 },
-    { field: 'MoTa', headerName: 'Mô tả', width: 250 },
-    { field: 'PhiCoBan', headerName: 'Phí cơ bản', width: 130, renderCell: (row) => formatCurrency(row.PhiCoBan) },
-    { field: 'BaoHiemTNDS', headerName: 'BH TNDS', width: 130, renderCell: (row) => formatCurrency(row.BaoHiemTNDS) },
-    { field: 'BaoHiemVatChat', headerName: 'BH Vật chất', width: 140, renderCell: (row) => formatCurrency(row.BaoHiemVatChat) },
-    { field: 'HeSoPhi', headerName: 'Hệ số phí', width: 100 },
+    { field: 'TenGoi', headerName: 'Tên gói', width: 250 },
+    { field: 'MoTa', headerName: 'Mô tả', width: 300 },
+    { field: 'TyLePhiCoBan', headerName: 'Tỷ lệ phí cơ bản', width: 150, renderCell: (row) => `${row.TyLePhiCoBan}%` },
+    { field: 'LoaiPhamVi', headerName: 'Loại phạm vi', width: 150 },
     { field: 'TrangThai', headerName: 'Trạng thái', width: 120, renderCell: (row) => (
       <Chip 
         label={row.TrangThai} 
@@ -187,6 +198,12 @@ const PackageManagement = () => {
         </Stack>
       </Box>
 
+      {/* Search Bar */}
+      <SearchBar 
+        onSearch={handleSearch}
+        placeholder="Tìm gói bảo hiểm (tên, mã)..."
+      />
+
       {/* Table */}
       <Paper sx={{ borderRadius: 2, overflow: 'hidden' }}>
         <Table
@@ -194,7 +211,12 @@ const PackageManagement = () => {
           data={packages}
           loading={loading}
           emptyMessage="Chưa có gói bảo hiểm nào"
-          pageSize={10}
+          pageSize={pagination.limit}
+          rowCount={pagination.total}
+          page={pagination.page - 1}
+          onPageChange={handlePageChange}
+          onPageSizeChange={handlePageSizeChange}
+          paginationMode="server"
           getRowId={(row) => row.MaGoi}
         />
       </Paper>
@@ -219,7 +241,7 @@ const PackageManagement = () => {
                 fullWidth
                 label="Mô tả"
                 multiline
-                rows={2}
+                rows={3}
                 value={formData.MoTa}
                 onChange={(e) => setFormData({ ...formData, MoTa: e.target.value })}
               />
@@ -227,47 +249,21 @@ const PackageManagement = () => {
             <Grid item xs={6}>
               <TextField
                 fullWidth
-                label="Phí cơ bản (VNĐ)"
+                label="Tỷ lệ phí cơ bản (%) *"
                 type="number"
-                value={formData.PhiCoBan}
-                onChange={(e) => setFormData({ ...formData, PhiCoBan: e.target.value })}
+                inputProps={{ step: "0.01", min: "0", max: "100" }}
+                value={formData.TyLePhiCoBan}
+                onChange={(e) => setFormData({ ...formData, TyLePhiCoBan: e.target.value })}
+                helperText="Ví dụ: 2.5 nghĩa là 2.5% giá trị xe"
               />
             </Grid>
             <Grid item xs={6}>
               <TextField
                 fullWidth
-                label="Hệ số phí"
-                type="number"
-                step="0.1"
-                value={formData.HeSoPhi}
-                onChange={(e) => setFormData({ ...formData, HeSoPhi: e.target.value })}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Bảo hiểm TNDS (VNĐ)"
-                type="number"
-                value={formData.BaoHiemTNDS}
-                onChange={(e) => setFormData({ ...formData, BaoHiemTNDS: e.target.value })}
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField
-                fullWidth
-                label="Bảo hiểm vật chất (VNĐ)"
-                type="number"
-                value={formData.BaoHiemVatChat}
-                onChange={(e) => setFormData({ ...formData, BaoHiemVatChat: e.target.value })}
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField
-                fullWidth
-                label="Bảo hiểm người (VNĐ)"
-                type="number"
-                value={formData.BaoHiemNguoi}
-                onChange={(e) => setFormData({ ...formData, BaoHiemNguoi: e.target.value })}
+                label="Loại phạm vi"
+                value={formData.LoaiPhamVi}
+                onChange={(e) => setFormData({ ...formData, LoaiPhamVi: e.target.value })}
+                placeholder="Ví dụ: Toàn diện, Cơ bản, TNDS"
               />
             </Grid>
             <Grid item xs={12}>

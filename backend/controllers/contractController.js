@@ -702,6 +702,62 @@ class ContractController {
       next(error);
     }
   }
+
+  /**
+   * Xóa hợp đồng (chỉ cho phép xóa hợp đồng nháp hoặc chờ duyệt)
+   */
+  async delete(req, res, next) {
+    try {
+      const { id } = req.params;
+      const pool = await getConnection();
+
+      // Kiểm tra hợp đồng tồn tại
+      const checkContract = await pool.request()
+        .input('MaHD', sql.VarChar(15), id)
+        .query('SELECT TrangThai FROM HopDong WHERE MaHD = @MaHD');
+
+      if (checkContract.recordset.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Không tìm thấy hợp đồng'
+        });
+      }
+
+      const trangThai = checkContract.recordset[0].TrangThai;
+
+      // Chỉ cho phép xóa hợp đồng nháp hoặc chờ duyệt
+      if (!['Nháp', 'Chờ duyệt'].includes(trangThai)) {
+        return res.status(400).json({
+          success: false,
+          message: `Không thể xóa hợp đồng có trạng thái "${trangThai}". Chỉ có thể xóa hợp đồng "Nháp" hoặc "Chờ duyệt".`
+        });
+      }
+
+      // Kiểm tra thanh toán
+      const checkPayment = await pool.request()
+        .input('MaHD', sql.VarChar(15), id)
+        .query('SELECT COUNT(*) as count FROM ThanhToan WHERE MaHD = @MaHD');
+
+      if (checkPayment.recordset[0].count > 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Không thể xóa hợp đồng đã có giao dịch thanh toán'
+        });
+      }
+
+      // Xóa hợp đồng
+      await pool.request()
+        .input('MaHD', sql.VarChar(15), id)
+        .query('DELETE FROM HopDong WHERE MaHD = @MaHD');
+
+      res.json({
+        success: true,
+        message: 'Đã xóa hợp đồng thành công'
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = new ContractController();
