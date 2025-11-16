@@ -24,7 +24,6 @@ import VehicleModal from './VehicleModal';
 import VehicleDetailModal from './VehicleDetailModal';
 
 const VehicleList = () => {
-  const navigate = useNavigate();
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -33,11 +32,6 @@ const VehicleList = () => {
   const [detailVehicleId, setDetailVehicleId] = useState(null);
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0 });
   const [searchTerm, setSearchTerm] = useState('');
-
-  useEffect(() => {
-    fetchVehicles();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pagination.page, pagination.limit, searchTerm]);
 
   const fetchVehicles = async () => {
     try {
@@ -60,6 +54,11 @@ const VehicleList = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchVehicles();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pagination.page, pagination.limit, searchTerm]);
 
   const handlePageChange = (newPage) => {
     console.log('[VehicleList] Page change:', newPage, '→', newPage + 1);

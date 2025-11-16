@@ -46,11 +46,6 @@ const ContractList = () => {
     expiring: 0
   });
 
-  useEffect(() => {
-    fetchContracts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, pagination.page, pagination.limit, searchTerm]);
-
   const fetchContracts = async () => {
     try {
       setLoading(true);
@@ -93,6 +88,11 @@ const ContractList = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchContracts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, pagination.page, pagination.limit, searchTerm]);
 
   const handleDelete = async (row) => {
     if (!window.confirm(`Xác nhận xóa hợp đồng ${row.MaHD}?`)) return;

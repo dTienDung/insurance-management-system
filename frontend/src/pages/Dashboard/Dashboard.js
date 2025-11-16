@@ -16,9 +16,13 @@ import {
   Button as MuiButton,
   IconButton,
   Tooltip,
-  Chip,
-  TextField
+  Chip
 } from '@mui/material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import dayjs from 'dayjs';
+import 'dayjs/locale/vi';
 import {
   TrendingUp as TrendingUpIcon,
   TrendingDown as TrendingDownIcon,
@@ -56,13 +60,11 @@ const Dashboard = () => {
   
   // Default: last 30 days
   const getDefaultFromDate = () => {
-    const date = new Date();
-    date.setDate(date.getDate() - 30);
-    return date.toISOString().split('T')[0];
+    return dayjs().subtract(30, 'day');
   };
   
   const getDefaultToDate = () => {
-    return new Date().toISOString().split('T')[0];
+    return dayjs();
   };
   
   const [filters, setFilters] = useState({
@@ -111,8 +113,8 @@ const Dashboard = () => {
 
       // Load revenue data with date range
       const revenueRes = await reportService.getMonthlyRevenue({ 
-        fromDate: filters.fromDate, 
-        toDate: filters.toDate 
+        fromDate: filters.fromDate.format('YYYY-MM-DD'), 
+        toDate: filters.toDate.format('YYYY-MM-DD') 
       });
       const revenueMonthly = revenueRes.data || [];
       setRevenueData(revenueMonthly.map(item => ({
@@ -249,30 +251,37 @@ const Dashboard = () => {
 
       {/* Filter Bar */}
       <Paper sx={{ p: 2, mb: 3 }}>
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} md={3}>
-            <TextField
-              fullWidth
-              size="small"
-              type="date"
-              label="Từ ngày"
-              value={filters.fromDate}
-              onChange={(e) => setFilters({ ...filters, fromDate: e.target.value })}
-              InputLabelProps={{ shrink: true }}
-            />
-          </Grid>
+        <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="vi">
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} md={3}>
+              <DatePicker
+                label="Từ ngày"
+                value={filters.fromDate}
+                onChange={(newValue) => setFilters({ ...filters, fromDate: newValue })}
+                format="DD/MM/YYYY"
+                slotProps={{
+                  textField: {
+                    size: 'small',
+                    fullWidth: true
+                  }
+                }}
+              />
+            </Grid>
 
-          <Grid item xs={12} md={3}>
-            <TextField
-              fullWidth
-              size="small"
-              type="date"
-              label="Đến ngày"
-              value={filters.toDate}
-              onChange={(e) => setFilters({ ...filters, toDate: e.target.value })}
-              InputLabelProps={{ shrink: true }}
-            />
-          </Grid>
+            <Grid item xs={12} md={3}>
+              <DatePicker
+                label="Đến ngày"
+                value={filters.toDate}
+                onChange={(newValue) => setFilters({ ...filters, toDate: newValue })}
+                format="DD/MM/YYYY"
+                slotProps={{
+                  textField: {
+                    size: 'small',
+                    fullWidth: true
+                  }
+                }}
+              />
+            </Grid>
 
           <Grid item xs={12} md={2}>
             <FormControl fullWidth size="small">
@@ -317,6 +326,7 @@ const Dashboard = () => {
             </Stack>
           </Grid>
         </Grid>
+        </LocalizationProvider>
       </Paper>
 
       {/* Stats Cards */}

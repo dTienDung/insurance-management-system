@@ -22,7 +22,6 @@ import {
   Tooltip
 } from '@mui/material';
 import {
-  Add as AddIcon,
   Visibility as VisibilityIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
@@ -41,6 +40,47 @@ const AssessmentList = () => {
   const [selectedAssessment, setSelectedAssessment] = useState(null);
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0 });
   const [searchTerm, setSearchTerm] = useState('');
+
+  const fetchAssessments = async () => {
+    try {
+      setLoading(true);
+      const params = {
+        page: pagination.page,
+        limit: pagination.limit
+      };
+      if (searchTerm) params.search = searchTerm;
+      if (filter !== 'all') {
+        if (filter === 'pending') params.ketQua = 'Yêu cầu bổ sung';
+        if (filter === 'approved') params.ketQua = 'Chấp nhận';
+        if (filter === 'rejected') params.ketQua = 'Từ chối';
+      }
+      
+      const data = await assessmentService.getAll(params);
+
+      // Normalize possible response shapes
+      let list = [];
+      if (Array.isArray(data)) {
+        list = data;
+      } else if (data && Array.isArray(data.data)) {
+        list = data.data;
+      } else if (data && Array.isArray(data.assessments)) {
+        list = data.assessments;
+      } else if (data && Array.isArray(data.items)) {
+        list = data.items;
+      } else {
+        console.warn('Unexpected assessments response shape, expected array-like but got:', data);
+      }
+
+      setAssessments(list);
+      if (data && data.pagination) {
+        setPagination(prev => ({ ...prev, total: data.pagination.total }));
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchAssessments();
@@ -95,47 +135,6 @@ const AssessmentList = () => {
     } catch (error) {
       console.error('Error:', error);
       alert('❌ Lỗi khi từ chối thẩm định!');
-    }
-  };
-
-  const fetchAssessments = async () => {
-    try {
-      setLoading(true);
-      const params = {
-        page: pagination.page,
-        limit: pagination.limit
-      };
-      if (searchTerm) params.search = searchTerm;
-      if (filter !== 'all') {
-        if (filter === 'pending') params.ketQua = 'Yêu cầu bổ sung';
-        if (filter === 'approved') params.ketQua = 'Chấp nhận';
-        if (filter === 'rejected') params.ketQua = 'Từ chối';
-      }
-      
-      const data = await assessmentService.getAll(params);
-
-      // Normalize possible response shapes
-      let list = [];
-      if (Array.isArray(data)) {
-        list = data;
-      } else if (data && Array.isArray(data.data)) {
-        list = data.data;
-      } else if (data && Array.isArray(data.assessments)) {
-        list = data.assessments;
-      } else if (data && Array.isArray(data.items)) {
-        list = data.items;
-      } else {
-        console.warn('Unexpected assessments response shape, expected array-like but got:', data);
-      }
-
-      setAssessments(list);
-      if (data && data.pagination) {
-        setPagination(prev => ({ ...prev, total: data.pagination.total }));
-      }
-    } catch (error) {
-      console.error('Error:', error);
-    } finally {
-      setLoading(false);
     }
   };
 

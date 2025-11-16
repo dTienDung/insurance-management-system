@@ -12,13 +12,13 @@ import {
   CardContent,
   Stack,
   Divider,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Alert,
-  TextField
+  Alert
 } from '@mui/material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import dayjs from 'dayjs';
+import 'dayjs/locale/vi';
 import {
   Assessment as AssessmentIcon,
   TrendingUp as TrendingUpIcon,
@@ -35,13 +35,11 @@ const ReportDashboard = () => {
   
   // Default: last 30 days
   const getDefaultFromDate = () => {
-    const date = new Date();
-    date.setDate(date.getDate() - 30);
-    return date.toISOString().split('T')[0];
+    return dayjs().subtract(30, 'day');
   };
   
   const getDefaultToDate = () => {
-    return new Date().toISOString().split('T')[0];
+    return dayjs();
   };
   
   const [fromDate, setFromDate] = useState(getDefaultFromDate());
@@ -64,19 +62,19 @@ const ReportDashboard = () => {
 
       switch (reportType) {
         case 'revenue':
-          await reportService.exportRevenuePDF(fromDate, toDate);
+          await reportService.exportRevenuePDF(fromDate.format('YYYY-MM-DD'), toDate.format('YYYY-MM-DD'));
           setSuccess('Đã xuất báo cáo doanh thu thành công!');
           break;
         case 'renewal':
-          await reportService.exportRenewalPDF(fromDate, toDate);
+          await reportService.exportRenewalPDF(fromDate.format('YYYY-MM-DD'), toDate.format('YYYY-MM-DD'));
           setSuccess('Đã xuất báo cáo tái tục thành công!');
           break;
         case 'assessment':
-          await reportService.exportAssessmentPDF(fromDate, toDate);
+          await reportService.exportAssessmentPDF(fromDate.format('YYYY-MM-DD'), toDate.format('YYYY-MM-DD'));
           setSuccess('Đã xuất báo cáo thẩm định thành công!');
           break;
         case 'business':
-          await reportService.exportBusinessPDF(fromDate, toDate);
+          await reportService.exportBusinessPDF(fromDate.format('YYYY-MM-DD'), toDate.format('YYYY-MM-DD'));
           setSuccess('Đã xuất báo cáo quản trị nghiệp vụ thành công!');
           break;
         default:
@@ -150,24 +148,32 @@ const ReportDashboard = () => {
 
         {/* Chọn khoảng thời gian */}
         <Box sx={{ mb: 4 }}>
-          <Stack direction="row" spacing={2}>
-            <TextField
-              type="date"
-              label="Từ ngày"
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
-              InputLabelProps={{ shrink: true }}
-              sx={{ minWidth: 200 }}
-            />
-            <TextField
-              type="date"
-              label="Đến ngày"
-              value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
-              InputLabelProps={{ shrink: true }}
-              sx={{ minWidth: 200 }}
-            />
-          </Stack>
+          <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="vi">
+            <Stack direction="row" spacing={2}>
+              <DatePicker
+                label="Từ ngày"
+                value={fromDate}
+                onChange={(newValue) => setFromDate(newValue)}
+                format="DD/MM/YYYY"
+                slotProps={{
+                  textField: {
+                    sx: { minWidth: 200 }
+                  }
+                }}
+              />
+              <DatePicker
+                label="Đến ngày"
+                value={toDate}
+                onChange={(newValue) => setToDate(newValue)}
+                format="DD/MM/YYYY"
+                slotProps={{
+                  textField: {
+                    sx: { minWidth: 200 }
+                  }
+                }}
+              />
+            </Stack>
+          </LocalizationProvider>
         </Box>
 
         {/* Các loại báo cáo */}

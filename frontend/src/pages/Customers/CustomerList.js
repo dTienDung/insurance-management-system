@@ -24,7 +24,6 @@ import CustomerDetailModal from './CustomerDetailModal';
 import { formatDate, formatPhone } from '../../utils/formatters';
 
 const CustomerList = () => {
-  const navigate = useNavigate();
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -33,10 +32,6 @@ const CustomerList = () => {
   const [detailCustomerId, setDetailCustomerId] = useState(null);
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0 });
   const [searchTerm, setSearchTerm] = useState('');
-
-  useEffect(() => {
-    fetchCustomers();
-  }, [fetchCustomers]);
 
   const fetchCustomers = useCallback(async () => {
     try {
@@ -58,6 +53,10 @@ const CustomerList = () => {
       setLoading(false);
     }
   }, [pagination.page, pagination.limit, searchTerm]);
+
+  useEffect(() => {
+    fetchCustomers();
+  }, [fetchCustomers]);
 
   const handlePageChange = (newPage) => {
     setPagination(prev => ({ ...prev, page: newPage + 1 })); // MUI uses 0-based index

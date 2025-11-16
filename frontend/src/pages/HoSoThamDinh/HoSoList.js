@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   Container,
   Box,
@@ -25,7 +24,6 @@ import hosoService from '../../services/hosoService';
 // Force rebuild - timestamp: 2025-11-13T07:55:00
 const HoSoList = () => {
   console.log('[HoSoList] Component loaded at:', new Date().toISOString());
-  const navigate = useNavigate();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   // eslint-disable-next-line no-unused-vars
@@ -36,11 +34,6 @@ const HoSoList = () => {
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [detailHoSoId, setDetailHoSoId] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-
-  useEffect(() => {
-    fetchHoso();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filter, pagination.page, pagination.limit, searchTerm]);
 
   async function fetchHoso() {
     try {
@@ -69,6 +62,11 @@ const HoSoList = () => {
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    fetchHoso();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter, pagination.page, pagination.limit, searchTerm]);
 
   function getStatusChip(status) {
     const statusMap = {
