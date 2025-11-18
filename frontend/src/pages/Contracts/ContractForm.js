@@ -165,9 +165,9 @@ const ContractForm = () => {
     if (error) setError(null);
   };
 
-  const calculateEndDate = (startDate) => {
-    return dayjs(startDate).add(1, 'year');
-  };
+  // const calculateEndDate = (startDate) => {
+  //   return dayjs(startDate).add(1, 'year');
+  // };
 
   const validateForm = () => {
     const errors = [];

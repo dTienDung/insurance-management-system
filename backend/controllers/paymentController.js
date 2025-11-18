@@ -128,7 +128,7 @@ class PaymentController {
       // Gọi SP hoàn tiền
       await pool.request()
         .input('maHD', sql.VarChar(10), maHD)
-        .input('lyDo', sql.NVarChar(255), ghiChu || N'Hoàn tiền theo yêu cầu') // SP cần @LyDo
+        .input('lyDo', sql.NVarChar(255), ghiChu || 'Hoàn tiền theo yêu cầu') // SP cần @LyDo
         .input('soTienHoan', sql.Decimal(18, 2), soTienHoan)
         .execute('sp_HoanTienHopDong');
 

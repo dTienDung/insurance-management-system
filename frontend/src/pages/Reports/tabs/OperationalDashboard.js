@@ -15,8 +15,8 @@ import {
   Chip,
   IconButton,
   Drawer,
-  Divider,
-  TextField
+  Divider
+  // TextField
 } from '@mui/material';
 import {
   TrendingUp,
@@ -41,11 +41,12 @@ import {
   ResponsiveContainer
 } from 'recharts';
 import { DataGrid } from '@mui/x-data-grid';
-import reportService from '../../../services/reportService';
-import { formatCurrency, formatDate } from '../../../utils/formatters';
+// import reportService from '../../../services/reportService';
+import { formatCurrency } from '../../../utils/formatters';
+// import { formatDate } from '../../../utils/formatters';
 
 const OperationalDashboard = () => {
-  const [loading, setLoading] = useState(false);
+  // const [loading] = useState(false); // Not actively used
   const [filters, setFilters] = useState({
     timeType: 'month',
     month: new Date().getMonth() + 1,
@@ -63,13 +64,13 @@ const OperationalDashboard = () => {
     renewalRate: 0
   });
 
-  const [contractList, setContractList] = useState([]);
-  const [customerList, setCustomerList] = useState([]);
+  const [contractList] = useState([]); // Used in DataGrid
+  // const [customerList] = useState([]); // Not used
   const [revenueData, setRevenueData] = useState([]);
-  const [renewalData, setRenewalData] = useState([]);
+  // const [renewalData] = useState([]); // Not used
   
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [selectedCustomer] = useState(null); // Used in Drawer conditional rendering
 
   useEffect(() => {
     loadDashboardData();
@@ -77,7 +78,7 @@ const OperationalDashboard = () => {
 
   const loadDashboardData = async () => {
     try {
-      setLoading(true);
+      // setLoading(true); // Commented out - loading state not actively used
       
       // Mock data - replace with real API calls
       setKpis({
@@ -101,7 +102,7 @@ const OperationalDashboard = () => {
     } catch (error) {
       console.error('Error loading dashboard:', error);
     } finally {
-      setLoading(false);
+      // setLoading(false); // Commented out - loading state not actively used
     }
   };
 
@@ -124,10 +125,10 @@ const OperationalDashboard = () => {
     });
   };
 
-  const handleViewCustomerDetail = (customer) => {
-    setSelectedCustomer(customer);
-    setDrawerOpen(true);
-  };
+  // const handleViewCustomerDetail = (customer) => {
+  //   setSelectedCustomer(customer);
+  //   setDrawerOpen(true);
+  // };
 
   const KPICard = ({ title, value, icon: Icon, color, growth, suffix = '' }) => (
     <Card sx={{ height: '100%' }}>

@@ -6,7 +6,7 @@
 const express = require('express');
 const router = express.Router();
 const assessmentCriteriaController = require('../controllers/assessmentCriteriaController');
-const auth = require('../middleware/auth');
+const { authMiddleware } = require('../middleware/auth');
 
 // ============================================
 // PUBLIC ROUTES (nếu cần)
@@ -20,13 +20,13 @@ const auth = require('../middleware/auth');
 // ============================================
 
 // Thống kê sử dụng
-router.get('/stats', auth, assessmentCriteriaController.getUsageStats);
+router.get('/stats', authMiddleware, assessmentCriteriaController.getUsageStats);
 
 // CRUD operations
-router.get('/', auth, assessmentCriteriaController.getAll);
-router.get('/:id', auth, assessmentCriteriaController.getById);
-router.post('/', auth, assessmentCriteriaController.create);
-router.put('/:id', auth, assessmentCriteriaController.update);
-router.delete('/:id', auth, assessmentCriteriaController.delete);
+router.get('/', authMiddleware, assessmentCriteriaController.getAll);
+router.get('/:id', authMiddleware, assessmentCriteriaController.getById);
+router.post('/', authMiddleware, assessmentCriteriaController.create);
+router.put('/:id', authMiddleware, assessmentCriteriaController.update);
+router.delete('/:id', authMiddleware, assessmentCriteriaController.delete);
 
 module.exports = router;

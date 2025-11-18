@@ -6,31 +6,31 @@
 const express = require('express');
 const router = express.Router();
 const auditLogController = require('../controllers/auditLogController');
-const auth = require('../middleware/auth');
+const { authMiddleware } = require('../middleware/auth');
 
 // ============================================
 // ALL ROUTES PROTECTED - Chỉ admin/manager
 // ============================================
 
 // Thống kê
-router.get('/stats', auth, auditLogController.getStats);
+router.get('/stats', authMiddleware, auditLogController.getStats);
 
 // Danh sách bảng có audit
-router.get('/tables', auth, auditLogController.getTables);
+router.get('/tables', authMiddleware, auditLogController.getTables);
 
 // So sánh versions
-router.get('/compare', auth, auditLogController.compareVersions);
+router.get('/compare', authMiddleware, auditLogController.compareVersions);
 
 // Export to CSV
-router.get('/export', auth, auditLogController.exportToCsv);
+router.get('/export', authMiddleware, auditLogController.exportToCsv);
 
 // Lấy logs theo bảng
-router.get('/table/:table', auth, auditLogController.getByTable);
+router.get('/table/:table', authMiddleware, auditLogController.getByTable);
 
 // Lấy lịch sử của 1 record
-router.get('/record/:table/:id', auth, auditLogController.getByRecord);
+router.get('/record/:table/:id', authMiddleware, auditLogController.getByRecord);
 
 // Lấy tất cả (với filters)
-router.get('/', auth, auditLogController.getAll);
+router.get('/', authMiddleware, auditLogController.getAll);
 
 module.exports = router;

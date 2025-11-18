@@ -6,7 +6,7 @@
 const express = require('express');
 const router = express.Router();
 const pricingMatrixController = require('../controllers/pricingMatrixController');
-const auth = require('../middleware/auth');
+const { authMiddleware } = require('../middleware/auth');
 
 // ============================================
 // PUBLIC ROUTES (nếu cần)
@@ -23,10 +23,10 @@ router.get('/matrix', pricingMatrixController.getFullMatrix);
 // ============================================
 
 // CRUD operations
-router.get('/', auth, pricingMatrixController.getAll);
-router.get('/:id', auth, pricingMatrixController.getById);
-router.post('/', auth, pricingMatrixController.create);
-router.put('/:id', auth, pricingMatrixController.update);
-router.delete('/:id', auth, pricingMatrixController.delete);
+router.get('/', authMiddleware, pricingMatrixController.getAll);
+router.get('/:id', authMiddleware, pricingMatrixController.getById);
+router.post('/', authMiddleware, pricingMatrixController.create);
+router.put('/:id', authMiddleware, pricingMatrixController.update);
+router.delete('/:id', authMiddleware, pricingMatrixController.delete);
 
 module.exports = router;

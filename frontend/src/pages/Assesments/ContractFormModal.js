@@ -42,11 +42,11 @@ const ContractFormModal = ({ open, onClose, onSuccess, assessment }) => {
   const [packages, setPackages] = useState([]);
 
   // Load packages from backend
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (open) {
       loadPackages();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const loadPackages = async () => {

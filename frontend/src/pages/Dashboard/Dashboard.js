@@ -89,9 +89,9 @@ const Dashboard = () => {
   const [expiringContracts, setExpiringContracts] = useState([]);
   const [pendingAssessments, setPendingAssessments] = useState([]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     loadDashboardData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
 
   const loadDashboardData = async () => {

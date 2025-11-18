@@ -63,11 +63,7 @@ const MainLayout = ({ children }) => {
       icon: <BarChartOutlined />,
       label: 'Báo cáo',
     },
-    {
-      key: '/settings',
-      icon: <SettingOutlined />,
-      label: 'Cài đặt',
-    },
+    // Settings đã được chuyển vào user menu (avatar dropdown)
   ];
 
   const handleMenuClick = ({ key }) => {
