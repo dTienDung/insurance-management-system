@@ -121,6 +121,10 @@ app.use('/api/hoso', require('./routes/hosoRoutes'));
 app.use('/api/assessments', require('./routes/assessmentRoutes'));
 app.use('/api/reports', require('./routes/reportRoutes'));
 app.use('/api/export', require('./routes/exportRoutes'));
+// Master Data Management (Phase 1)
+app.use('/api/criteria', require('./routes/assessmentCriteriaRoutes'));
+app.use('/api/pricing', require('./routes/pricingMatrixRoutes'));
+app.use('/api/audit', require('./routes/auditLogRoutes'));
 
 // 404 handler
 app.use((req, res) => {
