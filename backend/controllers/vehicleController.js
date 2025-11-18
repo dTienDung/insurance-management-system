@@ -137,8 +137,8 @@ class VehicleController {
         });
       }
 
-      // LUẬT NGHIỆP VỤ: VIN phải đúng 17 ký tự
-      if (SoKhung.length !== 17) {
+      // LUẬT NGHIỆP VỤ: VIN phải đúng 17 ký tự (null-safe)
+      if (SoKhung.trim().length !== 17) {
         return res.status(400).json({
           success: false,
           message: 'Số khung (VIN) phải có đúng 17 ký tự'
@@ -215,12 +215,14 @@ class VehicleController {
         SoKhung, SoMay, MauSac, GhiChu
       } = req.body;
 
-      // LUẬT NGHIỆP VỤ: VIN phải đúng 17 ký tự
-      if (SoKhung && SoKhung.length !== 17) {
-        return res.status(400).json({
-          success: false,
-          message: 'Số khung (VIN) phải có đúng 17 ký tự'
-        });
+      // LUẬT NGHIỆP VỤ 1: VIN phải đúng 17 ký tự (null-safe validation)
+      if (SoKhung !== undefined && SoKhung !== null) {
+        if (SoKhung.trim().length !== 17) {
+          return res.status(400).json({
+            success: false,
+            message: 'Số khung (VIN) phải có đúng 17 ký tự'
+          });
+        }
       }
 
       // LUẬT NGHIỆP VỤ: Năm sản xuất >= 1990 và <= năm hiện tại + 1
@@ -270,13 +272,56 @@ class VehicleController {
       if (hasActiveContracts) {
         // Cảnh báo thay đổi các trường nhạy cảm với rủi ro
         if (NamSX && NamSX !== oldData.NamSX) {
-          warnings.push(`⚠️ Xe có hợp đồng đang hiệu lực. Thay đổi Năm SX (${oldData.NamSX} → ${NamSX}) sẽ ảnh hưởng tới tính phí tái tục.`);
+          const warningMsg = `⚠️ Xe có hợp đồng đang hiệu lực. Thay đổi Năm SX (${oldData.NamSX} → ${NamSX}) sẽ ảnh hưởng tới tính phí tái tục.`;
+          warnings.push(warningMsg);
+          
+          // LUẬT 6.3: Ghi audit log cho risk-sensitive changes
+          await pool.request()
+            .input('tableName', sql.NVarChar(50), 'Xe')
+            .input('recordID', sql.VarChar(10), id)
+            .input('action', sql.NVarChar(20), 'UPDATE')
+            .input('oldValue', sql.NVarChar(sql.MAX), oldData.NamSX?.toString() || '')
+            .input('newValue', sql.NVarChar(sql.MAX), NamSX.toString())
+            .input('userName', sql.NVarChar(50), req.user?.username || 'system')
+            .input('reason', sql.NVarChar(255), warningMsg)
+            .query(`
+              INSERT INTO AuditLog (TableName, RecordID, Action, OldValue, NewValue, ChangedBy, ChangeReason)
+              VALUES (@tableName, @recordID, @action, @oldValue, @newValue, @userName, @reason)
+            `);
         }
         if (LoaiXe && LoaiXe !== oldData.LoaiXe) {
-          warnings.push(`⚠️ Thay đổi Loại xe (${oldData.LoaiXe} → ${LoaiXe}) sẽ thay đổi mức rủi ro và ảnh hưởng tới hợp đồng hiện tại.`);
+          const warningMsg = `⚠️ Thay đổi Loại xe (${oldData.LoaiXe} → ${LoaiXe}) sẽ thay đổi mức rủi ro và ảnh hưởng tới hợp đồng hiện tại.`;
+          warnings.push(warningMsg);
+          
+          await pool.request()
+            .input('tableName', sql.NVarChar(50), 'Xe')
+            .input('recordID', sql.VarChar(10), id)
+            .input('action', sql.NVarChar(20), 'UPDATE')
+            .input('oldValue', sql.NVarChar(sql.MAX), oldData.LoaiXe || '')
+            .input('newValue', sql.NVarChar(sql.MAX), LoaiXe)
+            .input('userName', sql.NVarChar(50), req.user?.username || 'system')
+            .input('reason', sql.NVarChar(255), warningMsg)
+            .query(`
+              INSERT INTO AuditLog (TableName, RecordID, Action, OldValue, NewValue, ChangedBy, ChangeReason)
+              VALUES (@tableName, @recordID, @action, @oldValue, @newValue, @userName, @reason)
+            `);
         }
         if (HangXe && HangXe !== oldData.HangXe) {
-          warnings.push('⚠️ Thay đổi Hãng xe có thể ảnh hưởng đến đánh giá rủi ro.');
+          const warningMsg = '⚠️ Thay đổi Hãng xe có thể ảnh hưởng đến đánh giá rủi ro.';
+          warnings.push(warningMsg);
+          
+          await pool.request()
+            .input('tableName', sql.NVarChar(50), 'Xe')
+            .input('recordID', sql.VarChar(10), id)
+            .input('action', sql.NVarChar(20), 'UPDATE')
+            .input('oldValue', sql.NVarChar(sql.MAX), oldData.HangXe || '')
+            .input('newValue', sql.NVarChar(sql.MAX), HangXe)
+            .input('userName', sql.NVarChar(50), req.user?.username || 'system')
+            .input('reason', sql.NVarChar(255), warningMsg)
+            .query(`
+              INSERT INTO AuditLog (TableName, RecordID, Action, OldValue, NewValue, ChangedBy, ChangeReason)
+              VALUES (@tableName, @recordID, @action, @oldValue, @newValue, @userName, @reason)
+            `);
         }
       }
 

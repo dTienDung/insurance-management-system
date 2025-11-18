@@ -715,7 +715,7 @@ class ContractController {
           SELECT tt.*, 
                  kh.HoTen as TenKhachHang,
                  bs.BienSo
-          FROM ThanhToan tt
+          FROM ThanhToanHopDong tt
           LEFT JOIN HopDong hd ON tt.MaHD = hd.MaHD
           LEFT JOIN KhachHang kh ON hd.MaKH = kh.MaKH
           LEFT JOIN Xe xe ON hd.MaXe = xe.MaXe
@@ -781,10 +781,10 @@ class ContractController {
         });
       }
 
-      // Kiểm tra thanh toán
+      // LUẬT NGHIỆP VỤ 5.3: Kiểm tra thanh toán trước khi xóa
       const checkPayment = await pool.request()
         .input('MaHD', sql.VarChar(15), id)
-        .query('SELECT COUNT(*) as count FROM ThanhToan WHERE MaHD = @MaHD');
+        .query('SELECT COUNT(*) as count FROM ThanhToanHopDong WHERE MaHD = @MaHD');
 
       if (checkPayment.recordset[0].count > 0) {
         return res.status(400).json({

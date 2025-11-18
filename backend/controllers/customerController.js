@@ -147,13 +147,31 @@ class CustomerController {
         });
       }
 
-      // LUẬT NGHIỆP VỤ: CCCD/CMND phải là 9 hoặc 12 số
+      // LUẬT NGHIỆP VỤ 1: CCCD/CMND phải là 9 hoặc 12 số (duy nhất trong hệ thống)
       const cccdRegex = /^\d{9}$|^\d{12}$/;
       if (!cccdRegex.test(cccd)) {
         return res.status(400).json({
           success: false,
           message: 'CMND/CCCD phải có độ dài 9 hoặc 12 số'
         });
+      }
+
+      // LUẬT 1.2: Validate CCCD 12 số checksum (số cuối là check digit)
+      if (cccd.length === 12) {
+        const digits = cccd.split('').map(d => parseInt(d));
+        const weights = [2, 7, 9, 1, 3, 7, 9, 1, 3, 7, 9]; // Hệ số theo chuẩn CCCD VN
+        let sum = 0;
+        for (let i = 0; i < 11; i++) {
+          sum += digits[i] * weights[i];
+        }
+        const checkDigit = (10 - (sum % 10)) % 10;
+        
+        if (checkDigit !== digits[11]) {
+          return res.status(400).json({
+            success: false,
+            message: 'CCCD không hợp lệ (checksum sai). Vui lòng kiểm tra lại số CCCD.'
+          });
+        }
       }
 
       // LUẬT NGHIỆP VỤ: Kiểm tra tuổi pháp lý (>= 18 tuổi)
@@ -258,10 +276,39 @@ class CustomerController {
       if (hasActiveContracts) {
         // Cảnh báo nếu thay đổi thông tin quan trọng
         if (hoTen && hoTen !== oldData.HoTen) {
-          warnings.push('⚠️ Khách hàng có hợp đồng đang hiệu lực. Thay đổi tên sẽ ảnh hưởng tới tất cả hợp đồng (cũ và mới).');
+          const warningMsg = '⚠️ Khách hàng có hợp đồng đang hiệu lực. Thay đổi tên sẽ ảnh hưởng tới tất cả hợp đồng (cũ và mới).';
+          warnings.push(warningMsg);
+          
+          // LUẬT 6.3: Ghi audit log cho risk-sensitive changes
+          await pool.request()
+            .input('tableName', sql.NVarChar(50), 'KhachHang')
+            .input('recordID', sql.VarChar(10), id)
+            .input('action', sql.NVarChar(20), 'UPDATE')
+            .input('oldValue', sql.NVarChar(sql.MAX), oldData.HoTen)
+            .input('newValue', sql.NVarChar(sql.MAX), hoTen)
+            .input('userName', sql.NVarChar(50), req.user?.username || 'system')
+            .input('reason', sql.NVarChar(255), warningMsg)
+            .query(`
+              INSERT INTO AuditLog (TableName, RecordID, Action, OldValue, NewValue, ChangedBy, ChangeReason)
+              VALUES (@tableName, @recordID, @action, @oldValue, @newValue, @userName, @reason)
+            `);
         }
         if (ngaySinh && ngaySinh !== oldData.NgaySinh) {
-          warnings.push('⚠️ Thay đổi ngày sinh có thể ảnh hưởng đến tính toán rủi ro tái tục.');
+          const warningMsg = '⚠️ Thay đổi ngày sinh có thể ảnh hưởng đến tính toán rủi ro tái tục.';
+          warnings.push(warningMsg);
+          
+          await pool.request()
+            .input('tableName', sql.NVarChar(50), 'KhachHang')
+            .input('recordID', sql.VarChar(10), id)
+            .input('action', sql.NVarChar(20), 'UPDATE')
+            .input('oldValue', sql.NVarChar(sql.MAX), oldData.NgaySinh?.toISOString() || '')
+            .input('newValue', sql.NVarChar(sql.MAX), ngaySinh)
+            .input('userName', sql.NVarChar(50), req.user?.username || 'system')
+            .input('reason', sql.NVarChar(255), warningMsg)
+            .query(`
+              INSERT INTO AuditLog (TableName, RecordID, Action, OldValue, NewValue, ChangedBy, ChangeReason)
+              VALUES (@tableName, @recordID, @action, @oldValue, @newValue, @userName, @reason)
+            `);
         }
       }
 

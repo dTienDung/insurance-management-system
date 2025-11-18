@@ -342,15 +342,18 @@ async approve(req, res, next) {
       });
     }
 
-    // LUẬT NGHIỆP VỤ: Không được tạo hợp đồng cho RiskLevel = HIGH hoặc trạng thái Từ chối
+    // LUẬT NGHIỆP VỤ 2: Phân loại rủi ro và xử lý
+    // Điểm >= 26: HIGH (CÓ THỂ từ chối, cần phê duyệt cấp cao)
+    // 16-25: MEDIUM
+    // <= 15: LOW
     const riskLevel = checkStatus.recordset[0].RiskLevel;
+    const warnings = [];
     
     // RiskLevel từ database: 'LOW', 'MEDIUM', 'HIGH'
     if (riskLevel === 'HIGH') {
-      return res.status(400).json({
-        success: false,
-        message: 'Hồ sơ có mức rủi ro HIGH (quá cao), không thể duyệt. Vui lòng xem xét từ chối hoặc yêu cầu điều kiện bổ sung.'
-      });
+      // LUẬT NGHIỆP VỤ: HIGH không phải hard-reject, cần cảnh báo
+      warnings.push('⚠️ CẢNH BÁO: Hồ sơ có mức rủi ro HIGH (điểm >= 26). Yêu cầu phê duyệt cấp cao hoặc điều kiện bổ sung trước khi lập hợp đồng.');
+      // Vẫn cho phép duyệt nhưng cần ghi log cảnh báo
     }
     
     // Kiểm tra thêm nếu có trạng thái 'TỪ CHỐI' (backward compatibility)
@@ -376,7 +379,8 @@ async approve(req, res, next) {
 
     res.json({
       success: true,
-      message: 'Đã duyệt hồ sơ thành công. Có thể lập hợp đồng.'
+      message: warnings.length > 0 ? 'Đã duyệt hồ sơ (có cảnh báo). Có thể lập hợp đồng.' : 'Đã duyệt hồ sơ thành công. Có thể lập hợp đồng.',
+      warnings: warnings.length > 0 ? warnings : undefined
     });
   } catch (error) {
     next(error);

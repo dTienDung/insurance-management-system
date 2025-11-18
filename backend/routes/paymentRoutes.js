@@ -23,4 +23,8 @@ router.post('/', paymentController.createPayment);
 // Create refund
 router.post('/refund', paymentController.createRefund);
 
+// LUẬT 5.1: KHÔNG CHO PHÉP UPDATE/DELETE
+router.put('/:id', paymentController.updatePayment);
+router.delete('/:id', paymentController.deletePayment);
+
 module.exports = router;

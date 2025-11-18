@@ -262,6 +262,27 @@ class PaymentController {
       next(error);
     }
   }
+  /**
+   * KHÔNG CHO PHÉP: UPDATE Payment
+   * LUẬT 5.1: Transaction Immutability
+   */
+  async updatePayment(req, res, next) {
+    return res.status(403).json({
+      success: false,
+      message: 'LUẬT 5.1 VI PHẠM: Không được phép UPDATE giao dịch thanh toán. Transaction Data CRUD Immutability. Nếu sai, hãy ghi nhận giao dịch điều chỉnh mới.'
+    });
+  }
+
+  /**
+   * KHÔNG CHO PHÉP: DELETE Payment
+   * LUẬT 5.1: Transaction Immutability
+   */
+  async deletePayment(req, res, next) {
+    return res.status(403).json({
+      success: false,
+      message: 'LUẬT 5.1 VI PHẠM: Không được phép DELETE giao dịch thanh toán. Transaction Data CRUD Immutability. Dùng createRefund() để hoàn phí.'
+    });
+  }
 }
 
 module.exports = new PaymentController();

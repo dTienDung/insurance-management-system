@@ -24,6 +24,7 @@ import AssessmentDetail from './pages/Assesments/AssessmentDetail';
 import HoSoList from './pages/HoSoThamDinh/HoSoList';
 import ReportDashboardNew from './pages/Reports/ReportDashboardNew';
 import UserProfile from './pages/UserProfile/UserProfile';
+import Settings from './pages/Settings/Settings';
 import { pjicoTheme } from './theme';
 import './App.css';
 
@@ -91,6 +92,9 @@ function AppRoutes() {
 
                 {/* Reports */}
                 <Route path="/reports" element={<ReportDashboardNew />} />
+                
+                {/* Settings - Master Data Management */}
+                <Route path="/settings" element={<Settings />} />
                 
                 {/* User Profile */}
                 <Route path="/profile" element={<UserProfile />} />

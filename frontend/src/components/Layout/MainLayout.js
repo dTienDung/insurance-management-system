@@ -63,6 +63,11 @@ const MainLayout = ({ children }) => {
       icon: <BarChartOutlined />,
       label: 'Báo cáo',
     },
+    {
+      key: '/settings',
+      icon: <SettingOutlined />,
+      label: 'Cài đặt',
+    },
   ];
 
   const handleMenuClick = ({ key }) => {

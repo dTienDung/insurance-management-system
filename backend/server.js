@@ -115,6 +115,7 @@ app.use('/api/vehicles', require('./routes/vehicleRoutes'));
 app.use('/api/contracts', require('./routes/contractRoutes'));
 app.use('/api/payments', require('./routes/paymentRoutes'));
 app.use('/api/packages', require('./routes/packageRoutes'));
+app.use('/api/license-plates', require('./routes/licensePlateRoutes'));
 // Vietnamese alias for contracts and new hoso routes
 app.use('/api/hopdong', require('./routes/contractRoutes'));
 app.use('/api/hoso', require('./routes/hosoRoutes'));

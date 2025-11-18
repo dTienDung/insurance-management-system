@@ -392,19 +392,19 @@ class PricingMatrixController {
 
       // CÔNG THỨC TÍNH PHÍ:
       // PhiBaoHiem = GiaTriXe * (TyLePhiCoBan / 100) * HeSoPhi
-      const phiBaoHiem = Math.round(parseFloat(giaTriXe) * (TyLePhiCoBan / 100) * HeSoPhi);
+      const PhiBaoHiem = Math.round(parseFloat(giaTriXe) * (TyLePhiCoBan / 100) * HeSoPhi);
 
       res.json({
         success: true,
         data: {
-          giaTriXe: parseFloat(giaTriXe),
-          riskLevel: riskLevel.toUpperCase(),
-          maGoi: maGoi,
-          tenGoi: TenGoi,
-          tyLePhiCoBan: TyLePhiCoBan,
-          heSoPhi: HeSoPhi,
-          phiBaoHiem: phiBaoHiem,
-          congThuc: `${giaTriXe} x (${TyLePhiCoBan}% / 100) x ${HeSoPhi} = ${phiBaoHiem} VNĐ`
+          GiaTriXe: parseFloat(giaTriXe),
+          RiskLevel: riskLevel.toUpperCase(),
+          MaGoi: maGoi,
+          TenGoi: TenGoi,
+          TyLePhiCoBan: TyLePhiCoBan,
+          HeSoPhi: HeSoPhi,
+          PhiBaoHiem: PhiBaoHiem,
+          CongThuc: `${giaTriXe} x (${TyLePhiCoBan}% / 100) x ${HeSoPhi} = ${PhiBaoHiem} VNĐ`
         }
       });
     } catch (error) {
