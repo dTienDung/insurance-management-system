@@ -316,11 +316,11 @@ class ContractController {
         });
       }
 
-      // Sử dụng SP hoàn tiền
-      await pool.request()
+      // Sử dụng SP hoàn tiền (không có param maNV trong SP)
+      const result = await pool.request()
         .input('maHD', sql.VarChar(10), id)
-        .input('lyDo', sql.NVarChar(500), lyDo)
-        .input('maNV', sql.VarChar(10), maNV)
+        .input('lyDo', sql.NVarChar(255), lyDo)
+        .input('soTienHoan', sql.Decimal(18, 2), contract.PhiBaoHiem) // Hoàn toàn bộ phí
         .execute('sp_HoanTienHopDong');
 
       res.json({
@@ -396,9 +396,23 @@ class ContractController {
         });
       }
 
-      // Sử dụng SP tái tục
+      // Sử dụng SP tái tục (cần đầy đủ params)
+      const ngayKyMoi = new Date();
+      const ngayHetHanMoi = new Date(ngayKyMoi);
+      ngayHetHanMoi.setFullYear(ngayHetHanMoi.getFullYear() + 1);
+      
+      // Lấy phí bảo hiểm hiện tại
+      const oldContract = await pool.request()
+        .input('maHD', sql.VarChar(10), id)
+        .query('SELECT PhiBaoHiem FROM HopDong WHERE MaHD = @maHD');
+      
+      const phiBaoHiemMoi = oldContract.recordset[0].PhiBaoHiem;
+      
       const result = await pool.request()
-        .input('maHDCu', sql.VarChar(10), id)
+        .input('maHDCu', sql.VarChar(20), id)
+        .input('ngayKyMoi', sql.Date, ngayKyMoi)
+        .input('ngayHetHanMoi', sql.Date, ngayHetHanMoi)
+        .input('phiBaoHiemMoi', sql.Decimal(18, 2), phiBaoHiemMoi)
         .input('maNV', sql.VarChar(10), maNV)
         .execute('sp_RenewHopDong');
 
@@ -473,12 +487,19 @@ class ContractController {
       }
 
       const maXe = checkContract.recordset[0].MaXe;
+      const phiBaoHiem = checkContract.recordset[0].PhiBaoHiem;
 
-      // Sử dụng SP chuyển quyền
+      // Sử dụng SP chuyển quyền (cần đầy đủ params)
+      const ngayKyMoi = new Date();
+      const ngayHetHanMoi = new Date(ngayKyMoi);
+      ngayHetHanMoi.setFullYear(ngayHetHanMoi.getFullYear() + 1);
+      
       const result = await pool.request()
-        .input('maHDCu', sql.VarChar(10), id)
+        .input('maHDCu', sql.VarChar(20), id)
         .input('maKHMoi', sql.VarChar(10), maKHMoi)
-        .input('lyDo', sql.NVarChar(500), lyDo || 'Chuyển quyền sở hữu')
+        .input('ngayKyMoi', sql.Date, ngayKyMoi)
+        .input('ngayHetHanMoi', sql.Date, ngayHetHanMoi)
+        .input('phiBaoHiemMoi', sql.Decimal(18, 2), phiBaoHiem)
         .input('maNV', sql.VarChar(10), maNV)
         .execute('sp_ChuyenQuyenHopDong');
 
