@@ -249,15 +249,38 @@ class AssessmentController {
 
       const pool = await getConnection();
 
-      // Kiểm tra hồ sơ tồn tại
+      // LUẬT NGHIỆP VỤ 5.2: Kiểm tra state locking
       const checkHoSo = await pool.request()
         .input('MaHS', sql.VarChar(10), id)
-        .query('SELECT * FROM HoSoThamDinh WHERE MaHS = @MaHS');
+        .query(`
+          SELECT hs.TrangThai, 
+                 (SELECT TOP 1 MaHD FROM HopDong WHERE MaHS = @MaHS) as MaHD
+          FROM HoSoThamDinh hs
+          WHERE hs.MaHS = @MaHS
+        `);
 
       if (checkHoSo.recordset.length === 0) {
         return res.status(404).json({
           success: false,
           message: 'Không tìm thấy hồ sơ thẩm định'
+        });
+      }
+
+      const { TrangThai, MaHD } = checkHoSo.recordset[0];
+
+      // KHÓA: Chỉ sửa khi 'Chờ thẩm định'
+      if (TrangThai !== 'Chờ thẩm định') {
+        return res.status(403).json({
+          success: false,
+          message: 'Chỉ có thể sửa hồ sơ đang chờ thẩm định. Hồ sơ này đã được xử lý.'
+        });
+      }
+
+      // KHÓA: Không sửa nếu đã có hợp đồng
+      if (MaHD) {
+        return res.status(403).json({
+          success: false,
+          message: `Hồ sơ đã được tạo hợp đồng (${MaHD}), không thể chỉnh sửa`
         });
       }
 
@@ -301,7 +324,7 @@ class AssessmentController {
       const { id } = req.params;
       const pool = await getConnection();
 
-      // Kiểm tra hồ sơ tồn tại
+      // LUẬT NGHIỆP VỤ 5.2: Kiểm tra trạng thái
       const checkHoSo = await pool.request()
         .input('MaHS', sql.VarChar(10), id)
         .query('SELECT TrangThai FROM HoSoThamDinh WHERE MaHS = @MaHS');
@@ -310,6 +333,16 @@ class AssessmentController {
         return res.status(404).json({
           success: false,
           message: 'Không tìm thấy hồ sơ thẩm định'
+        });
+      }
+
+      const trangThai = checkHoSo.recordset[0].TrangThai;
+
+      // KHÓA: Không xóa nếu đã duyệt/từ chối
+      if (trangThai === 'Chấp nhận' || trangThai === 'Từ chối' || trangThai === 'Đã thẩm định') {
+        return res.status(403).json({
+          success: false,
+          message: `Không thể xóa hồ sơ đã được xử lý (Trạng thái: ${trangThai})`
         });
       }
 

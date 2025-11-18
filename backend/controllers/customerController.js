@@ -232,13 +232,37 @@ class CustomerController {
       
       const checkExist = await pool.request()
         .input('maKH', sql.VarChar(10), id)
-        .query('SELECT MaKH FROM KhachHang WHERE MaKH = @maKH');
+        .query('SELECT MaKH, HoTen, NgaySinh, CMND_CCCD FROM KhachHang WHERE MaKH = @maKH');
 
       if (checkExist.recordset.length === 0) {
         return res.status(404).json({
           success: false,
           message: 'Không tìm thấy khách hàng'
         });
+      }
+
+      const oldData = checkExist.recordset[0];
+      const warnings = [];
+
+      // LUẬT NGHIỆP VỤ 6.2 & 6.3: Cảnh báo thay đổi Master Data
+      const activeContractsCheck = await pool.request()
+        .input('maKH', sql.VarChar(10), id)
+        .query(`
+          SELECT COUNT(*) as count 
+          FROM HopDong 
+          WHERE MaKH = @maKH AND TrangThai = N'ACTIVE'
+        `);
+
+      const hasActiveContracts = activeContractsCheck.recordset[0].count > 0;
+
+      if (hasActiveContracts) {
+        // Cảnh báo nếu thay đổi thông tin quan trọng
+        if (hoTen && hoTen !== oldData.HoTen) {
+          warnings.push('⚠️ Khách hàng có hợp đồng đang hiệu lực. Thay đổi tên sẽ ảnh hưởng tới tất cả hợp đồng (cũ và mới).');
+        }
+        if (ngaySinh && ngaySinh !== oldData.NgaySinh) {
+          warnings.push('⚠️ Thay đổi ngày sinh có thể ảnh hưởng đến tính toán rủi ro tái tục.');
+        }
       }
 
       await pool.request()
@@ -257,7 +281,8 @@ class CustomerController {
 
       res.json({
         success: true,
-        message: 'Cập nhật thông tin khách hàng thành công'
+        message: warnings.length > 0 ? 'Đã cập nhật (có cảnh báo)' : 'Cập nhật thông tin khách hàng thành công',
+        warnings: warnings.length > 0 ? warnings : undefined
       });
     } catch (error) {
       next(error);

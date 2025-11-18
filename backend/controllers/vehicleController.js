@@ -244,13 +244,40 @@ class VehicleController {
       
       const checkExist = await pool.request()
         .input('maXe', sql.VarChar(10), id)
-        .query('SELECT MaXe, SoKhung_VIN FROM Xe WHERE MaXe = @maXe');
+        .query('SELECT MaXe, SoKhung_VIN, NamSX, LoaiXe, HangXe FROM Xe WHERE MaXe = @maXe');
 
       if (checkExist.recordset.length === 0) {
         return res.status(404).json({
           success: false,
           message: 'Không tìm thấy phương tiện'
         });
+      }
+
+      const oldData = checkExist.recordset[0];
+      const warnings = [];
+
+      // LUẬT NGHIỆP VỤ 6.3: Cảnh báo thay đổi risk-sensitive fields
+      const activeContractsCheck = await pool.request()
+        .input('maXe', sql.VarChar(10), id)
+        .query(`
+          SELECT COUNT(*) as count 
+          FROM HopDong 
+          WHERE MaXe = @maXe AND TrangThai = N'ACTIVE'
+        `);
+
+      const hasActiveContracts = activeContractsCheck.recordset[0].count > 0;
+
+      if (hasActiveContracts) {
+        // Cảnh báo thay đổi các trường nhạy cảm với rủi ro
+        if (NamSX && NamSX !== oldData.NamSX) {
+          warnings.push(`⚠️ Xe có hợp đồng đang hiệu lực. Thay đổi Năm SX (${oldData.NamSX} → ${NamSX}) sẽ ảnh hưởng tới tính phí tái tục.`);
+        }
+        if (LoaiXe && LoaiXe !== oldData.LoaiXe) {
+          warnings.push(`⚠️ Thay đổi Loại xe (${oldData.LoaiXe} → ${LoaiXe}) sẽ thay đổi mức rủi ro và ảnh hưởng tới hợp đồng hiện tại.`);
+        }
+        if (HangXe && HangXe !== oldData.HangXe) {
+          warnings.push('⚠️ Thay đổi Hãng xe có thể ảnh hưởng đến đánh giá rủi ro.');
+        }
       }
 
       // If changing VIN, check if new VIN already exists
@@ -295,7 +322,8 @@ class VehicleController {
 
       res.json({
         success: true,
-        message: 'Cập nhật thông tin phương tiện thành công'
+        message: warnings.length > 0 ? 'Đã cập nhật (có cảnh báo)' : 'Cập nhật thông tin phương tiện thành công',
+        warnings: warnings.length > 0 ? warnings : undefined
       });
     } catch (error) {
       next(error);

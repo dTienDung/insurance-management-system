@@ -163,6 +163,8 @@ class ContractController {
         });
       }
 
+      // LUẬT NGHIỆP VỤ 5.3: Tạo hợp đồng DRAFT trực tiếp (không qua hồ sơ)
+      // Lưu ý: Đây là flow tạo DRAFT thủ công. Nếu tạo từ Hồ sơ, dùng hosoController.lapHopDongTuHoSo()
       const pool = await getConnection();
 
       await pool.request()
@@ -217,13 +219,24 @@ class ContractController {
       
       const checkExist = await pool.request()
         .input('maHD', sql.VarChar(10), id)
-        .query('SELECT MaHD FROM HopDong WHERE MaHD = @maHD');
+        .query('SELECT MaHD, TrangThai FROM HopDong WHERE MaHD = @maHD');
 
       if (checkExist.recordset.length === 0) {
         return res.status(404).json({
           success: false,
           message: 'Không tìm thấy hợp đồng'
         });
+      }
+
+      // LUẬT NGHIỆP VỤ 5.3: KHÓA core fields khi trạng thái ACTIVE
+      const currentStatus = checkExist.recordset[0].TrangThai;
+      if (currentStatus === 'ACTIVE') {
+        if (ngayKy || ngayHetHan || phiBaoHiem || maGoi) {
+          return res.status(403).json({
+            success: false,
+            message: 'Không thể sửa thông tin cốt lõi (Ngày ký, Ngày hết hạn, Phí bảo hiểm, Gói) khi hợp đồng đang hiệu lực'
+          });
+        }
       }
 
       if (ngayHetHan && ngayKy && new Date(ngayHetHan) <= new Date(ngayKy)) {
