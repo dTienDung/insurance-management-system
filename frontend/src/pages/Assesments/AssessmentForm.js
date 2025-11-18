@@ -258,7 +258,7 @@ const AssessmentForm = () => {
 
           <Grid item xs={12} md={6}>
             <TextField
-              label="Ngày định giá"
+              label="Ngày định giá *"
               name="assessment_date"
               type="date"
               value={formData.assessment_date}
@@ -272,7 +272,7 @@ const AssessmentForm = () => {
 
           <Grid item xs={12} md={6}>
             <TextField
-              label="Người định giá"
+              label="Người định giá *"
               name="assessor_name"
               value={formData.assessor_name}
               onChange={handleChange}
@@ -283,7 +283,7 @@ const AssessmentForm = () => {
 
           <Grid item xs={12} md={6}>
             <TextField
-              label="Giá trị định giá (VNĐ)"
+              label="Giá trị định giá (VNĐ) *"
               name="assessed_value"
               type="number"
               value={formData.assessed_value}

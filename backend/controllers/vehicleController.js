@@ -137,6 +137,14 @@ class VehicleController {
         });
       }
 
+      // LUẬT NGHIỆP VỤ: VIN phải đúng 17 ký tự
+      if (SoKhung.length !== 17) {
+        return res.status(400).json({
+          success: false,
+          message: 'Số khung (VIN) phải có đúng 17 ký tự'
+        });
+      }
+
       if (!SoMay) {
         return res.status(400).json({
           success: false,
@@ -206,6 +214,31 @@ class VehicleController {
         MucDichSuDung, TinhTrangKT, TanSuatNam, TanSuatBaoDuong,
         SoKhung, SoMay, MauSac, GhiChu
       } = req.body;
+
+      // LUẬT NGHIỆP VỤ: VIN phải đúng 17 ký tự
+      if (SoKhung && SoKhung.length !== 17) {
+        return res.status(400).json({
+          success: false,
+          message: 'Số khung (VIN) phải có đúng 17 ký tự'
+        });
+      }
+
+      // LUẬT NGHIỆP VỤ: Năm sản xuất >= 1990 và <= năm hiện tại + 1
+      if (NamSX !== undefined) {
+        const currentYear = new Date().getFullYear();
+        if (NamSX < 1990) {
+          return res.status(400).json({
+            success: false,
+            message: 'Năm sản xuất phải từ 1990 trở về sau'
+          });
+        }
+        if (NamSX > currentYear + 1) {
+          return res.status(400).json({
+            success: false,
+            message: `Năm sản xuất không được vượt quá ${currentYear + 1}`
+          });
+        }
+      }
 
       const pool = await getConnection();
       
@@ -278,6 +311,13 @@ class VehicleController {
       const checkContracts = await pool.request()
         .input('maXe', sql.VarChar(10), id)
         .query('SELECT COUNT(*) as count FROM HopDong WHERE MaXe = @maXe');
+
+      if (!checkContracts.recordset || checkContracts.recordset.length === 0) {
+        return res.status(500).json({
+          success: false,
+          message: 'Lỗi kiểm tra hợp đồng'
+        });
+      }
 
       if (checkContracts.recordset[0].count > 0) {
         return res.status(400).json({

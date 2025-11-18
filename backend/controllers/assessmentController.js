@@ -220,6 +220,13 @@ class AssessmentController {
       if (toDate) countRequest.input('toDate', sql.Date, toDate);
       const countResult = await countRequest.query(countQuery);
 
+      if (!countResult.recordset || countResult.recordset.length === 0) {
+        return res.status(500).json({
+          success: false,
+          message: 'Lỗi truy vấn database'
+        });
+      }
+
       res.json({
         success: true,
         data: result.recordset,
@@ -310,6 +317,13 @@ class AssessmentController {
       const checkContract = await pool.request()
         .input('MaHS', sql.VarChar(10), id)
         .query('SELECT COUNT(*) as count FROM HopDong WHERE MaHS = @MaHS');
+
+      if (!checkContract.recordset || checkContract.recordset.length === 0) {
+        return res.status(500).json({
+          success: false,
+          message: 'Lỗi kiểm tra hợp đồng'
+        });
+      }
 
       if (checkContract.recordset[0].count > 0) {
         return res.status(400).json({

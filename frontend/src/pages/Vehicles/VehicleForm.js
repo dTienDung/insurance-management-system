@@ -128,6 +128,23 @@ const VehicleForm = () => {
       return;
     }
 
+    // LUẬT NGHIỆP VỤ: VIN phải đúng 17 ký tự
+    if (formData.chassis_number.trim().length !== 17) {
+      setError('Số khung (VIN) phải có đúng 17 ký tự');
+      return;
+    }
+
+    // LUẬT NGHIỆP VỤ: Năm sản xuất >= 1990 và <= năm hiện tại + 1
+    const currentYear = new Date().getFullYear();
+    if (formData.manufacturing_year < 1990) {
+      setError('Năm sản xuất phải từ 1990 trở về sau');
+      return;
+    }
+    if (formData.manufacturing_year > currentYear + 1) {
+      setError(`Năm sản xuất không được vượt quá ${currentYear + 1}`);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -236,7 +253,7 @@ const VehicleForm = () => {
                 renderInput={(params) => (
                   <TextField
                     {...params}
-                    label="Hãng xe"
+                    label="Hãng xe *"
                     required
                     placeholder="Chọn hoặc nhập hãng xe"
                   />
@@ -248,7 +265,7 @@ const VehicleForm = () => {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="Model"
+                label="Model *"
                 name="model"
                 value={formData.model}
                 onChange={handleChange}
@@ -262,7 +279,7 @@ const VehicleForm = () => {
               <TextField
                 select
                 fullWidth
-                label="Năm sản xuất"
+                label="Năm sản xuất *"
                 name="manufacturing_year"
                 value={formData.manufacturing_year}
                 onChange={handleChange}
@@ -301,7 +318,7 @@ const VehicleForm = () => {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="Số máy"
+                label="Số máy *"
                 name="engine_number"
                 value={formData.engine_number}
                 onChange={handleChange}
@@ -315,7 +332,7 @@ const VehicleForm = () => {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="Số khung (VIN)"
+                label="Số khung (VIN) *"
                 name="chassis_number"
                 value={formData.chassis_number}
                 onChange={handleChange}

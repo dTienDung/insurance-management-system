@@ -139,7 +139,23 @@ const VehicleModal = ({ open, onClose, vehicleId, onSuccess }) => {
     if (!formData.HangXe.trim()) newErrors.HangXe = 'Vui lòng nhập hãng xe';
     if (!formData.LoaiXe.trim()) newErrors.LoaiXe = 'Vui lòng nhập loại xe';
     if (!formData.NamSX) newErrors.NamSX = 'Vui lòng nhập năm sản xuất';
-    if (!formData.SoKhung.trim()) newErrors.SoKhung = 'Vui lòng nhập số khung';
+    
+    // LUẬT NGHIỆP VỤ: Năm sản xuất >= 1990 và <= năm hiện tại + 1
+    if (formData.NamSX) {
+      const currentYear = new Date().getFullYear();
+      if (formData.NamSX < 1990) {
+        newErrors.NamSX = 'Năm sản xuất phải từ 1990 trở về sau';
+      } else if (formData.NamSX > currentYear + 1) {
+        newErrors.NamSX = `Năm sản xuất không được vượt quá ${currentYear + 1}`;
+      }
+    }
+    
+    if (!formData.SoKhung.trim()) {
+      newErrors.SoKhung = 'Vui lòng nhập số khung';
+    } else if (formData.SoKhung.trim().length !== 17) {
+      // LUẬT NGHIỆP VỤ: VIN phải đúng 17 ký tự
+      newErrors.SoKhung = 'Số khung (VIN) phải có đúng 17 ký tự';
+    }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -208,12 +224,12 @@ const VehicleModal = ({ open, onClose, vehicleId, onSuccess }) => {
             {/* Chọn khách hàng */}
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth error={!!errors.MaKH} required>
-                <InputLabel>Khách hàng</InputLabel>
+                <InputLabel>Khách hàng *</InputLabel>
                 <Select
                   name="MaKH"
                   value={formData.MaKH}
                   onChange={handleChange}
-                  label="Khách hàng"
+                  label="Khách hàng *"
                 >
                   {customers.map(c => (
                     <MenuItem key={c.MaKH} value={c.MaKH}>
@@ -237,7 +253,7 @@ const VehicleModal = ({ open, onClose, vehicleId, onSuccess }) => {
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Hãng xe"
+                label="Hãng xe *"
                 name="HangXe"
                 value={formData.HangXe}
                 onChange={handleChange}
@@ -251,7 +267,7 @@ const VehicleModal = ({ open, onClose, vehicleId, onSuccess }) => {
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Loại xe"
+                label="Loại xe *"
                 name="LoaiXe"
                 value={formData.LoaiXe}
                 onChange={handleChange}
@@ -265,7 +281,7 @@ const VehicleModal = ({ open, onClose, vehicleId, onSuccess }) => {
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Năm sản xuất"
+                label="Năm sản xuất *"
                 name="NamSX"
                 type="number"
                 value={formData.NamSX}
@@ -280,7 +296,7 @@ const VehicleModal = ({ open, onClose, vehicleId, onSuccess }) => {
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Số khung"
+                label="Số khung *"
                 name="SoKhung"
                 value={formData.SoKhung}
                 onChange={handleChange}

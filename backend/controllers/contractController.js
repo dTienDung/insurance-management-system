@@ -83,6 +83,13 @@ class ContractController {
       if (toDate) countRequest.input('toDate', sql.Date, toDate);
       const countResult = await countRequest.query(countQuery);
 
+      if (!countResult.recordset || countResult.recordset.length === 0) {
+        return res.status(500).json({
+          success: false,
+          message: 'Lỗi truy vấn database'
+        });
+      }
+
       res.json({
         success: true,
         data: result.recordset,
@@ -392,7 +399,14 @@ class ContractController {
           ORDER BY ID DESC
         `);
 
-      const maHDMoi = newContract.recordset[0]?.MaHD_Moi;
+      if (!newContract.recordset || newContract.recordset.length === 0) {
+        return res.status(500).json({
+          success: false,
+          message: 'Tái tục thành công nhưng không lấy được mã hợp đồng mới'
+        });
+      }
+
+      const maHDMoi = newContract.recordset[0].MaHD_Moi;
 
       res.status(201).json({
         success: true,

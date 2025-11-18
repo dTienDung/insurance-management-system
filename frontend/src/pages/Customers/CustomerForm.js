@@ -69,8 +69,29 @@ const CustomerForm = () => {
     const newErrors = {};
     
     if (!formData.HoTen.trim()) newErrors.HoTen = 'Vui lòng nhập họ tên';
-    if (!formData.CMND_CCCD.trim()) newErrors.CMND_CCCD = 'Vui lòng nhập CMND/CCCD';
-    if (!formData.NgaySinh) newErrors.NgaySinh = 'Vui lòng chọn ngày sinh';
+    
+    // LUẬT NGHIỆP VỤ: CCCD phải 9 hoặc 12 số
+    if (!formData.CMND_CCCD.trim()) {
+      newErrors.CMND_CCCD = 'Vui lòng nhập CMND/CCCD';
+    } else if (!/^\d{9}$|^\d{12}$/.test(formData.CMND_CCCD)) {
+      newErrors.CMND_CCCD = 'CMND/CCCD phải có độ dài 9 hoặc 12 số';
+    }
+    
+    // LUẬT NGHIỆP VỤ: Tuổi >= 18
+    if (!formData.NgaySinh) {
+      newErrors.NgaySinh = 'Vui lòng chọn ngày sinh';
+    } else {
+      const birthDate = new Date(formData.NgaySinh);
+      const today = new Date();
+      const age = today.getFullYear() - birthDate.getFullYear() - 
+        (today.getMonth() < birthDate.getMonth() || 
+         (today.getMonth() === birthDate.getMonth() && today.getDate() < birthDate.getDate()) ? 1 : 0);
+      
+      if (age < 18) {
+        newErrors.NgaySinh = 'Chủ xe phải đủ 18 tuổi trở lên';
+      }
+    }
+    
     if (!formData.SDT.trim()) newErrors.SDT = 'Vui lòng nhập số điện thoại';
     else if (!/^[0-9]{10}$/.test(formData.SDT)) {
       newErrors.SDT = 'Số điện thoại phải có 10 chữ số';
@@ -146,7 +167,7 @@ const CustomerForm = () => {
             <Grid item xs={12}>
               <TextField
                 fullWidth
-                label="Họ và tên"
+                label="Họ và tên *"
                 name="HoTen"
                 value={formData.HoTen}
                 onChange={handleChange}
@@ -160,7 +181,7 @@ const CustomerForm = () => {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="CMND/CCCD"
+                label="CMND/CCCD *"
                 name="CMND_CCCD"
                 value={formData.CMND_CCCD}
                 onChange={handleChange}
@@ -175,7 +196,7 @@ const CustomerForm = () => {
               <TextField
                 fullWidth
                 type="date"
-                label="Ngày sinh"
+                label="Ngày sinh *"
                 name="NgaySinh"
                 value={formData.NgaySinh}
                 onChange={handleChange}
@@ -203,7 +224,7 @@ const CustomerForm = () => {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="Số điện thoại"
+                label="Số điện thoại *"
                 name="SDT"
                 value={formData.SDT}
                 onChange={handleChange}

@@ -371,7 +371,7 @@ const ContractForm = () => {
                 <TextField
                   fullWidth
                   type="number"
-                  label="Phí bảo hiểm"
+                  label="Phí bảo hiểm *"
                   name="PhiBaoHiem"
                   value={formData.PhiBaoHiem}
                   onChange={handleChange}

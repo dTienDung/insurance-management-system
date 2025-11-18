@@ -514,6 +514,13 @@ class ReportController {
           ${whereClause}
         `);
 
+      if (!countResult.recordset || countResult.recordset.length === 0) {
+        return res.status(500).json({
+          success: false,
+          message: 'Lỗi đếm số lượng hợp đồng'
+        });
+      }
+
       res.json({
         success: true,
         data: result.recordset,
@@ -564,6 +571,13 @@ class ReportController {
           FROM v_KhachHang_ChiTiet
           ${whereClause}
         `);
+
+      if (!countResult.recordset || countResult.recordset.length === 0) {
+        return res.status(500).json({
+          success: false,
+          message: 'Lỗi đếm số khách hàng'
+        });
+      }
 
       res.json({
         success: true,
@@ -1316,6 +1330,13 @@ class ReportController {
         ORDER BY hd.NgayKy DESC
       `);
 
+      if (!kpis.recordset || kpis.recordset.length === 0) {
+        return res.status(500).json({
+          success: false,
+          message: 'Lỗi truy vấn KPIs'
+        });
+      }
+
       res.json({
         success: true,
         data: {
@@ -1372,6 +1393,13 @@ class ReportController {
         WHERE hd.NgayKy >= @periodStart AND hd.NgayKy < @periodEnd
           AND hd.TrangThai IN (N'Hiệu lực', N'ACTIVE')
       `);
+
+      if (!revenue.recordset || revenue.recordset.length === 0) {
+        return res.status(500).json({
+          success: false,
+          message: 'Lỗi truy vấn doanh thu'
+        });
+      }
 
       // Package breakdown
       const breakdown = await pool.request()
@@ -1444,6 +1472,13 @@ class ReportController {
         LEFT JOIN HopDongRelation hr ON hd.MaHD = hr.MaHD_Goc AND hr.LoaiQuanHe = 'TAI_TUC'
         WHERE hd.NgayHetHan >= @periodStart AND hd.NgayHetHan < @periodEnd
       `);
+
+      if (!stats.recordset || stats.recordset.length === 0) {
+        return res.status(500).json({
+          success: false,
+          message: 'Lỗi truy vấn thống kê tái tục'
+        });
+      }
 
       const renewalRate = stats.recordset[0].totalExpiring > 0 
         ? (stats.recordset[0].renewed / stats.recordset[0].totalExpiring * 100).toFixed(2)

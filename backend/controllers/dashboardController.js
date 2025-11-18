@@ -33,6 +33,13 @@ class DashboardController {
 
       const result = await request.query(statsQuery);
 
+      if (!result.recordset || result.recordset.length === 0) {
+        return res.status(500).json({
+          success: false,
+          message: 'Lỗi truy vấn thống kê'
+        });
+      }
+
       res.json({
         success: true,
         data: result.recordset[0]
@@ -192,6 +199,13 @@ class DashboardController {
           FROM HopDong
           WHERE YEAR(NgayKy) = @year
         `);
+
+      if (!result.recordset || result.recordset.length === 0) {
+        return res.status(500).json({
+          success: false,
+          message: 'Lỗi truy vấn tỉ lệ tái tục'
+        });
+      }
 
       res.json({
         success: true,

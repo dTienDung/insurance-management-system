@@ -178,12 +178,12 @@ const HoSoModal = ({ open, onClose, hosoId, onSuccess }) => {
             {/* Chọn khách hàng */}
             <Grid item xs={12}>
               <FormControl fullWidth error={!!errors.MaKH} required>
-                <InputLabel>Khách hàng</InputLabel>
+                <InputLabel>Khách hàng *</InputLabel>
                 <Select
                   name="MaKH"
                   value={formData.MaKH}
                   onChange={handleChange}
-                  label="Khách hàng"
+                  label="Khách hàng *"
                 >
                   {customers.map(c => (
                     <MenuItem key={c.MaKH} value={c.MaKH}>
@@ -206,12 +206,12 @@ const HoSoModal = ({ open, onClose, hosoId, onSuccess }) => {
             {/* Chọn xe */}
             <Grid item xs={12}>
               <FormControl fullWidth error={!!errors.MaXe} required disabled={!formData.MaKH}>
-                <InputLabel>Xe</InputLabel>
+                <InputLabel>Xe *</InputLabel>
                 <Select
                   name="MaXe"
                   value={formData.MaXe}
                   onChange={handleChange}
-                  label="Xe"
+                  label="Xe *"
                 >
                   {filteredVehicles.length === 0 ? (
                     <MenuItem value="" disabled>

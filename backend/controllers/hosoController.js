@@ -32,6 +32,13 @@ class HoSoController {
     const countResult = await pool.request()
       .query('SELECT COUNT(*) as total FROM HoSoThamDinh');
 
+    if (!countResult.recordset || countResult.recordset.length === 0) {
+      return res.status(500).json({
+        success: false,
+        message: 'Lỗi truy vấn database'
+      });
+    }
+
     res.json({
       success: true,
       data: result.recordset,
@@ -169,6 +176,13 @@ async create(req, res, next) {
         VALUES (@MaKH, @MaXe, @MaNV_Nhap, @GhiChu, N'Chờ thẩm định')
       `);
 
+    if (!result.recordset || result.recordset.length === 0) {
+      return res.status(500).json({
+        success: false,
+        message: 'Không thể tạo hồ sơ thẩm định'
+      });
+    }
+
     const MaHS = result.recordset[0].MaHS;
 
     // TỰ ĐỘNG THẨM ĐỊNH - Gọi stored procedure
@@ -185,6 +199,14 @@ async create(req, res, next) {
           FROM HoSoThamDinh 
           WHERE MaHS = @MaHS
         `);
+
+      if (!assessResult.recordset || assessResult.recordset.length === 0) {
+        return res.status(201).json({
+          success: true,
+          message: 'Đã tạo hồ sơ nhưng không lấy được kết quả thẩm định',
+          data: { MaHS }
+        });
+      }
 
       res.status(201).json({
         success: true,
@@ -304,12 +326,22 @@ async approve(req, res, next) {
       });
     }
 
-    // Kiểm tra RiskLevel - chỉ duyệt nếu <= XEM XÉT
+    // LUẬT NGHIỆP VỤ: Không được tạo hợp đồng cho RiskLevel = HIGH hoặc trạng thái Từ chối
     const riskLevel = checkStatus.recordset[0].RiskLevel;
-    if (riskLevel === 'TỪ CHỐI') {
+    
+    // RiskLevel từ database: 'LOW', 'MEDIUM', 'HIGH'
+    if (riskLevel === 'HIGH') {
       return res.status(400).json({
         success: false,
-        message: 'Hồ sơ có mức rủi ro quá cao (TỪ CHỐI), không thể duyệt'
+        message: 'Hồ sơ có mức rủi ro HIGH (quá cao), không thể duyệt. Vui lòng xem xét từ chối hoặc yêu cầu điều kiện bổ sung.'
+      });
+    }
+    
+    // Kiểm tra thêm nếu có trạng thái 'TỪ CHỐI' (backward compatibility)
+    if (riskLevel === 'TỪ CHỐI' || riskLevel === 'REJECT') {
+      return res.status(400).json({
+        success: false,
+        message: 'Hồ sơ đã bị từ chối, không thể duyệt'
       });
     }
 
@@ -418,6 +450,13 @@ async delete(req, res, next) {
     const checkContract = await pool.request()
       .input('MaHS', sql.VarChar(10), id)
       .query('SELECT COUNT(*) as count FROM HopDong WHERE MaHS = @MaHS');
+
+    if (!checkContract.recordset || checkContract.recordset.length === 0) {
+      return res.status(500).json({
+        success: false,
+        message: 'Lỗi kiểm tra hợp đồng liên quan'
+      });
+    }
 
     if (checkContract.recordset[0].count > 0) {
       return res.status(400).json({

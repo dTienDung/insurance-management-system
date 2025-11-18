@@ -94,6 +94,13 @@ class PaymentController {
           ORDER BY NgayGiaoDich DESC
         `);
 
+      if (!result.recordset || result.recordset.length === 0) {
+        return res.status(500).json({
+          success: false,
+          message: 'Tạo thanh toán thành công nhưng không lấy được thông tin'
+        });
+      }
+
       res.status(201).json({
         success: true,
         message: 'Tạo thanh toán thành công',

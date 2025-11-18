@@ -147,6 +147,32 @@ class CustomerController {
         });
       }
 
+      // LUẬT NGHIỆP VỤ: CCCD/CMND phải là 9 hoặc 12 số
+      const cccdRegex = /^\d{9}$|^\d{12}$/;
+      if (!cccdRegex.test(cccd)) {
+        return res.status(400).json({
+          success: false,
+          message: 'CMND/CCCD phải có độ dài 9 hoặc 12 số'
+        });
+      }
+
+      // LUẬT NGHIỆP VỤ: Kiểm tra tuổi pháp lý (>= 18 tuổi)
+      if (ngaySinh) {
+        const birthDate = new Date(ngaySinh);
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+          age--;
+        }
+        if (age < 18) {
+          return res.status(400).json({
+            success: false,
+            message: 'Chủ xe phải đủ 18 tuổi trở lên (tuổi pháp lý)'
+          });
+        }
+      }
+
       const pool = await getConnection();
       
       const checkExist = await pool.request()
@@ -161,10 +187,18 @@ class CustomerController {
       }
 
       const nextIdResult = await pool.request()
-        .query('SELECT ISNULL(MAX(CAST(SUBSTRING(MaKH, 3, 3) AS INT)), 0) + 1 as NextID FROM KhachHang');
+        .query('SELECT ISNULL(MAX(CAST(SUBSTRING(MaKH, 3, 4) AS INT)), 0) + 1 as NextID FROM KhachHang');
+      
+      if (!nextIdResult.recordset || nextIdResult.recordset.length === 0) {
+        return res.status(500).json({
+          success: false,
+          message: 'Không thể tạo mã khách hàng'
+        });
+      }
       
       const nextId = nextIdResult.recordset[0].NextID;
-      const maKH = 'KH' + String(nextId).padStart(3, '0');
+      // LUẬT NGHIỆP VỤ: MaKH = KH + 4 số (VD: KH0026)
+      const maKH = 'KH' + String(nextId).padStart(4, '0');
 
       await pool.request()
         .input('maKH', sql.VarChar(10), maKH)
