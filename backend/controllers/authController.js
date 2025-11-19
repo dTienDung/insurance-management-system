@@ -32,13 +32,13 @@ class AuthController {
       }
 
       const user = result.recordset[0];
-// ⚠️ DEMO MODE: So sánh password trực tiếp (KHÔNG AN TOÀN!)
-if (matKhau !== user.MatKhau) {
-  return res.status(401).json({
-    success: false,
-    message: 'Tên đăng nhập hoặc mật khẩu không chính xác'
-  });
-}
+      // ⚠️ DEMO MODE: So sánh password trực tiếp (KHÔNG AN TOÀN!)
+      if (matKhau !== user.MatKhau) {
+        return res.status(401).json({
+          success: false,
+          message: 'Tên đăng nhập hoặc mật khẩu không chính xác'
+        });
+      }
 
       const token = jwt.sign(
         {

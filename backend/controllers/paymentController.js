@@ -207,22 +207,22 @@ class PaymentController {
       const request = pool.request();
 
       if (loaiGiaoDich) {
-        query += ` AND tt.LoaiGiaoDich = @loaiGiaoDich`;
+        query += ' AND tt.LoaiGiaoDich = @loaiGiaoDich';
         request.input('loaiGiaoDich', sql.NVarChar(20), loaiGiaoDich);
       }
 
       if (trangThai) {
-        query += ` AND tt.TrangThai = @trangThai`;
+        query += ' AND tt.TrangThai = @trangThai';
         request.input('trangThai', sql.NVarChar(20), trangThai);
       }
 
       if (fromDate) {
-        query += ` AND tt.NgayGiaoDich >= @fromDate`;
+        query += ' AND tt.NgayGiaoDich >= @fromDate';
         request.input('fromDate', sql.Date, fromDate);
       }
 
       if (toDate) {
-        query += ` AND tt.NgayGiaoDich <= @toDate`;
+        query += ' AND tt.NgayGiaoDich <= @toDate';
         request.input('toDate', sql.Date, toDate);
       }
 
@@ -236,17 +236,17 @@ class PaymentController {
 
       const result = await request.query(query);
 
-      let countQuery = `SELECT COUNT(*) as total FROM ThanhToanHopDong tt WHERE 1=1`;
-      if (loaiGiaoDich) countQuery += ` AND tt.LoaiGiaoDich = @loaiGiaoDich`;
-      if (trangThai) countQuery += ` AND tt.TrangThai = @trangThai`;
-      if (fromDate) countQuery += ` AND tt.NgayGiaoDich >= @fromDate`;
-      if (toDate) countQuery += ` AND tt.NgayGiaoDich <= @toDate`;
+      let countQuery = 'SELECT COUNT(*) as total FROM ThanhToanHopDong tt WHERE 1=1';
+      if (loaiGiaoDich) {countQuery += ' AND tt.LoaiGiaoDich = @loaiGiaoDich';}
+      if (trangThai) {countQuery += ' AND tt.TrangThai = @trangThai';}
+      if (fromDate) {countQuery += ' AND tt.NgayGiaoDich >= @fromDate';}
+      if (toDate) {countQuery += ' AND tt.NgayGiaoDich <= @toDate';}
       
       const countRequest = pool.request();
-      if (loaiGiaoDich) countRequest.input('loaiGiaoDich', sql.NVarChar(20), loaiGiaoDich);
-      if (trangThai) countRequest.input('trangThai', sql.NVarChar(20), trangThai);
-      if (fromDate) countRequest.input('fromDate', sql.Date, fromDate);
-      if (toDate) countRequest.input('toDate', sql.Date, toDate);
+      if (loaiGiaoDich) {countRequest.input('loaiGiaoDich', sql.NVarChar(20), loaiGiaoDich);}
+      if (trangThai) {countRequest.input('trangThai', sql.NVarChar(20), trangThai);}
+      if (fromDate) {countRequest.input('fromDate', sql.Date, fromDate);}
+      if (toDate) {countRequest.input('toDate', sql.Date, toDate);}
       const countResult = await countRequest.query(countQuery);
 
       res.json({

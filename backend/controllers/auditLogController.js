@@ -46,32 +46,32 @@ class AuditLogController {
 
       // Filters
       if (tableName) {
-        query += ` AND TableName = @tableName`;
+        query += ' AND TableName = @tableName';
         request.input('tableName', sql.NVarChar(50), tableName);
       }
 
       if (recordId) {
-        query += ` AND RecordID = @recordId`;
+        query += ' AND RecordID = @recordId';
         request.input('recordId', sql.NVarChar(50), recordId);
       }
 
       if (action) {
-        query += ` AND Action = @action`;
+        query += ' AND Action = @action';
         request.input('action', sql.NVarChar(20), action);
       }
 
       if (fromDate) {
-        query += ` AND ChangedAt >= @fromDate`;
+        query += ' AND ChangedAt >= @fromDate';
         request.input('fromDate', sql.DateTime, fromDate);
       }
 
       if (toDate) {
-        query += ` AND ChangedAt <= @toDate`;
+        query += ' AND ChangedAt <= @toDate';
         request.input('toDate', sql.DateTime, toDate);
       }
 
       if (changedBy) {
-        query += ` AND ChangedBy LIKE @changedBy`;
+        query += ' AND ChangedBy LIKE @changedBy';
         request.input('changedBy', sql.NVarChar(100), `%${changedBy}%`);
       }
 
@@ -86,21 +86,21 @@ class AuditLogController {
       const result = await request.query(query);
 
       // Count total
-      let countQuery = `SELECT COUNT(*) as total FROM AuditLog WHERE 1=1`;
-      if (tableName) countQuery += ` AND TableName = @tableName`;
-      if (recordId) countQuery += ` AND RecordID = @recordId`;
-      if (action) countQuery += ` AND Action = @action`;
-      if (fromDate) countQuery += ` AND ChangedAt >= @fromDate`;
-      if (toDate) countQuery += ` AND ChangedAt <= @toDate`;
-      if (changedBy) countQuery += ` AND ChangedBy LIKE @changedBy`;
+      let countQuery = 'SELECT COUNT(*) as total FROM AuditLog WHERE 1=1';
+      if (tableName) {countQuery += ' AND TableName = @tableName';}
+      if (recordId) {countQuery += ' AND RecordID = @recordId';}
+      if (action) {countQuery += ' AND Action = @action';}
+      if (fromDate) {countQuery += ' AND ChangedAt >= @fromDate';}
+      if (toDate) {countQuery += ' AND ChangedAt <= @toDate';}
+      if (changedBy) {countQuery += ' AND ChangedBy LIKE @changedBy';}
 
       const countRequest = pool.request();
-      if (tableName) countRequest.input('tableName', sql.NVarChar(50), tableName);
-      if (recordId) countRequest.input('recordId', sql.NVarChar(50), recordId);
-      if (action) countRequest.input('action', sql.NVarChar(20), action);
-      if (fromDate) countRequest.input('fromDate', sql.DateTime, fromDate);
-      if (toDate) countRequest.input('toDate', sql.DateTime, toDate);
-      if (changedBy) countRequest.input('changedBy', sql.NVarChar(100), `%${changedBy}%`);
+      if (tableName) {countRequest.input('tableName', sql.NVarChar(50), tableName);}
+      if (recordId) {countRequest.input('recordId', sql.NVarChar(50), recordId);}
+      if (action) {countRequest.input('action', sql.NVarChar(20), action);}
+      if (fromDate) {countRequest.input('fromDate', sql.DateTime, fromDate);}
+      if (toDate) {countRequest.input('toDate', sql.DateTime, toDate);}
+      if (changedBy) {countRequest.input('changedBy', sql.NVarChar(100), `%${changedBy}%`);}
       const countResult = await countRequest.query(countQuery);
 
       res.json({
@@ -434,7 +434,7 @@ class AuditLogController {
    * Helper: Convert recordset to CSV
    */
   _convertToCSV(data) {
-    if (data.length === 0) return '';
+    if (data.length === 0) {return '';}
 
     const headers = Object.keys(data[0]).join(',');
     const rows = data.map(row => 

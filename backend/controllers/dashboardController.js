@@ -10,11 +10,11 @@ class DashboardController {
       const request = pool.request();
 
       if (year) {
-        dateFilter += ` AND YEAR(hd.NgayKy) = @year`;
+        dateFilter += ' AND YEAR(hd.NgayKy) = @year';
         request.input('year', sql.Int, parseInt(year));
       }
       if (month) {
-        dateFilter += ` AND MONTH(hd.NgayKy) = @month`;
+        dateFilter += ' AND MONTH(hd.NgayKy) = @month';
         request.input('month', sql.Int, parseInt(month));
       }
 
@@ -225,11 +225,11 @@ class DashboardController {
       const request = pool.request();
 
       if (year) {
-        dateFilter += ` AND YEAR(hd.NgayKy) = @year`;
+        dateFilter += ' AND YEAR(hd.NgayKy) = @year';
         request.input('year', sql.Int, parseInt(year));
       }
       if (month) {
-        dateFilter += ` AND MONTH(hd.NgayKy) = @month`;
+        dateFilter += ' AND MONTH(hd.NgayKy) = @month';
         request.input('month', sql.Int, parseInt(month));
       }
 

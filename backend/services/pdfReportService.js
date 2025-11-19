@@ -112,23 +112,23 @@ class PDFReportService {
     doc.fontSize(11);
     this.setFont(doc, 'bold');
     doc.text('CỘNG HOÀ XÃ HỘI CHỦ NGHĨA VIỆT NAM', rightX, 50, {
-         align: 'center',
-         width: 200
-       });
+      align: 'center',
+      width: 200
+    });
     
     doc.fontSize(10);
     this.setFont(doc, 'italic');
     doc.text('Độc lập - Tự do - Hạnh phúc', rightX, 65, {
-         align: 'center',
-         width: 200
-       });
+      align: 'center',
+      width: 200
+    });
 
     // Đường kẻ ngang
     doc.fontSize(9)
-       .text('_______________', rightX + 25, 78, {
-         align: 'center',
-         width: 150
-       });
+      .text('_______________', rightX + 25, 78, {
+        align: 'center',
+        width: 150
+      });
 
     // Địa điểm và ngày tháng
     const today = new Date();
@@ -136,17 +136,17 @@ class PDFReportService {
     doc.fontSize(10);
     this.setFont(doc, 'italic');
     doc.text(dateStr, rightX, 95, {
-         align: 'center',
-         width: 200
-       });
+      align: 'center',
+      width: 200
+    });
 
     // Tiêu đề báo cáo
     doc.fontSize(16);
     this.setFont(doc, 'bold');
     doc.text(reportTitle.toUpperCase(), 50, 130, {
-         align: 'center',
-         width: pageWidth - 100
-       });
+      align: 'center',
+      width: pageWidth - 100
+    });
 
     return 160; // Vị trí Y để bắt đầu nội dung
   }
@@ -203,8 +203,8 @@ class PDFReportService {
    */
   createContentTable(doc, yPos, headers, data) {
     doc.fontSize(12)
-       .font('Helvetica-Bold')
-       .text('NỘI DUNG CHI TIẾT', 50, yPos, { align: 'center', width: 500 });
+      .font('Helvetica-Bold')
+      .text('NỘI DUNG CHI TIẾT', 50, yPos, { align: 'center', width: 500 });
 
     let currentY = yPos + 30;
     const startX = 50;

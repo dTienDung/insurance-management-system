@@ -35,22 +35,22 @@ class ContractController {
       const request = pool.request();
 
       if (search) {
-        query += ` AND (hd.MaHD LIKE @search OR kh.HoTen LIKE @search OR xe.BienSo LIKE @search)`;
+        query += ' AND (hd.MaHD LIKE @search OR kh.HoTen LIKE @search OR xe.BienSo LIKE @search)';
         request.input('search', sql.NVarChar, `%${search}%`);
       }
 
       if (trangThai) {
-        query += ` AND hd.TrangThai = @trangThai`;
+        query += ' AND hd.TrangThai = @trangThai';
         request.input('trangThai', sql.NVarChar(15), trangThai);
       }
 
       if (fromDate) {
-        query += ` AND hd.NgayKy >= @fromDate`;
+        query += ' AND hd.NgayKy >= @fromDate';
         request.input('fromDate', sql.Date, fromDate);
       }
 
       if (toDate) {
-        query += ` AND hd.NgayKy <= @toDate`;
+        query += ' AND hd.NgayKy <= @toDate';
         request.input('toDate', sql.Date, toDate);
       }
 
@@ -71,16 +71,16 @@ class ContractController {
         LEFT JOIN Xe xe ON hd.MaXe = xe.MaXe
         WHERE 1=1
       `;
-      if (search) countQuery += ` AND (hd.MaHD LIKE @search OR kh.HoTen LIKE @search OR xe.BienSo LIKE @search)`;
-      if (trangThai) countQuery += ` AND hd.TrangThai = @trangThai`;
-      if (fromDate) countQuery += ` AND hd.NgayKy >= @fromDate`;
-      if (toDate) countQuery += ` AND hd.NgayKy <= @toDate`;
+      if (search) {countQuery += ' AND (hd.MaHD LIKE @search OR kh.HoTen LIKE @search OR xe.BienSo LIKE @search)';}
+      if (trangThai) {countQuery += ' AND hd.TrangThai = @trangThai';}
+      if (fromDate) {countQuery += ' AND hd.NgayKy >= @fromDate';}
+      if (toDate) {countQuery += ' AND hd.NgayKy <= @toDate';}
       
       const countRequest = pool.request();
-      if (search) countRequest.input('search', sql.NVarChar, `%${search}%`);
-      if (trangThai) countRequest.input('trangThai', sql.NVarChar(15), trangThai);
-      if (fromDate) countRequest.input('fromDate', sql.Date, fromDate);
-      if (toDate) countRequest.input('toDate', sql.Date, toDate);
+      if (search) {countRequest.input('search', sql.NVarChar, `%${search}%`);}
+      if (trangThai) {countRequest.input('trangThai', sql.NVarChar(15), trangThai);}
+      if (fromDate) {countRequest.input('fromDate', sql.Date, fromDate);}
+      if (toDate) {countRequest.input('toDate', sql.Date, toDate);}
       const countResult = await countRequest.query(countQuery);
 
       if (!countResult.recordset || countResult.recordset.length === 0) {
@@ -110,7 +110,7 @@ class ContractController {
 
       const pool = await getConnection();
       const result = await pool.request()
-        .input('maHD', sql.VarChar(10), id)
+        .input('maHD', sql.VarChar(20), id) // Tăng độ dài từ 10 → 20 để chứa format HD-YYYYMMDD-XXXX
         .query(`
           SELECT hd.*, 
                  kh.HoTen as TenKhachHang, kh.CMND_CCCD, kh.SDT as SDTKhachHang, kh.Email as EmailKhachHang, kh.DiaChi as DiaChiKhachHang,
@@ -633,7 +633,7 @@ class ContractController {
         if (fs.existsSync(filePath)) {
           fs.unlinkSync(filePath);
         }
-        if (err) next(err);
+        if (err) {next(err);}
       });
     } catch (error) {
       next(error);
@@ -693,7 +693,7 @@ class ContractController {
         if (fs.existsSync(filePath)) {
           fs.unlinkSync(filePath);
         }
-        if (err) next(err);
+        if (err) {next(err);}
       });
     } catch (error) {
       next(error);
@@ -744,7 +744,7 @@ class ContractController {
         if (fs.existsSync(filePath)) {
           fs.unlinkSync(filePath);
         }
-        if (err) next(err);
+        if (err) {next(err);}
       });
     } catch (error) {
       next(error);

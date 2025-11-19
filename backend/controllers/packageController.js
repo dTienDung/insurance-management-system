@@ -17,7 +17,7 @@ class PackageController {
       const request = pool.request();
 
       if (search) {
-        query += ` AND (MaGoi LIKE @search OR TenGoi LIKE @search)`;
+        query += ' AND (MaGoi LIKE @search OR TenGoi LIKE @search)';
         request.input('search', sql.NVarChar, `%${search}%`);
       }
 
@@ -32,11 +32,11 @@ class PackageController {
       const result = await request.query(query);
 
       // Count total
-      let countQuery = `SELECT COUNT(*) as total FROM GoiBaoHiem WHERE 1=1`;
-      if (search) countQuery += ` AND (MaGoi LIKE @search OR TenGoi LIKE @search)`;
+      let countQuery = 'SELECT COUNT(*) as total FROM GoiBaoHiem WHERE 1=1';
+      if (search) {countQuery += ' AND (MaGoi LIKE @search OR TenGoi LIKE @search)';}
       
       const countRequest = pool.request();
-      if (search) countRequest.input('search', sql.NVarChar, `%${search}%`);
+      if (search) {countRequest.input('search', sql.NVarChar, `%${search}%`);}
       const countResult = await countRequest.query(countQuery);
 
       res.json({

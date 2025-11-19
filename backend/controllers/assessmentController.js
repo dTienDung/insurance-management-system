@@ -185,17 +185,17 @@ class AssessmentController {
       const request = pool.request();
 
       if (riskLevel) {
-        query += ` AND hs.RiskLevel = @riskLevel`;
+        query += ' AND hs.RiskLevel = @riskLevel';
         request.input('riskLevel', sql.NVarChar(20), riskLevel);
       }
 
       if (fromDate) {
-        query += ` AND hs.NgayLap >= @fromDate`;
+        query += ' AND hs.NgayLap >= @fromDate';
         request.input('fromDate', sql.Date, fromDate);
       }
 
       if (toDate) {
-        query += ` AND hs.NgayLap <= @toDate`;
+        query += ' AND hs.NgayLap <= @toDate';
         request.input('toDate', sql.Date, toDate);
       }
 
@@ -209,15 +209,15 @@ class AssessmentController {
 
       const result = await request.query(query);
 
-      let countQuery = `SELECT COUNT(*) as total FROM HoSoThamDinh hs WHERE 1=1`;
-      if (riskLevel) countQuery += ` AND hs.RiskLevel = @riskLevel`;
-      if (fromDate) countQuery += ` AND hs.NgayLap >= @fromDate`;
-      if (toDate) countQuery += ` AND hs.NgayLap <= @toDate`;
+      let countQuery = 'SELECT COUNT(*) as total FROM HoSoThamDinh hs WHERE 1=1';
+      if (riskLevel) {countQuery += ' AND hs.RiskLevel = @riskLevel';}
+      if (fromDate) {countQuery += ' AND hs.NgayLap >= @fromDate';}
+      if (toDate) {countQuery += ' AND hs.NgayLap <= @toDate';}
       
       const countRequest = pool.request();
-      if (riskLevel) countRequest.input('riskLevel', sql.NVarChar(20), riskLevel);
-      if (fromDate) countRequest.input('fromDate', sql.Date, fromDate);
-      if (toDate) countRequest.input('toDate', sql.Date, toDate);
+      if (riskLevel) {countRequest.input('riskLevel', sql.NVarChar(20), riskLevel);}
+      if (fromDate) {countRequest.input('fromDate', sql.Date, fromDate);}
+      if (toDate) {countRequest.input('toDate', sql.Date, toDate);}
       const countResult = await countRequest.query(countQuery);
 
       if (!countResult.recordset || countResult.recordset.length === 0) {
@@ -287,7 +287,7 @@ class AssessmentController {
       // Cập nhật thông tin
       const request = pool.request().input('MaHS', sql.VarChar(10), id);
       
-      let updateFields = [];
+      const updateFields = [];
       if (ghiChu !== undefined) {
         updateFields.push('GhiChu = @ghiChu');
         request.input('ghiChu', sql.NVarChar(255), ghiChu);

@@ -29,35 +29,35 @@ class DocumentService {
 
         // Header - Logo và thông tin công ty
         doc.fontSize(14)
-           .font('Helvetica-Bold')
-           .text(this.COMPANY_SHORT, 50, 50);
+          .font('Helvetica-Bold')
+          .text(this.COMPANY_SHORT, 50, 50);
         
         doc.fontSize(10)
-           .font('Helvetica')
-           .text(this.COMPANY_NAME, 50, 70)
-           .text(`Hotline: ${this.HOTLINE}`, 50, 85);
+          .font('Helvetica')
+          .text(this.COMPANY_NAME, 50, 70)
+          .text(`Hotline: ${this.HOTLINE}`, 50, 85);
 
         // Tiêu đề chính
         doc.fontSize(18)
-           .font('Helvetica-Bold')
-           .text('GIẤY CHỨNG NHẬN BẢO HIỂM', 50, 130, {
-             align: 'center',
-             width: pageWidth - 100
-           });
+          .font('Helvetica-Bold')
+          .text('GIẤY CHỨNG NHẬN BẢO HIỂM', 50, 130, {
+            align: 'center',
+            width: pageWidth - 100
+          });
 
         doc.fontSize(16)
-           .text('XE CƠ GIỚI', 50, 155, {
-             align: 'center',
-             width: pageWidth - 100
-           });
+          .text('XE CƠ GIỚI', 50, 155, {
+            align: 'center',
+            width: pageWidth - 100
+          });
 
         // Số chứng nhận
         doc.fontSize(12)
-           .font('Helvetica-BoldOblique')
-           .text(`Số: ${contractData.MaHD || 'N/A'}`, 50, 185, {
-             align: 'center',
-             width: pageWidth - 100
-           });
+          .font('Helvetica-BoldOblique')
+          .text(`Số: ${contractData.MaHD || 'N/A'}`, 50, 185, {
+            align: 'center',
+            width: pageWidth - 100
+          });
 
         let yPos = 220;
 
@@ -125,8 +125,8 @@ class DocumentService {
 
         // Lưu ý
         doc.fontSize(9)
-           .font('Helvetica-Oblique')
-           .text('* Giấy chứng nhận này có giá trị pháp lý khi có đầy đủ chữ ký và đóng dấu.', 50, yPos);
+          .font('Helvetica-Oblique')
+          .text('* Giấy chứng nhận này có giá trị pháp lý khi có đầy đủ chữ ký và đóng dấu.', 50, yPos);
         yPos += 15;
         doc.text('* Vui lòng mang theo giấy chứng nhận khi tham gia giao thông.', 50, yPos);
 
@@ -134,27 +134,27 @@ class DocumentService {
         yPos = doc.page.height - 200;
         const today = new Date();
         doc.fontSize(10)
-           .font('Helvetica-Oblique')
-           .text(`${this.ADDRESS}, ngày ${today.getDate()} tháng ${today.getMonth() + 1} năm ${today.getFullYear()}`, 350, yPos, {
-             align: 'center',
-             width: 200
-           });
+          .font('Helvetica-Oblique')
+          .text(`${this.ADDRESS}, ngày ${today.getDate()} tháng ${today.getMonth() + 1} năm ${today.getFullYear()}`, 350, yPos, {
+            align: 'center',
+            width: 200
+          });
 
         yPos += 30;
         doc.fontSize(11)
-           .font('Helvetica-Bold')
-           .text('NGƯỜI ĐẠI DIỆN', 350, yPos, {
-             align: 'center',
-             width: 200
-           });
+          .font('Helvetica-Bold')
+          .text('NGƯỜI ĐẠI DIỆN', 350, yPos, {
+            align: 'center',
+            width: 200
+          });
 
         yPos += 20;
         doc.fontSize(9)
-           .font('Helvetica-Oblique')
-           .text('(Ký, đóng dấu)', 350, yPos, {
-             align: 'center',
-             width: 200
-           });
+          .font('Helvetica-Oblique')
+          .text('(Ký, đóng dấu)', 350, yPos, {
+            align: 'center',
+            width: 200
+          });
 
         doc.end();
         writeStream.on('finish', () => resolve(outputPath));
@@ -183,17 +183,17 @@ class DocumentService {
 
         // Tiêu đề
         doc.fontSize(16)
-           .font('Helvetica-Bold')
-           .text('HỢP ĐỒNG BẢO HIỂM XE CƠ GIỚI', 50, 120, {
-             align: 'center',
-             width: pageWidth - 100
-           });
+          .font('Helvetica-Bold')
+          .text('HỢP ĐỒNG BẢO HIỂM XE CƠ GIỚI', 50, 120, {
+            align: 'center',
+            width: pageWidth - 100
+          });
 
         doc.fontSize(12)
-           .text(`Số hợp đồng: ${contractData.MaHD || 'N/A'}`, 50, 145, {
-             align: 'center',
-             width: pageWidth - 100
-           });
+          .text(`Số hợp đồng: ${contractData.MaHD || 'N/A'}`, 50, 145, {
+            align: 'center',
+            width: pageWidth - 100
+          });
 
         let yPos = 180;
 
@@ -288,11 +288,11 @@ class DocumentService {
 
         const today = new Date();
         doc.fontSize(10)
-           .font('Helvetica-Oblique')
-           .text(`${this.ADDRESS}, ngày ${today.getDate()} tháng ${today.getMonth() + 1} năm ${today.getFullYear()}`, 50, yPos, {
-             align: 'center',
-             width: pageWidth - 100
-           });
+          .font('Helvetica-Oblique')
+          .text(`${this.ADDRESS}, ngày ${today.getDate()} tháng ${today.getMonth() + 1} năm ${today.getFullYear()}`, 50, yPos, {
+            align: 'center',
+            width: pageWidth - 100
+          });
 
         yPos += 40;
 
@@ -332,18 +332,18 @@ class DocumentService {
 
         // Tiêu đề
         doc.fontSize(16)
-           .font('Helvetica-Bold')
-           .text('BIÊN LAI THU PHÍ BẢO HIỂM', 50, 90, {
-             align: 'center',
-             width: 500
-           });
+          .font('Helvetica-Bold')
+          .text('BIÊN LAI THU PHÍ BẢO HIỂM', 50, 90, {
+            align: 'center',
+            width: 500
+          });
 
         doc.fontSize(11)
-           .font('Helvetica')
-           .text(`Số: ${paymentData.MaTT || 'N/A'}`, 50, 115, {
-             align: 'center',
-             width: 500
-           });
+          .font('Helvetica')
+          .text(`Số: ${paymentData.MaTT || 'N/A'}`, 50, 115, {
+            align: 'center',
+            width: 500
+          });
 
         let yPos = 150;
 
@@ -369,18 +369,18 @@ class DocumentService {
         yPos += 30;
         const today = new Date();
         doc.fontSize(9)
-           .font('Helvetica-Oblique')
-           .text(`Ngày ${today.getDate()} tháng ${today.getMonth() + 1} năm ${today.getFullYear()}`, 350, yPos);
+          .font('Helvetica-Oblique')
+          .text(`Ngày ${today.getDate()} tháng ${today.getMonth() + 1} năm ${today.getFullYear()}`, 350, yPos);
 
         yPos += 25;
         doc.fontSize(10)
-           .font('Helvetica-Bold')
-           .text('THU NGÂN', 350, yPos);
+          .font('Helvetica-Bold')
+          .text('THU NGÂN', 350, yPos);
 
         yPos += 18;
         doc.fontSize(8)
-           .font('Helvetica-Oblique')
-           .text('(Ký, ghi rõ họ tên)', 350, yPos);
+          .font('Helvetica-Oblique')
+          .text('(Ký, ghi rõ họ tên)', 350, yPos);
 
         doc.end();
         writeStream.on('finish', () => resolve(outputPath));
@@ -393,18 +393,18 @@ class DocumentService {
 
   // Helper functions
   formatDate(dateStr) {
-    if (!dateStr) return 'N/A';
+    if (!dateStr) {return 'N/A';}
     const date = new Date(dateStr);
     return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
   }
 
   formatCurrency(amount) {
-    if (!amount) return '0';
+    if (!amount) {return '0';}
     return new Intl.NumberFormat('vi-VN').format(amount);
   }
 
   numberToWords(num) {
-    if (!num) return 'Không đồng';
+    if (!num) {return 'Không đồng';}
     // Simplified - chỉ trả về format số
     return this.formatCurrency(num) + ' đồng';
   }

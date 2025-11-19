@@ -1,0 +1,158 @@
+/**
+ * REST CLIENT TEST FILE
+ * Sử dụng REST Client extension trong VS Code
+ * Nhấn "Send Request" để test từng endpoint
+ */
+
+@baseUrl = http://localhost:5000/api
+@token = YOUR_AUTH_TOKEN_HERE
+
+### ============================================
+### AUTHENTICATION
+### ============================================
+
+### 1. Login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "admin123"
+}
+
+### ============================================
+### VEHICLE TESTS (Test Business Rules)
+### ============================================
+
+### 2. Create Vehicle - Valid (PASS)
+POST {{baseUrl}}/vehicles
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "MaXe": "XE_REST_TEST01",
+  "SoKhung_VIN": "1HGBH41JXMN109186",
+  "NamSX": 2020,
+  "LoaiXe": "Sedan",
+  "HangXe": "Toyota",
+  "Model": "Camry",
+  "SoMay": "ABC123456",
+  "GiaTriXe": 500000000
+}
+
+### 3. Create Vehicle - Invalid VIN (FAIL - Rule violation)
+POST {{baseUrl}}/vehicles
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "SoKhung_VIN": "123",
+  "NamSX": 2020,
+  "LoaiXe": "Sedan",
+  "GiaTriXe": 500000000
+}
+
+### 4. Create Vehicle - Invalid Year < 1990 (FAIL - Rule violation)
+POST {{baseUrl}}/vehicles
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "SoKhung_VIN": "1HGBH41JXMN109186",
+  "NamSX": 1980,
+  "LoaiXe": "Sedan",
+  "GiaTriXe": 500000000
+}
+
+### 5. Get All Vehicles
+GET {{baseUrl}}/vehicles
+Authorization: Bearer {{token}}
+
+### ============================================
+### ASSESSMENT TESTS (Test Risk Calculation)
+### ============================================
+
+### 6. Calculate Risk Score
+POST {{baseUrl}}/assessments/calculate-risk
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "maHS": "HS0001"
+}
+
+### 7. Get Assessment List
+GET {{baseUrl}}/assessments
+Authorization: Bearer {{token}}
+
+### 8. Filter by Risk Level
+GET {{baseUrl}}/assessments?riskLevel=LOW
+Authorization: Bearer {{token}}
+
+### 9. Filter by Date Range
+GET {{baseUrl}}/assessments?fromDate=2024-01-01&toDate=2024-12-31
+Authorization: Bearer {{token}}
+
+### ============================================
+### CONTRACT TESTS
+### ============================================
+
+### 10. Get All Contracts
+GET {{baseUrl}}/contracts
+Authorization: Bearer {{token}}
+
+### 11. Filter by Status
+GET {{baseUrl}}/contracts?status=ACTIVE
+Authorization: Bearer {{token}}
+
+### 12. Get Contract Detail
+GET {{baseUrl}}/contracts/HD-20241119-0001
+Authorization: Bearer {{token}}
+
+### ============================================
+### REPORT TESTS
+### ============================================
+
+### 13. Get Monthly Revenue Report
+GET {{baseUrl}}/reports/revenue/monthly?fromDate=2024-01-01&toDate=2024-12-31
+Authorization: Bearer {{token}}
+
+### 14. Get Renewal Report
+GET {{baseUrl}}/reports/renewal?fromDate=2024-11-01&toDate=2024-12-31
+Authorization: Bearer {{token}}
+
+### 15. Export PDF Revenue Report
+GET {{baseUrl}}/reports/export/pdf/revenue?year=2024
+Authorization: Bearer {{token}}
+
+### ============================================
+### CUSTOMER TESTS
+### ============================================
+
+### 16. Get All Customers
+GET {{baseUrl}}/customers
+Authorization: Bearer {{token}}
+
+### 17. Search Customer
+GET {{baseUrl}}/customers?search=Nguyễn
+Authorization: Bearer {{token}}
+
+### ============================================
+### ERROR HANDLING TESTS
+### ============================================
+
+### 18. Missing Auth Token (Should return 401)
+GET {{baseUrl}}/contracts
+
+### 19. Invalid Endpoint (Should return 404)
+GET {{baseUrl}}/invalid-endpoint
+Authorization: Bearer {{token}}
+
+### 20. Invalid Request Body (Should return 400)
+POST {{baseUrl}}/assessments/calculate-risk
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "invalidField": "value"
+}

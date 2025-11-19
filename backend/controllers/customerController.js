@@ -18,7 +18,7 @@ class CustomerController {
       const request = pool.request();
 
       if (search) {
-        query += ` AND (kh.HoTen LIKE @search OR kh.CMND_CCCD LIKE @search OR kh.SDT LIKE @search)`;
+        query += ' AND (kh.HoTen LIKE @search OR kh.CMND_CCCD LIKE @search OR kh.SDT LIKE @search)';
         request.input('search', sql.NVarChar, `%${search}%`);
       }
 
@@ -34,7 +34,7 @@ class CustomerController {
       const result = await request.query(query);
 
       const countQuery = `SELECT COUNT(*) as total FROM KhachHang WHERE 1=1
-        ${search ? `AND (HoTen LIKE @search OR CMND_CCCD LIKE @search OR SDT LIKE @search)` : ''}`;
+        ${search ? 'AND (HoTen LIKE @search OR CMND_CCCD LIKE @search OR SDT LIKE @search)' : ''}`;
       
       const countRequest = pool.request();
       if (search) {

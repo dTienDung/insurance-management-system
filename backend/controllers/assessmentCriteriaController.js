@@ -24,7 +24,7 @@ class AssessmentCriteriaController {
       `;
 
       if (search) {
-        query += ` AND (TieuChi LIKE @search OR DieuKien LIKE @search)`;
+        query += ' AND (TieuChi LIKE @search OR DieuKien LIKE @search)';
         request.input('search', sql.NVarChar, `%${search}%`);
       }
 
@@ -39,11 +39,11 @@ class AssessmentCriteriaController {
       const result = await request.query(query);
 
       // Count total
-      let countQuery = `SELECT COUNT(*) as total FROM MaTranThamDinh WHERE 1=1`;
-      if (search) countQuery += ` AND (TieuChi LIKE @search OR DieuKien LIKE @search)`;
+      let countQuery = 'SELECT COUNT(*) as total FROM MaTranThamDinh WHERE 1=1';
+      if (search) {countQuery += ' AND (TieuChi LIKE @search OR DieuKien LIKE @search)';}
       
       const countRequest = pool.request();
-      if (search) countRequest.input('search', sql.NVarChar, `%${search}%`);
+      if (search) {countRequest.input('search', sql.NVarChar, `%${search}%`);}
       const countResult = await countRequest.query(countQuery);
 
       res.json({

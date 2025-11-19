@@ -18,14 +18,14 @@ const app = express();
 
 // Security middleware
 app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" }
+  crossOriginResourcePolicy: { policy: 'cross-origin' }
 }));
 
 // ENHANCED CORS Configuration - Allow both localhost and network IPs
 app.use(cors({
   origin: function(origin, callback) {
     // Allow requests with no origin (like mobile apps, Postman)
-    if (!origin) return callback(null, true);
+    if (!origin) {return callback(null, true);}
     
     // Allow any localhost, 127.0.0.1, or local network IP
     const allowedPatterns = [
@@ -190,7 +190,7 @@ const server = app.listen(PORT, '0.0.0.0', () => { // Listen on all interfaces
   console.log(`${APP.fullName}`);
   console.log(`${COMPANY.fullName}`);
   console.log('============================================');
-  console.log(`🚀 Server đang chạy tại:`);
+  console.log('🚀 Server đang chạy tại:');
   console.log(`   📍 Local: http://localhost:${PORT}`);
   
   serverIPs.forEach(ip => {
@@ -199,7 +199,7 @@ const server = app.listen(PORT, '0.0.0.0', () => { // Listen on all interfaces
   
   console.log('');
   console.log(`📁 Environment: ${API.environment}`);
-  console.log(`🔗 API Base: /api`);
+  console.log('🔗 API Base: /api');
   console.log(`🏢 Website: ${COMPANY.website}`);
   console.log(`📞 Hotline: ${COMPANY.hotline}`);
   console.log('');

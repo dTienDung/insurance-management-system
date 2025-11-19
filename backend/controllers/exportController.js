@@ -1231,41 +1231,41 @@ class ExportController {
   
   // Helper: Convert số thành chữ
   soThanhChu(so) {
-    const chuSo = ["không", "một", "hai", "ba", "bốn", "năm", "sáu", "bảy", "tám", "chín"];
-    const donVi = ["", "nghìn", "triệu", "tỷ"];
+    const chuSo = ['không', 'một', 'hai', 'ba', 'bốn', 'năm', 'sáu', 'bảy', 'tám', 'chín'];
+    const donVi = ['', 'nghìn', 'triệu', 'tỷ'];
     
-    if (so === 0) return chuSo[0];
+    if (so === 0) {return chuSo[0];}
     
-    let ketQua = "";
+    let ketQua = '';
     let viTri = 0;
     
     while (so > 0) {
       let nhom = so % 1000;
       if (nhom > 0) {
-        let chuNhom = "";
+        let chuNhom = '';
         
         // Hàng trăm
         let hang = Math.floor(nhom / 100);
         if (hang > 0) {
-          chuNhom = chuSo[hang] + " trăm ";
+          chuNhom = chuSo[hang] + ' trăm ';
           nhom = nhom % 100;
         }
         
         // Hàng chục
         hang = Math.floor(nhom / 10);
         if (hang > 1) {
-          chuNhom += chuSo[hang] + " mươi ";
+          chuNhom += chuSo[hang] + ' mươi ';
         } else if (hang === 1) {
-          chuNhom += "mười ";
+          chuNhom += 'mười ';
         }
         nhom = nhom % 10;
         
         // Hàng đơn vị
         if (nhom > 0) {
-          chuNhom += chuSo[nhom] + " ";
+          chuNhom += chuSo[nhom] + ' ';
         }
         
-        ketQua = chuNhom + donVi[viTri] + " " + ketQua;
+        ketQua = chuNhom + donVi[viTri] + ' ' + ketQua;
       }
       
       so = Math.floor(so / 1000);

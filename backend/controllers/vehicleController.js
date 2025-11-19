@@ -24,12 +24,12 @@ class VehicleController {
       const request = pool.request();
 
       if (search) {
-        query += ` AND (bs.BienSo LIKE @search OR xe.HangXe LIKE @search OR kh.HoTen LIKE @search)`;
+        query += ' AND (bs.BienSo LIKE @search OR xe.HangXe LIKE @search OR kh.HoTen LIKE @search)';
         request.input('search', sql.NVarChar, `%${search}%`);
       }
 
       if (maKH) {
-        query += ` AND kh.MaKH = @maKH`;
+        query += ' AND kh.MaKH = @maKH';
         request.input('maKH', sql.VarChar(10), maKH);
       }
 
@@ -51,12 +51,12 @@ class VehicleController {
         LEFT JOIN BienSoXe bs ON kh.MaKH = bs.MaKH AND bs.TrangThai = N'Hoạt động'
         WHERE 1=1
       `;
-      if (search) countQuery += ` AND (bs.BienSo LIKE @search OR xe.HangXe LIKE @search OR kh.HoTen LIKE @search)`;
-      if (maKH) countQuery += ` AND kh.MaKH = @maKH`;
+      if (search) {countQuery += ' AND (bs.BienSo LIKE @search OR xe.HangXe LIKE @search OR kh.HoTen LIKE @search)';}
+      if (maKH) {countQuery += ' AND kh.MaKH = @maKH';}
       
       const countRequest = pool.request();
-      if (search) countRequest.input('search', sql.NVarChar, `%${search}%`);
-      if (maKH) countRequest.input('maKH', sql.VarChar(10), maKH);
+      if (search) {countRequest.input('search', sql.NVarChar, `%${search}%`);}
+      if (maKH) {countRequest.input('maKH', sql.VarChar(10), maKH);}
       const countResult = await countRequest.query(countQuery);
 
       res.json({
@@ -145,6 +145,21 @@ class VehicleController {
         });
       }
 
+      // LUẬT NGHIỆP VỤ: Năm sản xuất >= 1990 và <= năm hiện tại
+      const currentYear = new Date().getFullYear();
+      if (NamSX < 1990) {
+        return res.status(400).json({
+          success: false,
+          message: 'Năm sản xuất phải từ 1990 trở về sau'
+        });
+      }
+      if (NamSX > currentYear) {
+        return res.status(400).json({
+          success: false,
+          message: `Năm sản xuất không được vượt quá năm hiện tại (${currentYear})`
+        });
+      }
+
       if (!SoMay) {
         return res.status(400).json({
           success: false,
@@ -177,18 +192,21 @@ class VehicleController {
         .input('tanSuatNam', sql.Int, TanSuatNam || null)
         .input('tanSuatBaoDuong', sql.NVarChar(20), TanSuatBaoDuong || null)
         .input('soKhung', sql.VarChar(17), SoKhung)
-        .input('soMay', sql.VarChar(30), SoMay)
-        .input('mauSac', sql.NVarChar(20), MauSac || null)
-        .input('ghiChu', sql.NVarChar(sql.MAX), GhiChu || null);
+        .input('soMay', sql.VarChar(30), SoMay);
+        // Removed MauSac and GhiChu - not in schema
 
       const result = await request.query(`
+        DECLARE @OutputTable TABLE (MaXe INT);
+        
         INSERT INTO Xe (HangXe, LoaiXe, NamSX, GiaTriXe, 
                        MucDichSuDung, TinhTrangKT, TanSuatNam, TanSuatBaoDuong,
-                       SoKhung_VIN, SoMay, MauSac, GhiChu)
-        OUTPUT INSERTED.MaXe
+                       SoKhung_VIN, SoMay)
+        OUTPUT INSERTED.MaXe INTO @OutputTable
         VALUES (@hangXe, @loaiXe, @namSX, @giaTriXe,
                 @mucDichSuDung, @tinhTrangKT, @tanSuatNam, @tanSuatBaoDuong,
-                @soKhung, @soMay, @mauSac, @ghiChu)
+                @soKhung, @soMay);
+        
+        SELECT MaXe FROM @OutputTable;
       `);
 
       const maXe = result.recordset[0].MaXe;

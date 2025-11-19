@@ -34,10 +34,10 @@ class LicensePlateController {
       `;
 
       if (trangThai && trangThai !== 'Tất cả') {
-        query += ` AND bs.TrangThai = @trangThai`;
+        query += ' AND bs.TrangThai = @trangThai';
       }
 
-      query += ` ORDER BY bs.NgayDangKy DESC`;
+      query += ' ORDER BY bs.NgayDangKy DESC';
 
       const request = pool.request()
         .input('maKH', sql.VarChar(10), maKH);
@@ -394,10 +394,10 @@ class LicensePlateController {
       `;
 
       if (trangThai) {
-        query += ` AND bs.TrangThai = @trangThai`;
+        query += ' AND bs.TrangThai = @trangThai';
       }
 
-      query += ` ORDER BY bs.NgayDangKy DESC`;
+      query += ' ORDER BY bs.NgayDangKy DESC';
 
       const request = pool.request()
         .input('search', sql.NVarChar(50), `%${q}%`);

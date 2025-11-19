@@ -551,7 +551,7 @@ class ReportController {
 
       let whereClause = '';
       if (search) {
-        whereClause = `WHERE HoTen LIKE @search OR SDT LIKE @search OR Email LIKE @search`;
+        whereClause = 'WHERE HoTen LIKE @search OR SDT LIKE @search OR Email LIKE @search';
         request.input('search', sql.NVarChar(100), `%${search}%`);
       }
 
@@ -749,23 +749,23 @@ class ReportController {
         let riskScore = 0;
         
         // Yếu tố 1: Tần suất tai nạn (40%)
-        if (row.TanSuatTaiNan > 0.3) riskScore += 40;
-        else if (row.TanSuatTaiNan > 0.15) riskScore += 25;
-        else if (row.TanSuatTaiNan > 0) riskScore += 10;
+        if (row.TanSuatTaiNan > 0.3) {riskScore += 40;}
+        else if (row.TanSuatTaiNan > 0.15) {riskScore += 25;}
+        else if (row.TanSuatTaiNan > 0) {riskScore += 10;}
         
         // Yếu tố 2: Tỷ lệ rủi ro cao (30%)
-        if (row.TyLeRuiRoCao > 50) riskScore += 30;
-        else if (row.TyLeRuiRoCao > 30) riskScore += 20;
-        else if (row.TyLeRuiRoCao > 10) riskScore += 10;
+        if (row.TyLeRuiRoCao > 50) {riskScore += 30;}
+        else if (row.TyLeRuiRoCao > 30) {riskScore += 20;}
+        else if (row.TyLeRuiRoCao > 10) {riskScore += 10;}
         
         // Yếu tố 3: Tuổi xe trung bình (20%)
-        if (row.TuoiXeTrungBinh > 10) riskScore += 20;
-        else if (row.TuoiXeTrungBinh > 5) riskScore += 10;
-        else if (row.TuoiXeTrungBinh > 3) riskScore += 5;
+        if (row.TuoiXeTrungBinh > 10) {riskScore += 20;}
+        else if (row.TuoiXeTrungBinh > 5) {riskScore += 10;}
+        else if (row.TuoiXeTrungBinh > 3) {riskScore += 5;}
         
         // Yếu tố 4: Tỷ lệ từ chối (10%)
-        if (row.TyLeBiTuChoi > 20) riskScore += 10;
-        else if (row.TyLeBiTuChoi > 10) riskScore += 5;
+        if (row.TyLeBiTuChoi > 20) {riskScore += 10;}
+        else if (row.TyLeBiTuChoi > 10) {riskScore += 5;}
         
         // Phân loại rủi ro tổng hợp
         let overallRisk = 'LOW';

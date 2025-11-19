@@ -31,12 +31,12 @@ class PricingMatrixController {
       `;
 
       if (riskLevel) {
-        query += ` AND mt.RiskLevel = @riskLevel`;
+        query += ' AND mt.RiskLevel = @riskLevel';
         request.input('riskLevel', sql.NVarChar(20), riskLevel);
       }
 
       if (maGoi) {
-        query += ` AND mt.MaGoi = @maGoi`;
+        query += ' AND mt.MaGoi = @maGoi';
         request.input('maGoi', sql.VarChar(10), maGoi);
       }
 
@@ -63,12 +63,12 @@ class PricingMatrixController {
         FROM MaTranTinhPhi mt
         WHERE 1=1
       `;
-      if (riskLevel) countQuery += ` AND mt.RiskLevel = @riskLevel`;
-      if (maGoi) countQuery += ` AND mt.MaGoi = @maGoi`;
+      if (riskLevel) {countQuery += ' AND mt.RiskLevel = @riskLevel';}
+      if (maGoi) {countQuery += ' AND mt.MaGoi = @maGoi';}
 
       const countRequest = pool.request();
-      if (riskLevel) countRequest.input('riskLevel', sql.NVarChar(20), riskLevel);
-      if (maGoi) countRequest.input('maGoi', sql.VarChar(10), maGoi);
+      if (riskLevel) {countRequest.input('riskLevel', sql.NVarChar(20), riskLevel);}
+      if (maGoi) {countRequest.input('maGoi', sql.VarChar(10), maGoi);}
       const countResult = await countRequest.query(countQuery);
 
       res.json({

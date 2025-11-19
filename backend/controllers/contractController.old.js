@@ -25,22 +25,22 @@ class ContractController {
       const request = pool.request();
 
       if (search) {
-        query += ` AND (hd.MaHD LIKE @search OR kh.HoTen LIKE @search OR xe.BienSo LIKE @search)`;
+        query += ' AND (hd.MaHD LIKE @search OR kh.HoTen LIKE @search OR xe.BienSo LIKE @search)';
         request.input('search', sql.NVarChar, `%${search}%`);
       }
 
       if (trangThai) {
-        query += ` AND hd.TrangThai = @trangThai`;
+        query += ' AND hd.TrangThai = @trangThai';
         request.input('trangThai', sql.NVarChar(15), trangThai);
       }
 
       if (fromDate) {
-        query += ` AND hd.NgayKy >= @fromDate`;
+        query += ' AND hd.NgayKy >= @fromDate';
         request.input('fromDate', sql.Date, fromDate);
       }
 
       if (toDate) {
-        query += ` AND hd.NgayKy <= @toDate`;
+        query += ' AND hd.NgayKy <= @toDate';
         request.input('toDate', sql.Date, toDate);
       }
 
@@ -61,16 +61,16 @@ class ContractController {
         LEFT JOIN Xe xe ON hd.MaXe = xe.MaXe
         WHERE 1=1
       `;
-      if (search) countQuery += ` AND (hd.MaHD LIKE @search OR kh.HoTen LIKE @search OR xe.BienSo LIKE @search)`;
-      if (trangThai) countQuery += ` AND hd.TrangThai = @trangThai`;
-      if (fromDate) countQuery += ` AND hd.NgayKy >= @fromDate`;
-      if (toDate) countQuery += ` AND hd.NgayKy <= @toDate`;
+      if (search) {countQuery += ' AND (hd.MaHD LIKE @search OR kh.HoTen LIKE @search OR xe.BienSo LIKE @search)';}
+      if (trangThai) {countQuery += ' AND hd.TrangThai = @trangThai';}
+      if (fromDate) {countQuery += ' AND hd.NgayKy >= @fromDate';}
+      if (toDate) {countQuery += ' AND hd.NgayKy <= @toDate';}
       
       const countRequest = pool.request();
-      if (search) countRequest.input('search', sql.NVarChar, `%${search}%`);
-      if (trangThai) countRequest.input('trangThai', sql.NVarChar(15), trangThai);
-      if (fromDate) countRequest.input('fromDate', sql.Date, fromDate);
-      if (toDate) countRequest.input('toDate', sql.Date, toDate);
+      if (search) {countRequest.input('search', sql.NVarChar, `%${search}%`);}
+      if (trangThai) {countRequest.input('trangThai', sql.NVarChar(15), trangThai);}
+      if (fromDate) {countRequest.input('fromDate', sql.Date, fromDate);}
+      if (toDate) {countRequest.input('toDate', sql.Date, toDate);}
       const countResult = await countRequest.query(countQuery);
 
       res.json({
@@ -330,7 +330,7 @@ class ContractController {
 
       await pool.request()
         .input('maHD', sql.VarChar(10), id)
-        .query(`UPDATE HopDong SET TrangThai = N'Hết hạn', DaNhacTaiTuc = 1 WHERE MaHD = @maHD`);
+        .query('UPDATE HopDong SET TrangThai = N\'Hết hạn\', DaNhacTaiTuc = 1 WHERE MaHD = @maHD');
 
       res.status(201).json({
         success: true,
