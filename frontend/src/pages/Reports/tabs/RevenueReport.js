@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Paper,
@@ -16,89 +16,168 @@ import {
   TableCell,
   TableContainer,
   TableHead,
-  TableRow
+  TableRow,
+  CircularProgress,
+  Alert
 } from '@mui/material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import dayjs from 'dayjs';
+import 'dayjs/locale/vi';
 import {
   PictureAsPdf,
   Description,
   Print
 } from '@mui/icons-material';
+import reportService from '../../../services/reportService';
 
 const RevenueReport = () => {
   const [filters, setFilters] = useState({
-    timeType: 'year',
-    year: new Date().getFullYear(),
-    month: new Date().getMonth() + 1,
-    quarter: Math.floor(new Date().getMonth() / 3) + 1,
+    fromDate: dayjs().subtract(30, 'day'),
+    toDate: dayjs(),
     package: 'all'
   });
 
-  const [reportData] = useState({
-    totalRevenue: 12500000000,
-    ytdRevenue: 85000000000,
-    targetAchievement: 105,
-    growthMoM: 8.5,
-    growthYoY: 15.2,
-    packageBreakdown: [
-      { package: 'Cơ Bản', revenue: 4500000000, percentage: 36 },
-      { package: 'Nâng Cao', revenue: 5200000000, percentage: 41.6 },
-      { package: 'Toàn Diện', revenue: 2800000000, percentage: 22.4 }
-    ]
+  const [reportData, setReportData] = useState({
+    totalRevenue: 0,
+    ytdRevenue: 0,
+    targetAchievement: 0,
+    growthMoM: 0,
+    growthYoY: 0,
+    monthlyData: [],
+    packageBreakdown: []
   });
 
-  const handleExportPDF = () => {
-    // Export logic
-    alert('Đang xuất báo cáo PDF...');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    loadReportData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.fromDate, filters.toDate]);
+
+  const loadReportData = async () => {
+    try {
+      setLoading(true);
+      setError('');
+
+      const fromDate = filters.fromDate.format('YYYY-MM-DD');
+      const toDate = filters.toDate.format('YYYY-MM-DD');
+
+      const response = await reportService.getMonthlyRevenue({
+        fromDate,
+        toDate
+      });
+
+      if (response.success) {
+        const data = response.data || [];
+        const totalRevenue = data.reduce((sum, item) => sum + (item.DoanhThu || 0), 0);
+        
+        setReportData({
+          totalRevenue,
+          ytdRevenue: totalRevenue,
+          targetAchievement: 0,
+          growthMoM: 0,
+          growthYoY: 0,
+          monthlyData: data,
+          packageBreakdown: []
+        });
+      }
+    } catch (err) {
+      console.error('Error loading report:', err);
+      setError(err.message || 'Đã xảy ra lỗi khi tải dữ liệu');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleExportPDF = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const year = filters.fromDate.year();
+      await reportService.exportRevenuePDF(year);
+      alert('Xuất PDF thành công!');
+    } catch (err) {
+      console.error('Error exporting PDF:', err);
+      setError('Đã xảy ra lỗi khi xuất PDF');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleExportExcel = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      await reportService.exportToExcel('revenue', {
+        fromDate: filters.fromDate.format('YYYY-MM-DD'),
+        toDate: filters.toDate.format('YYYY-MM-DD')
+      });
+      alert('Xuất Excel thành công!');
+    } catch (err) {
+      console.error('Error exporting Excel:', err);
+      setError('Đã xảy ra lỗi khi xuất Excel');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <Box>
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
+          {error}
+        </Alert>
+      )}
+
       {/* Filter Bar */}
       <Paper sx={{ p: 2, mb: 3 }}>
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} md={2}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Kỳ báo cáo</InputLabel>
-              <Select
-                value={filters.timeType}
-                label="Kỳ báo cáo"
-                onChange={(e) => setFilters({ ...filters, timeType: e.target.value })}
-              >
-                <MenuItem value="month">Tháng</MenuItem>
-                <MenuItem value="quarter">Quý</MenuItem>
-                <MenuItem value="year">Năm</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
+        <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="vi">
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} md={3}>
+              <DatePicker
+                label="Từ ngày"
+                value={filters.fromDate}
+                onChange={(newValue) => setFilters({ ...filters, fromDate: newValue })}
+                format="DD/MM/YYYY"
+                slotProps={{
+                  textField: {
+                    size: 'small',
+                    fullWidth: true
+                  }
+                }}
+              />
+            </Grid>
 
-          <Grid item xs={12} md={2}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Năm</InputLabel>
-              <Select
-                value={filters.year}
-                label="Năm"
-                onChange={(e) => setFilters({ ...filters, year: e.target.value })}
-              >
-                {Array.from({ length: 5 }, (_, i) => {
-                  const year = new Date().getFullYear() - i;
-                  return <MenuItem key={year} value={year}>{year}</MenuItem>;
-                })}
-              </Select>
-            </FormControl>
-          </Grid>
+            <Grid item xs={12} md={3}>
+              <DatePicker
+                label="Đến ngày"
+                value={filters.toDate}
+                onChange={(newValue) => setFilters({ ...filters, toDate: newValue })}
+                format="DD/MM/YYYY"
+                slotProps={{
+                  textField: {
+                    size: 'small',
+                    fullWidth: true
+                  }
+                }}
+              />
+            </Grid>
 
-          <Grid item xs={12} md={2}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Gói bảo hiểm</InputLabel>
-              <Select
-                value={filters.package}
-                label="Gói bảo hiểm"
-                onChange={(e) => setFilters({ ...filters, package: e.target.value })}
-              >
-                <MenuItem value="all">Tất cả</MenuItem>
-                <MenuItem value="coban">Cơ Bản</MenuItem>
-                <MenuItem value="nangcao">Nâng Cao</MenuItem>
-                <MenuItem value="toandien">Toàn Diện</MenuItem>
+            <Grid item xs={12} md={2}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Gói bảo hiểm</InputLabel>
+                <Select
+                  value={filters.package}
+                  label="Gói bảo hiểm"
+                  onChange={(e) => setFilters({ ...filters, package: e.target.value })}
+                >
+                  <MenuItem value="all">Tất cả</MenuItem>
+                  <MenuItem value="coban">Cơ Bản</MenuItem>
+                  <MenuItem value="nangcao">Nâng Cao</MenuItem>
+                  <MenuItem value="toandien">Toàn Diện</MenuItem>
               </Select>
             </FormControl>
           </Grid>
@@ -108,19 +187,28 @@ const RevenueReport = () => {
               <Button variant="outlined" startIcon={<Print />}>
                 Xem trước
               </Button>
-              <Button variant="contained" startIcon={<PictureAsPdf />} onClick={handleExportPDF}>
+              <Button variant="contained" startIcon={<PictureAsPdf />} onClick={handleExportPDF} disabled={loading}>
                 Xuất PDF
               </Button>
-              <Button variant="contained" color="success" startIcon={<Description />}>
+              <Button variant="contained" color="success" startIcon={<Description />} onClick={handleExportExcel} disabled={loading}>
                 Xuất Excel
               </Button>
             </Stack>
           </Grid>
         </Grid>
+        </LocalizationProvider>
       </Paper>
 
       {/* Report Preview */}
       <Paper sx={{ p: 4, minHeight: 800 }}>
+        {loading && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
+            <CircularProgress />
+          </Box>
+        )}
+
+        {!loading && (
+          <>
         {/* Header - Mẫu hành chính */}
         <Grid container spacing={2} sx={{ mb: 4 }}>
           <Grid item xs={6}>
@@ -262,6 +350,8 @@ const RevenueReport = () => {
             <Typography variant="body2">____________________</Typography>
           </Grid>
         </Grid>
+        </>
+        )}
       </Paper>
     </Box>
   );

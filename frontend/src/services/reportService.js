@@ -93,10 +93,10 @@ const reportService = {
   // BÁO CÁO TÁI TỤC
   // ============================================
 
-  getRenewalReport: async (year, month) => {
+  getRenewalReport: async (params) => {
     try {
       const response = await api.get('/reports/renewal', {
-        params: { year, month }
+        params
       });
       return response.data;
     } catch (error) {

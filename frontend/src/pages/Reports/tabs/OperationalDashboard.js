@@ -18,6 +18,11 @@ import {
   Divider
   // TextField
 } from '@mui/material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import dayjs from 'dayjs';
+import 'dayjs/locale/vi';
 import {
   TrendingUp,
   TrendingDown,
@@ -48,10 +53,8 @@ import { formatCurrency } from '../../../utils/formatters';
 const OperationalDashboard = () => {
   // const [loading] = useState(false); // Not actively used
   const [filters, setFilters] = useState({
-    timeType: 'month',
-    month: new Date().getMonth() + 1,
-    quarter: Math.floor(new Date().getMonth() / 3) + 1,
-    year: new Date().getFullYear(),
+    fromDate: dayjs().subtract(30, 'day'),
+    toDate: dayjs(),
     status: 'all',
     package: 'all'
   });
@@ -114,12 +117,10 @@ const OperationalDashboard = () => {
     loadDashboardData();
   };
 
-  const handleResetFilters = () => {
+  const handleFilterReset = () => {
     setFilters({
-      timeType: 'month',
-      month: new Date().getMonth() + 1,
-      quarter: Math.floor(new Date().getMonth() / 3) + 1,
-      year: new Date().getFullYear(),
+      fromDate: dayjs().subtract(30, 'day'),
+      toDate: dayjs(),
       status: 'all',
       package: 'all'
     });
@@ -231,73 +232,37 @@ const OperationalDashboard = () => {
     <Box>
       {/* Filter Bar */}
       <Paper sx={{ p: 2, mb: 3 }}>
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} md={2}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Loại thời gian</InputLabel>
-              <Select
-                value={filters.timeType}
-                label="Loại thời gian"
-                onChange={(e) => handleFilterChange('timeType', e.target.value)}
-              >
-                <MenuItem value="month">Tháng</MenuItem>
-                <MenuItem value="quarter">Quý</MenuItem>
-                <MenuItem value="year">Năm</MenuItem>
-                <MenuItem value="custom">Tùy chọn</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-
-          {filters.timeType === 'month' && (
-            <Grid item xs={12} md={2}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Tháng</InputLabel>
-                <Select
-                  value={filters.month}
-                  label="Tháng"
-                  onChange={(e) => handleFilterChange('month', e.target.value)}
-                >
-                  {Array.from({ length: 12 }, (_, i) => (
-                    <MenuItem key={i + 1} value={i + 1}>Tháng {i + 1}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+        <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="vi">
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} md={3}>
+              <DatePicker
+                label="Từ ngày"
+                value={filters.fromDate}
+                onChange={(newValue) => setFilters({ ...filters, fromDate: newValue })}
+                format="DD/MM/YYYY"
+                slotProps={{
+                  textField: {
+                    size: 'small',
+                    fullWidth: true
+                  }
+                }}
+              />
             </Grid>
-          )}
 
-          {filters.timeType === 'quarter' && (
-            <Grid item xs={12} md={2}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Quý</InputLabel>
-                <Select
-                  value={filters.quarter}
-                  label="Quý"
-                  onChange={(e) => handleFilterChange('quarter', e.target.value)}
-                >
-                  <MenuItem value={1}>Quý 1</MenuItem>
-                  <MenuItem value={2}>Quý 2</MenuItem>
-                  <MenuItem value={3}>Quý 3</MenuItem>
-                  <MenuItem value={4}>Quý 4</MenuItem>
-                </Select>
-              </FormControl>
+            <Grid item xs={12} md={3}>
+              <DatePicker
+                label="Đến ngày"
+                value={filters.toDate}
+                onChange={(newValue) => setFilters({ ...filters, toDate: newValue })}
+                format="DD/MM/YYYY"
+                slotProps={{
+                  textField: {
+                    size: 'small',
+                    fullWidth: true
+                  }
+                }}
+              />
             </Grid>
-          )}
-
-          <Grid item xs={12} md={2}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Năm</InputLabel>
-              <Select
-                value={filters.year}
-                label="Năm"
-                onChange={(e) => handleFilterChange('year', e.target.value)}
-              >
-                {Array.from({ length: 5 }, (_, i) => {
-                  const year = new Date().getFullYear() - i;
-                  return <MenuItem key={year} value={year}>{year}</MenuItem>;
-                })}
-              </Select>
-            </FormControl>
-          </Grid>
 
           <Grid item xs={12} md={2}>
             <FormControl fullWidth size="small">
@@ -339,12 +304,13 @@ const OperationalDashboard = () => {
               <Button variant="contained" onClick={handleApplyFilters} fullWidth>
                 Áp dụng
               </Button>
-              <Button variant="outlined" onClick={handleResetFilters} fullWidth>
+              <Button variant="outlined" onClick={handleFilterReset} fullWidth>
                 Reset
               </Button>
             </Stack>
           </Grid>
         </Grid>
+        </LocalizationProvider>
       </Paper>
 
       {/* KPI Cards */}

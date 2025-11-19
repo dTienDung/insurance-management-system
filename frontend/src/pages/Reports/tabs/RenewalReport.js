@@ -1,13 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Paper,
   Grid,
   Typography,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Button,
   Stack,
   Divider,
@@ -16,98 +12,162 @@ import {
   TableCell,
   TableContainer,
   TableHead,
-  TableRow
+  TableRow,
+  CircularProgress,
+  Alert
 } from '@mui/material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import dayjs from 'dayjs';
+import 'dayjs/locale/vi';
 import {
   PictureAsPdf,
   Description,
   Print
 } from '@mui/icons-material';
+import reportService from '../../../services/reportService';
 
 const RenewalReport = () => {
   const [filters, setFilters] = useState({
-    timeType: 'year',
-    year: new Date().getFullYear(),
-    month: new Date().getMonth() + 1,
-    quarter: Math.floor(new Date().getMonth() / 3) + 1
+    fromDate: dayjs().subtract(30, 'day'),
+    toDate: dayjs()
   });
 
-  const [reportData] = useState({
-    totalExpiring: 850,
-    renewed: 680,
-    notRenewed: 170,
-    renewalRate: 80,
-    reasonsNotRenewed: [
-      { reason: 'Chuyển nhà bảo hiểm khác', count: 85, percentage: 50 },
-      { reason: 'Không còn nhu cầu', count: 45, percentage: 26.5 },
-      { reason: 'Phí cao', count: 25, percentage: 14.7 },
-      { reason: 'Khác', count: 15, percentage: 8.8 }
-    ],
+  const [reportData, setReportData] = useState({
+    totalExpiring: 0,
+    renewed: 0,
+    notRenewed: 0,
+    renewalRate: 0,
+    reasonsNotRenewed: [],
     discountAnalysis: {
-      withDiscount: 450,
-      withoutDiscount: 230,
-      averageDiscount: 8.5
-    }
+      withDiscount: 0,
+      withoutDiscount: 0,
+      averageDiscount: 0
+    },
+    contractsList: []
   });
 
-  const handleExportPDF = () => {
-    alert('Đang xuất báo cáo PDF...');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    loadReportData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.fromDate, filters.toDate]);
+
+  const loadReportData = async () => {
+    try {
+      setLoading(true);
+      setError('');
+
+      const response = await reportService.getRenewalReport({
+        fromDate: filters.fromDate.format('YYYY-MM-DD'),
+        toDate: filters.toDate.format('YYYY-MM-DD')
+      });
+
+      if (response.success) {
+        const data = response.data || {};
+        setReportData({
+          totalExpiring: data.totalExpiring || 0,
+          renewed: data.renewed || 0,
+          notRenewed: data.notRenewed || 0,
+          renewalRate: data.renewalRate || 0,
+          reasonsNotRenewed: data.reasonsNotRenewed || [],
+          discountAnalysis: data.discountAnalysis || { withDiscount: 0, withoutDiscount: 0, averageDiscount: 0 },
+          contractsList: data.contracts || []
+        });
+      }
+    } catch (err) {
+      console.error('Error loading renewal report:', err);
+      setError(err.message || 'Đã xảy ra lỗi khi tải dữ liệu');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleExportPDF = async () => {
+    try {
+      setLoading(true);
+      const year = filters.fromDate.year();
+      await reportService.exportRenewalPDF(year);
+      alert('Xuất PDF thành công!');
+    } catch (err) {
+      setError('Đã xảy ra lỗi khi xuất PDF');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <Box>
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
+          {error}
+        </Alert>
+      )}
+
       {/* Filter Bar */}
       <Paper sx={{ p: 2, mb: 3 }}>
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} md={2}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Kỳ báo cáo</InputLabel>
-              <Select
-                value={filters.timeType}
-                label="Kỳ báo cáo"
-                onChange={(e) => setFilters({ ...filters, timeType: e.target.value })}
-              >
-                <MenuItem value="month">Tháng</MenuItem>
-                <MenuItem value="quarter">Quý</MenuItem>
-                <MenuItem value="year">Năm</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
+        <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="vi">
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} md={3}>
+              <DatePicker
+                label="Từ ngày"
+                value={filters.fromDate}
+                onChange={(newValue) => setFilters({ ...filters, fromDate: newValue })}
+                format="DD/MM/YYYY"
+                slotProps={{
+                  textField: {
+                    size: 'small',
+                    fullWidth: true
+                  }
+                }}
+              />
+            </Grid>
 
-          <Grid item xs={12} md={2}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Năm</InputLabel>
-              <Select
-                value={filters.year}
-                label="Năm"
-                onChange={(e) => setFilters({ ...filters, year: e.target.value })}
-              >
-                {Array.from({ length: 5 }, (_, i) => {
-                  const year = new Date().getFullYear() - i;
-                  return <MenuItem key={year} value={year}>{year}</MenuItem>;
-                })}
-              </Select>
-            </FormControl>
-          </Grid>
+            <Grid item xs={12} md={3}>
+              <DatePicker
+                label="Đến ngày"
+                value={filters.toDate}
+                onChange={(newValue) => setFilters({ ...filters, toDate: newValue })}
+                format="DD/MM/YYYY"
+                slotProps={{
+                  textField: {
+                    size: 'small',
+                    fullWidth: true
+                  }
+                }}
+              />
+            </Grid>
 
-          <Grid item xs={12} md={8}>
+            <Grid item xs={12} md={6}>
             <Stack direction="row" spacing={1} justifyContent="flex-end">
-              <Button variant="outlined" startIcon={<Print />}>
+              <Button variant="outlined" startIcon={<Print />} disabled={loading}>
                 Xem trước
               </Button>
-              <Button variant="contained" startIcon={<PictureAsPdf />} onClick={handleExportPDF}>
+              <Button variant="contained" startIcon={<PictureAsPdf />} onClick={handleExportPDF} disabled={loading}>
                 Xuất PDF
               </Button>
-              <Button variant="contained" color="success" startIcon={<Description />}>
+              <Button variant="contained" color="success" startIcon={<Description />} disabled={loading}>
                 Xuất Excel
               </Button>
             </Stack>
           </Grid>
         </Grid>
+        </LocalizationProvider>
       </Paper>
 
       {/* Report Preview */}
       <Paper sx={{ p: 4, minHeight: 800 }}>
+        {loading && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
+            <CircularProgress />
+          </Box>
+        )}
+
+        {!loading && (
+          <>
         {/* Header - Mẫu hành chính */}
         <Grid container spacing={2} sx={{ mb: 4 }}>
           <Grid item xs={6}>
@@ -286,6 +346,8 @@ const RenewalReport = () => {
             <Typography variant="body2">____________________</Typography>
           </Grid>
         </Grid>
+        </>
+        )}
       </Paper>
     </Box>
   );

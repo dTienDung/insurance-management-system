@@ -39,21 +39,34 @@ class ExportController {
       const khachHang = khResult.recordset[0];
       const xe = xeResult.recordset[0];
 
-      // Tạo document
+      // Tạo document với font Arial cho tiếng Việt
       const doc = new Document({
+        styles: {
+          default: {
+            document: {
+              run: {
+                font: 'Arial',
+                size: 22 // 11pt
+              },
+              paragraph: {
+                spacing: { line: 276, before: 0, after: 0 }
+              }
+            }
+          }
+        },
         sections: [{
           properties: {},
           children: [
             // ← SỬA: Header với thông tin PJICO
             new Paragraph({
-              text: COMPANY.fullName.toUpperCase(), // ← DÙNG CONSTANTS
               alignment: AlignmentType.CENTER,
               spacing: { after: 200 },
               children: [
                 new TextRun({
                   text: COMPANY.fullName.toUpperCase(),
                   bold: true,
-                  size: 28
+                  size: 28,
+                  font: 'Arial'
                 })
               ]
             }),
@@ -65,7 +78,6 @@ class ExportController {
             
             // Tiêu đề
             new Paragraph({
-              text: 'GIẤY YÊU CẦU BẢO HIỂM XE CƠ GIỚI',
               alignment: AlignmentType.CENTER,
               spacing: { before: 400, after: 400 },
               children: [
@@ -73,26 +85,32 @@ class ExportController {
                   text: 'GIẤY YÊU CẦU BẢO HIỂM XE CƠ GIỚI',
                   bold: true,
                   size: 32,
-                  allCaps: true
+                  allCaps: true,
+                  font: 'Arial'
                 })
               ]
             }),
 
             // Thông tin chủ xe
             new Paragraph({
-              text: 'I. THÔNG TIN CHỦ XE',
               spacing: { before: 300, after: 200 },
               children: [
                 new TextRun({
                   text: 'I. THÔNG TIN CHỦ XE',
                   bold: true,
-                  size: 24
+                  size: 24,
+                  font: 'Arial'
                 })
               ]
             }),
             new Paragraph({
-              text: `Họ và tên: ${khachHang.HoTen}`,
-              spacing: { after: 100 }
+              spacing: { after: 100 },
+              children: [
+                new TextRun({
+                  text: `Họ và tên: ${khachHang.HoTen}`,
+                  font: 'Arial'
+                })
+              ]
             }),
             new Paragraph({
               text: `CMND/CCCD: ${khachHang.CMND_CCCD}`,
@@ -271,6 +289,16 @@ class ExportController {
       const hd = result.recordset[0];
 
       const doc = new Document({
+        styles: {
+          default: {
+            document: {
+              run: {
+                font: 'Arial',
+                size: 22
+              }
+            }
+          }
+        },
         sections: [{
           properties: {},
           children: [
@@ -604,6 +632,16 @@ class ExportController {
       const tt = result.recordset[0];
 
       const doc = new Document({
+        styles: {
+          default: {
+            document: {
+              run: {
+                font: 'Arial',
+                size: 22
+              }
+            }
+          }
+        },
         sections: [{
           properties: {},
           children: [
@@ -859,6 +897,16 @@ class ExportController {
       }
 
       const doc = new Document({
+        styles: {
+          default: {
+            document: {
+              run: {
+                font: 'Arial',
+                size: 22
+              }
+            }
+          }
+        },
         sections: [{
           properties: {},
           children: [

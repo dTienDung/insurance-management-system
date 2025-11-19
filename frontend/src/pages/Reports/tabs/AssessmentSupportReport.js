@@ -18,6 +18,11 @@ import {
   TableHead,
   TableRow
 } from '@mui/material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import dayjs from 'dayjs';
+import 'dayjs/locale/vi';
 import {
   PictureAsPdf,
   Description,
@@ -26,10 +31,8 @@ import {
 
 const AssessmentSupportReport = () => {
   const [filters, setFilters] = useState({
-    timeType: 'year',
-    year: new Date().getFullYear(),
-    month: new Date().getMonth() + 1,
-    quarter: Math.floor(new Date().getMonth() / 3) + 1,
+    fromDate: dayjs().subtract(30, 'day'),
+    toDate: dayjs(),
     riskLevel: 'all'
   });
 
@@ -62,23 +65,39 @@ const AssessmentSupportReport = () => {
     <Box>
       {/* Filter Bar */}
       <Paper sx={{ p: 2, mb: 3 }}>
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} md={2}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Kỳ báo cáo</InputLabel>
-              <Select
-                value={filters.timeType}
-                label="Kỳ báo cáo"
-                onChange={(e) => setFilters({ ...filters, timeType: e.target.value })}
-              >
-                <MenuItem value="month">Tháng</MenuItem>
-                <MenuItem value="quarter">Quý</MenuItem>
-                <MenuItem value="year">Năm</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
+        <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="vi">
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} md={3}>
+              <DatePicker
+                label="Từ ngày"
+                value={filters.fromDate}
+                onChange={(newValue) => setFilters({ ...filters, fromDate: newValue })}
+                format="DD/MM/YYYY"
+                slotProps={{
+                  textField: {
+                    size: 'small',
+                    fullWidth: true
+                  }
+                }}
+              />
+            </Grid>
 
-          <Grid item xs={12} md={2}>
+            <Grid item xs={12} md={3}>
+              <DatePicker
+                label="Đến ngày"
+                value={filters.toDate}
+                onChange={(newValue) => setFilters({ ...filters, toDate: newValue })}
+                format="DD/MM/YYYY"
+                slotProps={{
+                  textField: {
+                    size: 'small',
+                    fullWidth: true
+                  }
+                }}
+              />
+            </Grid>
+
+            <Grid item xs={12} md={2}>
             <FormControl fullWidth size="small">
               <InputLabel>Năm</InputLabel>
               <Select
@@ -124,6 +143,7 @@ const AssessmentSupportReport = () => {
             </Stack>
           </Grid>
         </Grid>
+        </LocalizationProvider>
       </Paper>
 
       {/* Report Preview */}
