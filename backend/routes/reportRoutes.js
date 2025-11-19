@@ -96,6 +96,12 @@ router.get('/claims/ratio', reportController.getClaimsRatio);
 // Dashboard tổng quan
 router.get('/dashboard', reportController.getDashboardStats);
 
+// NEW REPORT SYSTEM - 4 TABS
+router.get('/operational-dashboard', reportController.getOperationalDashboard);
+router.get('/revenue-report', reportController.getRevenueReportData);
+router.get('/renewal-report', reportController.getRenewalReportData);
+router.get('/assessment-report', reportController.getAssessmentReportData);
+
 // Báo cáo tổng hợp theo kỳ
 router.get('/summary', reportController.getSummaryReport);
 

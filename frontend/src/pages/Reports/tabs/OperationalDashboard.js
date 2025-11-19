@@ -46,12 +46,12 @@ import {
   ResponsiveContainer
 } from 'recharts';
 import { DataGrid } from '@mui/x-data-grid';
-// import reportService from '../../../services/reportService';
+import reportService from '../../../services/reportService';
 import { formatCurrency } from '../../../utils/formatters';
 // import { formatDate } from '../../../utils/formatters';
 
 const OperationalDashboard = () => {
-  // const [loading] = useState(false); // Not actively used
+  const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState({
     fromDate: dayjs().subtract(30, 'day'),
     toDate: dayjs(),
@@ -67,7 +67,7 @@ const OperationalDashboard = () => {
     renewalRate: 0
   });
 
-  const [contractList] = useState([]); // Used in DataGrid
+  const [contractList, setContractList] = useState([]);
   // const [customerList] = useState([]); // Not used
   const [revenueData, setRevenueData] = useState([]);
   // const [renewalData] = useState([]); // Not used
@@ -81,31 +81,66 @@ const OperationalDashboard = () => {
 
   const loadDashboardData = async () => {
     try {
-      // setLoading(true); // Commented out - loading state not actively used
+      setLoading(true);
       
-      // Mock data - replace with real API calls
-      setKpis({
-        totalContracts: 1250,
-        newContracts: 85,
-        activeContracts: 980,
-        expiringContracts: 42,
-        renewalRate: 78.5
-      });
+      // Prepare query params
+      const params = {
+        status: filters.status === 'all' ? undefined : filters.status,
+        package: filters.package === 'all' ? undefined : filters.package
+      };
 
-      // Revenue data by month
-      setRevenueData([
-        { month: 'T1', total: 850, coban: 320, nangcao: 380, toandien: 150 },
-        { month: 'T2', total: 920, coban: 340, nangcao: 410, toandien: 170 },
-        { month: 'T3', total: 1050, coban: 390, nangcao: 450, toandien: 210 },
-        { month: 'T4', total: 980, coban: 360, nangcao: 420, toandien: 200 },
-        { month: 'T5', total: 1120, coban: 410, nangcao: 480, toandien: 230 },
-        { month: 'T6', total: 1200, coban: 450, nangcao: 520, toandien: 230 }
-      ]);
+      // Add date range if specified
+      if (filters.fromDate) {
+        params.fromDate = filters.fromDate.format('YYYY-MM-DD');
+      }
+      if (filters.toDate) {
+        params.toDate = filters.toDate.format('YYYY-MM-DD');
+      }
+
+      // Call backend API
+      const response = await reportService.getOperationalDashboard(params);
+
+      if (response.success && response.data) {
+        const data = response.data;
+
+        // Set KPIs
+        setKpis({
+          totalContracts: data.kpis?.totalContracts || 0,
+          newContracts: data.kpis?.newContracts || 0,
+          activeContracts: data.kpis?.activeContracts || 0,
+          expiringContracts: data.kpis?.expiringContracts || 0,
+          renewalRate: 78.5 // TODO: Calculate from backend
+        });
+
+        // Set revenue trend (transform to chart format)
+        if (data.revenueTrend && data.revenueTrend.length > 0) {
+          setRevenueData(data.revenueTrend.map((item, index) => ({
+            month: `T${index + 1}`,
+            total: Math.round(item.revenue / 1000000), // Convert to millions
+            coban: 0, // TODO: Need breakdown by package from backend
+            nangcao: 0,
+            toandien: 0
+          })));
+        }
+
+        // Set contract list
+        setContractList(data.contracts || []);
+      }
 
     } catch (error) {
       console.error('Error loading dashboard:', error);
+      // Fallback to empty data on error
+      setKpis({
+        totalContracts: 0,
+        newContracts: 0,
+        activeContracts: 0,
+        expiringContracts: 0,
+        renewalRate: 0
+      });
+      setRevenueData([]);
+      setContractList([]);
     } finally {
-      // setLoading(false); // Commented out - loading state not actively used
+      setLoading(false);
     }
   };
 
@@ -175,43 +210,68 @@ const OperationalDashboard = () => {
   );
 
   const contractColumns = [
-    { field: 'MaHD', headerName: 'Số HĐ', width: 120 },
-    { field: 'TenKH', headerName: 'Khách hàng', width: 180 },
-    { field: 'BienSo', headerName: 'Biển số', width: 120 },
+    { field: 'contractNumber', headerName: 'Số HĐ', width: 120 },
+    { field: 'customerName', headerName: 'Khách hàng', width: 180 },
+    { field: 'licensePlate', headerName: 'Biển số', width: 120 },
     { 
-      field: 'GoiBaoHiem', 
+      field: 'packageName', 
       headerName: 'Gói bảo hiểm', 
       width: 150,
-      renderCell: (params) => (
-        <Chip 
-          label={params.value} 
-          size="small"
-          color={
-            params.value === 'Cơ Bản' ? 'default' :
-            params.value === 'Nâng Cao' ? 'primary' : 'success'
-          }
-        />
-      )
+      renderCell: (params) => {
+        const value = params.value || '';
+        return (
+          <Chip 
+            label={value} 
+            size="small"
+            color={
+              value.includes('Cơ Bản') || value.includes('CO BAN') ? 'default' :
+              value.includes('Nâng Cao') || value.includes('NANG CAO') ? 'primary' : 'success'
+            }
+          />
+        );
+      }
     },
-    { field: 'NgayHieuLuc', headerName: 'Ngày hiệu lực', width: 120 },
-    { field: 'NgayHetHan', headerName: 'Ngày hết hạn', width: 120 },
     { 
-      field: 'TrangThai', 
+      field: 'startDate', 
+      headerName: 'Ngày hiệu lực', 
+      width: 120,
+      valueFormatter: (params) => {
+        if (!params.value) return '';
+        const date = new Date(params.value);
+        return date.toLocaleDateString('vi-VN');
+      }
+    },
+    { 
+      field: 'endDate', 
+      headerName: 'Ngày hết hạn', 
+      width: 120,
+      valueFormatter: (params) => {
+        if (!params.value) return '';
+        const date = new Date(params.value);
+        return date.toLocaleDateString('vi-VN');
+      }
+    },
+    { 
+      field: 'status', 
       headerName: 'Trạng thái', 
       width: 140,
       renderCell: (params) => {
+        const value = params.value || '';
         const statusMap = {
           'Mới': { color: 'info', label: 'Mới phát hành' },
           'Active': { color: 'success', label: 'Đang hiệu lực' },
+          'ACTIVE': { color: 'success', label: 'Đang hiệu lực' },
+          'Hiệu lực': { color: 'success', label: 'Đang hiệu lực' },
           'Expiring': { color: 'warning', label: 'Sắp hết hạn' },
-          'Expired': { color: 'default', label: 'Đã hết hạn' }
+          'Expired': { color: 'default', label: 'Đã hết hạn' },
+          'EXPIRED': { color: 'default', label: 'Đã hết hạn' }
         };
-        const config = statusMap[params.value] || { color: 'default', label: params.value };
+        const config = statusMap[value] || { color: 'default', label: value };
         return <Chip label={config.label} color={config.color} size="small" />;
       }
     },
     { 
-      field: 'PhiBaoHiem', 
+      field: 'premium', 
       headerName: 'Phí BH', 
       width: 130,
       renderCell: (params) => formatCurrency(params.value)
@@ -421,7 +481,8 @@ const OperationalDashboard = () => {
             pageSize={10}
             rowsPerPageOptions={[10, 25, 50]}
             disableSelectionOnClick
-            getRowId={(row) => row.MaHD}
+            getRowId={(row) => row.contractNumber || row.MaHD || Math.random()}
+            loading={loading}
           />
         </Box>
       </Paper>

@@ -106,7 +106,6 @@ class CustomerController {
         .query(`
           SELECT 
             hd.MaHD,
-            hd.SoHD,
             hd.NgayBatDau,
             hd.NgayKetThuc,
             hd.TrangThai,
@@ -195,7 +194,7 @@ class CustomerController {
       
       const checkExist = await pool.request()
         .input('cccd', sql.VarChar(12), cccd)
-        .query('SELECT MaKH FROM KhachHang WHERE CCCD = @cccd');
+        .query('SELECT MaKH FROM KhachHang WHERE CMND_CCCD = @cccd');
 
       if (checkExist.recordset.length > 0) {
         return res.status(400).json({
@@ -227,7 +226,7 @@ class CustomerController {
         .input('sdt', sql.VarChar(12), sdt)
         .input('email', sql.VarChar(80), email || null)
         .query(`
-          INSERT INTO KhachHang (MaKH, HoTen, CCCD, NgaySinh, DiaChi, SDT, Email)
+          INSERT INTO KhachHang (MaKH, HoTen, CMND_CCCD, NgaySinh, DiaChi, SDT, Email)
           VALUES (@maKH, @hoTen, @cccd, @ngaySinh, @diaChi, @sdt, @email)
         `);
 

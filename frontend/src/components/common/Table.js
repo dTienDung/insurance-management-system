@@ -15,10 +15,17 @@ const Table = ({
   onPageChange,
   onPageSizeChange,
   paginationMode = 'client',
-  getRowId = (row) => row.id || row.MaTD || row.MaHS || row.MaHD || row.MaKH || row.MaXe || row.MaBH,
+  getRowId,
   ...props 
 }) => {
   console.log('[Table] Render with page:', page, 'pageSize:', pageSize, 'rowCount:', rowCount);
+  console.log('[Table] getRowId prop received:', typeof getRowId, getRowId ? 'YES' : 'NO');
+  console.log('[Table] First row sample:', data?.[0]);
+  
+  if (data?.[0] && getRowId) {
+    const testId = getRowId(data[0]);
+    console.log('[Table] Testing getRowId with first row, result:', testId);
+  }
   
   // Memoize paginationModel to prevent unnecessary re-renders
   const paginationModel = useMemo(() => ({
@@ -118,7 +125,7 @@ const Table = ({
         },
       }}
       {...props}
-      getRowId={getRowId}
+      getRowId={getRowId || ((row) => row.id || row.MaHS || row.MaHD || row.MaKH || row.MaXe)}
     />
   );
 };

@@ -1243,7 +1243,7 @@ class ReportController {
    */
   async getOperationalDashboard(req, res) {
     try {
-      const { timeType, year, month, quarter, status, package: packageFilter } = req.query;
+      const { timeType, year, month, quarter, status, package: packageFilter, fromDate, toDate } = req.query;
       
       const pool = await getConnection();
       const request = pool.request();
@@ -1251,7 +1251,12 @@ class ReportController {
       // Build WHERE clause based on filters
       let whereClause = '1=1';
       
-      if (timeType === 'month' && year && month) {
+      // Support both date range (fromDate/toDate) and time period (timeType/year/month/quarter)
+      if (fromDate && toDate) {
+        whereClause += ' AND hd.NgayKy BETWEEN @fromDate AND @toDate';
+        request.input('fromDate', sql.Date, fromDate);
+        request.input('toDate', sql.Date, toDate);
+      } else if (timeType === 'month' && year && month) {
         whereClause += ' AND YEAR(hd.NgayKy) = @year AND MONTH(hd.NgayKy) = @month';
         request.input('year', sql.Int, parseInt(year));
         request.input('month', sql.Int, parseInt(month));
@@ -1274,8 +1279,33 @@ class ReportController {
         request.input('package', sql.NVarChar, packageFilter);
       }
 
+      // Create a new request for KPIs to include parameters
+      const kpisRequest = pool.request();
+      
+      // Re-add all parameters to the new request
+      if (fromDate && toDate) {
+        kpisRequest.input('fromDate', sql.Date, fromDate);
+        kpisRequest.input('toDate', sql.Date, toDate);
+      } else if (timeType === 'month' && year && month) {
+        kpisRequest.input('year', sql.Int, parseInt(year));
+        kpisRequest.input('month', sql.Int, parseInt(month));
+      } else if (timeType === 'quarter' && year && quarter) {
+        kpisRequest.input('year', sql.Int, parseInt(year));
+        kpisRequest.input('quarter', sql.Int, parseInt(quarter));
+      } else if (timeType === 'year' && year) {
+        kpisRequest.input('year', sql.Int, parseInt(year));
+      }
+      
+      if (status && status !== 'all') {
+        kpisRequest.input('status', sql.NVarChar, status);
+      }
+      
+      if (packageFilter && packageFilter !== 'all') {
+        kpisRequest.input('package', sql.NVarChar, packageFilter);
+      }
+
       // KPIs
-      const kpis = await request.query(`
+      const kpis = await kpisRequest.query(`
         SELECT 
           COUNT(*) as totalContracts,
           COUNT(CASE WHEN DATEDIFF(day, hd.NgayKy, GETDATE()) <= 30 THEN 1 END) as newContracts,
@@ -1309,10 +1339,34 @@ class ReportController {
         GROUP BY gb.TenGoi
       `);
 
-      // Contract list
-      const contracts = await request.query(`
+      // Contract list - create new request with parameters
+      const contractsRequest = pool.request();
+      
+      // Re-add parameters for contracts query
+      if (fromDate && toDate) {
+        contractsRequest.input('fromDate', sql.Date, fromDate);
+        contractsRequest.input('toDate', sql.Date, toDate);
+      } else if (timeType === 'month' && year && month) {
+        contractsRequest.input('year', sql.Int, parseInt(year));
+        contractsRequest.input('month', sql.Int, parseInt(month));
+      } else if (timeType === 'quarter' && year && quarter) {
+        contractsRequest.input('year', sql.Int, parseInt(year));
+        contractsRequest.input('quarter', sql.Int, parseInt(quarter));
+      } else if (timeType === 'year' && year) {
+        contractsRequest.input('year', sql.Int, parseInt(year));
+      }
+      
+      if (status && status !== 'all') {
+        contractsRequest.input('status', sql.NVarChar, status);
+      }
+      
+      if (packageFilter && packageFilter !== 'all') {
+        contractsRequest.input('package', sql.NVarChar, packageFilter);
+      }
+
+      const contracts = await contractsRequest.query(`
         SELECT TOP 100
-          hd.SoHD as contractNumber,
+          hd.MaHD as contractNumber,
           kh.HoTen as customerName,
           bs.BienSo as licensePlate,
           gb.TenGoi as packageName,

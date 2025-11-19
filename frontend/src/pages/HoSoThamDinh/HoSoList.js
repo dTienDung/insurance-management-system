@@ -21,7 +21,7 @@ import HoSoModal from './HoSoModal';
 import HoSoDetailModal from './HoSoDetailModal';
 import hosoService from '../../services/hosoService';
 
-// Force rebuild - timestamp: 2025-11-13T07:55:00
+// Force rebuild - v2.0 - timestamp: 2025-11-19T02:30:00
 const HoSoList = () => {
   console.log('[HoSoList] Component loaded at:', new Date().toISOString());
   const [data, setData] = useState([]);
@@ -47,13 +47,10 @@ const HoSoList = () => {
       
       const { list, pagination: pg } = await hosoService.getAll(params);
       console.log('[HoSoList] Raw list from API:', list);
-      // Transform data to add id field
-      const transformedList = list.map(item => ({
-        ...item,
-        id: item.MaHS
-      }));
-      console.log('[HoSoList] Transformed list:', transformedList);
-      setData(transformedList);
+      console.log('[HoSoList] First item MaHS:', list?.[0]?.MaHS);
+      
+      // Don't transform - keep original data structure
+      setData(list);
       setPagination(pg);
     } catch (error) {
       console.error('[HoSoList] Fetch error:', error);

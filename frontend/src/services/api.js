@@ -76,17 +76,16 @@ api.interceptors.response.use(
 
         default:
           // Các lỗi khác
-          message.error(
-            error.response.data?.message || 
-            MESSAGES.ERROR.UNKNOWN  // ← DÙNG CONFIG
-          );
+          const errorMessage = error.response.data?.message || 
+            MESSAGES?.ERROR?.UNKNOWN || 'Đã xảy ra lỗi không xác định';
+          message.error(errorMessage);
       }
     } else if (error.request) {
       // Request được gửi nhưng không nhận được response
-      message.error(MESSAGES.ERROR.NETWORK);  // ← DÙNG CONFIG
+      message.error(MESSAGES?.ERROR?.NETWORK || 'Lỗi kết nối mạng');
     } else {
       // Lỗi khác
-      message.error(MESSAGES.ERROR.UNKNOWN);  // ← DÙNG CONFIG
+      message.error(MESSAGES?.ERROR?.UNKNOWN || 'Đã xảy ra lỗi không xác định');
     }
 
     return Promise.reject(error);

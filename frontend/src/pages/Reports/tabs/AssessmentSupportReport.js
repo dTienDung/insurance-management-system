@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Paper,
@@ -16,7 +16,9 @@ import {
   TableCell,
   TableContainer,
   TableHead,
-  TableRow
+  TableRow,
+  CircularProgress,
+  Alert
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -28,6 +30,7 @@ import {
   Description,
   Print
 } from '@mui/icons-material';
+import reportService from '../../../services/reportService';
 
 const AssessmentSupportReport = () => {
   const [filters, setFilters] = useState({
@@ -36,33 +39,78 @@ const AssessmentSupportReport = () => {
     riskLevel: 'all'
   });
 
-  const [reportData] = useState({
-    totalAssessments: 1250,
-    riskDistribution: [
-      { level: 'Thấp', count: 625, percentage: 50, avgAdjustment: 0 },
-      { level: 'Trung bình', count: 437, percentage: 35, avgAdjustment: 5 },
-      { level: 'Cao', count: 188, percentage: 15, avgAdjustment: 15 }
-    ],
-    commonRiskFactors: [
-      { factor: 'Tuổi xe > 10 năm', occurrences: 380, impactLevel: 'Cao' },
-      { factor: 'Lịch sử bồi thường', occurrences: 210, impactLevel: 'Cao' },
-      { factor: 'Lái xe < 5 năm kinh nghiệm', occurrences: 155, impactLevel: 'Trung bình' },
-      { factor: 'Sử dụng mục đích kinh doanh', occurrences: 95, impactLevel: 'Trung bình' },
-      { factor: 'Không có garage', occurrences: 75, impactLevel: 'Thấp' }
-    ],
+  const [reportData, setReportData] = useState({
+    totalAssessments: 0,
+    riskDistribution: [],
+    commonRiskFactors: [],
     adjustmentStats: {
-      increased: 425,
-      decreased: 120,
-      unchanged: 705
+      increased: 0,
+      decreased: 0,
+      unchanged: 0
     }
   });
 
-  const handleExportPDF = () => {
-    alert('Đang xuất báo cáo PDF...');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [hasLoaded, setHasLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!hasLoaded || filters.fromDate || filters.toDate || filters.riskLevel) {
+      loadReportData();
+      setHasLoaded(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.fromDate?.format('YYYY-MM-DD'), filters.toDate?.format('YYYY-MM-DD'), filters.riskLevel]);
+
+  const loadReportData = async () => {
+    try {
+      setLoading(true);
+      setError('');
+
+      const response = await reportService.getAssessmentReportData({
+        fromDate: filters.fromDate.format('YYYY-MM-DD'),
+        toDate: filters.toDate.format('YYYY-MM-DD'),
+        riskLevel: filters.riskLevel === 'all' ? undefined : filters.riskLevel
+      });
+
+      if (response.success && response.data) {
+        const data = response.data;
+        setReportData({
+          totalAssessments: data.totalAssessments || 0,
+          riskDistribution: data.riskDistribution || [],
+          commonRiskFactors: data.commonRiskFactors || [],
+          adjustmentStats: data.adjustmentStats || { increased: 0, decreased: 0, unchanged: 0 }
+        });
+      }
+    } catch (err) {
+      console.error('Error loading assessment report:', err);
+      setError(err.message || 'Đã xảy ra lỗi khi tải dữ liệu');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleExportPDF = async () => {
+    try {
+      setLoading(true);
+      const year = filters.fromDate.year();
+      await reportService.exportAssessmentPDF(year);
+      alert('Xuất PDF thành công!');
+    } catch (err) {
+      setError('Đã xảy ra lỗi khi xuất PDF');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <Box>
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
+          {error}
+        </Alert>
+      )}
+
       {/* Filter Bar */}
       <Paper sx={{ p: 2, mb: 3 }}>
         <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="vi">
@@ -129,15 +177,15 @@ const AssessmentSupportReport = () => {
             </FormControl>
           </Grid>
 
-          <Grid item xs={12} md={6}>
+            <Grid item xs={12} md={6}>
             <Stack direction="row" spacing={1} justifyContent="flex-end">
-              <Button variant="outlined" startIcon={<Print />}>
+              <Button variant="outlined" startIcon={<Print />} disabled={loading}>
                 Xem trước
               </Button>
-              <Button variant="contained" startIcon={<PictureAsPdf />} onClick={handleExportPDF}>
+              <Button variant="contained" startIcon={<PictureAsPdf />} onClick={handleExportPDF} disabled={loading}>
                 Xuất PDF
               </Button>
-              <Button variant="contained" color="success" startIcon={<Description />}>
+              <Button variant="contained" color="success" startIcon={<Description />} disabled={loading}>
                 Xuất Excel
               </Button>
             </Stack>
@@ -148,6 +196,14 @@ const AssessmentSupportReport = () => {
 
       {/* Report Preview */}
       <Paper sx={{ p: 4, minHeight: 800 }}>
+        {loading && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
+            <CircularProgress />
+          </Box>
+        )}
+
+        {!loading && (
+          <>
         {/* Header - Mẫu hành chính */}
         <Grid container spacing={2} sx={{ mb: 4 }}>
           <Grid item xs={6}>
@@ -354,6 +410,8 @@ const AssessmentSupportReport = () => {
             <Typography variant="body2">____________________</Typography>
           </Grid>
         </Grid>
+        </>
+        )}
       </Paper>
     </Box>
   );

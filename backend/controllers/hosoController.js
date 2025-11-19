@@ -92,7 +92,7 @@ class HoSoController {
         .query(`
         SELECT hs.*, 
                kh.HoTen AS TenKhach, kh.CMND_CCCD, kh.SDT, kh.NgaySinh,
-               xe.HangXe, xe.LoaiXe, xe.NamSX, xe.SoKhung, xe.GiaTriXe,
+               xe.HangXe, xe.LoaiXe, xe.NamSX, xe.GiaTriXe,
                bs.BienSo
         FROM HoSoThamDinh hs
         JOIN KhachHang kh ON hs.MaKH = kh.MaKH

@@ -51,11 +51,16 @@ const RevenueReport = () => {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [hasLoaded, setHasLoaded] = useState(false);
 
   useEffect(() => {
-    loadReportData();
+    // Only load once initially or when dates change significantly (user action)
+    if (!hasLoaded || filters.fromDate || filters.toDate) {
+      loadReportData();
+      setHasLoaded(true);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.fromDate, filters.toDate]);
+  }, [filters.fromDate?.format('YYYY-MM-DD'), filters.toDate?.format('YYYY-MM-DD')]);
 
   const loadReportData = async () => {
     try {

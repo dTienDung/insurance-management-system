@@ -30,7 +30,7 @@ const VehicleModal = ({ open, onClose, vehicleId, onSuccess }) => {
   const [formData, setFormData] = useState({
     MaKH: '',
     HangXe: '',
-    LoaiXe: '',
+    LoaiXe: 'Sedan',
     NamSX: '',
     SoKhung: '',
     SoMay: '',
@@ -92,7 +92,7 @@ const VehicleModal = ({ open, onClose, vehicleId, onSuccess }) => {
     setFormData({
       MaKH: '',
       HangXe: '',
-      LoaiXe: '',
+      LoaiXe: 'Sedan',
       NamSX: '',
       SoKhung: '',
       SoMay: '',
@@ -265,16 +265,23 @@ const VehicleModal = ({ open, onClose, vehicleId, onSuccess }) => {
 
             {/* Loại xe */}
             <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Loại xe *"
-                name="LoaiXe"
-                value={formData.LoaiXe}
-                onChange={handleChange}
-                error={!!errors.LoaiXe}
-                helperText={errors.LoaiXe}
-                required
-              />
+              <FormControl fullWidth required error={!!errors.LoaiXe}>
+                <InputLabel>Loại xe *</InputLabel>
+                <Select
+                  name="LoaiXe"
+                  value={formData.LoaiXe}
+                  onChange={handleChange}
+                  label="Loại xe *"
+                >
+                  <MenuItem value="Sedan">Xe con (Sedan)</MenuItem>
+                  <MenuItem value="Motorcycle">Xe máy</MenuItem>
+                  <MenuItem value="Truck">Xe tải</MenuItem>
+                  <MenuItem value="Bus">Xe khách</MenuItem>
+                  <MenuItem value="Van">Xe van</MenuItem>
+                  <MenuItem value="SUV">Xe SUV</MenuItem>
+                </Select>
+                {errors.LoaiXe && <FormHelperText>{errors.LoaiXe}</FormHelperText>}
+              </FormControl>
             </Grid>
 
             {/* Năm sản xuất */}

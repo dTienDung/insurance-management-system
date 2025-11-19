@@ -43,6 +43,13 @@ class VehicleController {
 
       const result = await request.query(query);
 
+      console.log('=== SAMPLE VEHICLE DATA ===');
+      if (result.recordset.length > 0) {
+        console.log('First vehicle LoaiXe:', result.recordset[0].LoaiXe);
+        console.log('Sample vehicles:', result.recordset.slice(0, 3).map(v => ({ MaXe: v.MaXe, LoaiXe: v.LoaiXe, HangXe: v.HangXe })));
+      }
+      console.log('===========================');
+
       let countQuery = `
         SELECT COUNT(DISTINCT xe.MaXe) as total 
         FROM Xe xe
@@ -122,7 +129,13 @@ class VehicleController {
       } = req.body;
 
       // Validation: Required fields for vehicle only (no customer)
-      if (!HangXe || !LoaiXe || !NamSX) {
+      console.log('=== DEBUG CREATE VEHICLE ===');
+      console.log('HangXe:', HangXe, 'Type:', typeof HangXe);
+      console.log('LoaiXe:', LoaiXe, 'Type:', typeof LoaiXe);
+      console.log('NamSX:', NamSX, 'Type:', typeof NamSX);
+      console.log('===========================');
+      
+      if (!HangXe || !LoaiXe || !NamSX || NamSX === 0) {
         return res.status(400).json({
           success: false,
           message: 'Vui lòng nhập đầy đủ thông tin bắt buộc (Hãng xe, Loại xe, Năm SX)'

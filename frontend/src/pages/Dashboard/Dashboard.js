@@ -51,6 +51,7 @@ import {
   Legend,
   ResponsiveContainer
 } from 'recharts';
+import api from '../../services/api';
 import reportService from '../../services/reportService';
 import { formatCurrency, formatNumber, formatDate } from '../../utils/formatters';
 
@@ -143,9 +144,13 @@ const Dashboard = () => {
       const expiringRes = await reportService.getExpiringContracts(15);
       setExpiringContracts((expiringRes.data || []).slice(0, 10));
 
-      // Load pending assessments
-      const pendingRes = await reportService.getAssessmentsByRiskLevel({ trangThai: 'Chờ thẩm định' });
-      setPendingAssessments((pendingRes.data?.details || []).slice(0, 10));
+      // Load pending assessments - use assessments API with status filter
+      const pendingRes = await api.get('/assessments', { 
+        params: { trangThai: 'Chờ thẩm định', limit: 10 } 
+      });
+      console.log('[Dashboard] Pending assessments response:', pendingRes);
+      console.log('[Dashboard] Pending data:', pendingRes.data?.data);
+      setPendingAssessments(pendingRes.data?.data || []);
 
     } catch (error) {
       console.error('Error loading dashboard:', error);
@@ -593,7 +598,9 @@ const Dashboard = () => {
                     pendingAssessments.map((item, index) => (
                       <tr key={index} style={{ borderBottom: '1px solid #eee' }}>
                         <td style={{ padding: '8px', fontSize: '0.875rem' }}>{item.MaHS}</td>
-                        <td style={{ padding: '8px', fontSize: '0.875rem' }}>{item.HoTen}</td>
+                        <td style={{ padding: '8px', fontSize: '0.875rem' }}>
+                          {item.TenKhach || item.HoTen || item.MaKH}
+                        </td>
                         <td style={{ padding: '8px', fontSize: '0.875rem' }}>
                           <Chip label={item.BienSo || '-'} size="small" color="warning" />
                         </td>

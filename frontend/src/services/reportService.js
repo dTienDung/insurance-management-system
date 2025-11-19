@@ -249,6 +249,93 @@ const reportService = {
   },
 
   // ============================================
+  // REQUEST CACHING - Tránh duplicate requests
+  // ============================================
+  _cache: new Map(),
+  _pendingRequests: new Map(),
+
+  _getCachedOrFetch: async function(cacheKey, fetchFn, ttl = 30000) {
+    // Check cache
+    const cached = this._cache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < ttl) {
+      return cached.data;
+    }
+
+    // Check if request is in flight
+    if (this._pendingRequests.has(cacheKey)) {
+      return this._pendingRequests.get(cacheKey);
+    }
+
+    // Make new request
+    const promise = fetchFn()
+      .then(data => {
+        this._cache.set(cacheKey, { data, timestamp: Date.now() });
+        this._pendingRequests.delete(cacheKey);
+        return data;
+      })
+      .catch(error => {
+        this._pendingRequests.delete(cacheKey);
+        throw error;
+      });
+
+    this._pendingRequests.set(cacheKey, promise);
+    return promise;
+  },
+
+  clearCache: function() {
+    this._cache.clear();
+    this._pendingRequests.clear();
+  },
+
+  // ============================================
+  // BÁO CÁO NGHIỆP VỤ - 4 TABS
+  // ============================================
+
+  /**
+   * Lấy dữ liệu Dashboard Nghiệp vụ (Tab 1)
+   */
+  getOperationalDashboard: async function(params) {
+    const cacheKey = `operational-dashboard-${JSON.stringify(params)}`;
+    return this._getCachedOrFetch(cacheKey, async () => {
+      const response = await api.get('/reports/operational-dashboard', { params });
+      return response.data;
+    });
+  },
+
+  /**
+   * Lấy dữ liệu Báo cáo Doanh thu (Tab 2)
+   */
+  getRevenueReportData: async function(params) {
+    const cacheKey = `revenue-report-${JSON.stringify(params)}`;
+    return this._getCachedOrFetch(cacheKey, async () => {
+      const response = await api.get('/reports/revenue-report', { params });
+      return response.data;
+    });
+  },
+
+  /**
+   * Lấy dữ liệu Báo cáo Tái tục (Tab 3)
+   */
+  getRenewalReportData: async function(params) {
+    const cacheKey = `renewal-report-${JSON.stringify(params)}`;
+    return this._getCachedOrFetch(cacheKey, async () => {
+      const response = await api.get('/reports/renewal-report', { params });
+      return response.data;
+    });
+  },
+
+  /**
+   * Lấy dữ liệu Báo cáo Hỗ trợ Thẩm định (Tab 4)
+   */
+  getAssessmentReportData: async function(params) {
+    const cacheKey = `assessment-report-${JSON.stringify(params)}`;
+    return this._getCachedOrFetch(cacheKey, async () => {
+      const response = await api.get('/reports/assessment-report', { params });
+      return response.data;
+    });
+  },
+
+  // ============================================
   // XUẤT EXCEL
   // ============================================
 

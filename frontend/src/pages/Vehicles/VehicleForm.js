@@ -12,7 +12,10 @@ import {
   MenuItem,
   Divider,
   Autocomplete,
-  CircularProgress
+  CircularProgress,
+  FormControl,
+  InputLabel,
+  Select
 } from '@mui/material';
 import {
   Save as SaveIcon,
@@ -28,7 +31,7 @@ const VehicleForm = () => {
   
   const [formData, setFormData] = useState({
     MaXe: '', // Display only
-    vehicle_type: 'car',
+    vehicle_type: 'Sedan',
     manufacturer: '',
     model: '',
     manufacturing_year: new Date().getFullYear(),
@@ -44,15 +47,14 @@ const VehicleForm = () => {
 
   const isEditMode = !!id;
 
-  // Danh sách các loại xe phổ biến
+  // Danh sách các loại xe phổ biến (match businessRules.js validTypes)
   const vehicleTypes = [
-    { value: 'car', label: 'Ô tô' },
-    { value: 'motorcycle', label: 'Xe máy' },
-    { value: 'truck', label: 'Xe tải' },
-    { value: 'bus', label: 'Xe khách' },
-    { value: 'van', label: 'Xe van' },
-    { value: 'suv', label: 'SUV' },
-    { value: 'pickup', label: 'Bán tải' }
+    { value: 'Sedan', label: 'Xe con (Sedan)' },
+    { value: 'Motorcycle', label: 'Xe máy' },
+    { value: 'Truck', label: 'Xe tải' },
+    { value: 'Bus', label: 'Xe khách' },
+    { value: 'Van', label: 'Xe van' },
+    { value: 'SUV', label: 'Xe SUV' }
   ];
 
   // Danh sách hãng xe phổ biến
@@ -160,6 +162,11 @@ const VehicleForm = () => {
         GhiChu: formData.notes.trim() || null
       };
 
+      console.log('=== DEBUG: Form Data ===');
+      console.log('formData:', formData);
+      console.log('dataToSubmit:', dataToSubmit);
+      console.log('=======================');
+
       if (isEditMode) {
         await vehicleService.update(id, dataToSubmit);
         alert('Cập nhật phương tiện thành công');
@@ -221,21 +228,21 @@ const VehicleForm = () => {
           <Grid container spacing={3} sx={{ mb: 4 }}>
             {/* Vehicle Type */}
             <Grid item xs={12} md={6}>
-              <TextField
-                select
-                fullWidth
-                label="Loại xe"
-                name="vehicle_type"
-                value={formData.vehicle_type}
-                onChange={handleChange}
-                required
-              >
-                {vehicleTypes.map(type => (
-                  <MenuItem key={type.value} value={type.value}>
-                    {type.label}
-                  </MenuItem>
-                ))}
-              </TextField>
+              <FormControl fullWidth required>
+                <InputLabel>Loại xe</InputLabel>
+                <Select
+                  name="vehicle_type"
+                  value={formData.vehicle_type}
+                  onChange={handleChange}
+                  label="Loại xe"
+                >
+                  {vehicleTypes.map(type => (
+                    <MenuItem key={type.value} value={type.value}>
+                      {type.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
             </Grid>
 
             {/* Manufacturer */}
