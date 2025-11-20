@@ -316,16 +316,20 @@ class ContractController {
         });
       }
 
-      // Sử dụng SP hoàn tiền (không có param maNV trong SP)
+      // Sử dụng SP hoàn tiền với OUTPUT parameter
       const result = await pool.request()
-        .input('maHD', sql.VarChar(10), id)
-        .input('lyDo', sql.NVarChar(255), lyDo)
-        .input('soTienHoan', sql.Decimal(18, 2), contract.PhiBaoHiem) // Hoàn toàn bộ phí
+        .input('MaHD', sql.VarChar(20), id)
+        .input('LyDo', sql.NVarChar(255), lyDo)
+        .input('SoTienHoan', sql.Decimal(18, 2), contract.PhiBaoHiem)
+        .output('MaTTOut', sql.VarChar(10))
         .execute('sp_HoanTienHopDong');
+
+      const maTT = result.output.MaTTOut;
 
       res.json({
         success: true,
-        message: 'Đã hủy hợp đồng và hoàn tiền thành công'
+        message: 'Đã hủy hợp đồng và hoàn tiền thành công',
+        data: { maTT }
       });
     } catch (error) {
       next(error);
@@ -409,31 +413,22 @@ class ContractController {
       const phiBaoHiemMoi = oldContract.recordset[0].PhiBaoHiem;
       
       const result = await pool.request()
-        .input('maHDCu', sql.VarChar(20), id)
-        .input('ngayKyMoi', sql.Date, ngayKyMoi)
-        .input('ngayHetHanMoi', sql.Date, ngayHetHanMoi)
-        .input('phiBaoHiemMoi', sql.Decimal(18, 2), phiBaoHiemMoi)
-        .input('maNV', sql.VarChar(10), maNV)
+        .input('MaHDCu', sql.VarChar(20), id)
+        .input('NgayKyMoi', sql.Date, ngayKyMoi)
+        .input('NgayHetHanMoi', sql.Date, ngayHetHanMoi)
+        .input('PhiBaoHiemMoi', sql.Decimal(18, 2), phiBaoHiemMoi)
+        .input('MaNV', sql.VarChar(10), maNV)
+        .output('MaHDMoiOut', sql.VarChar(20))
         .execute('sp_RenewHopDong');
 
-      // Lấy hợp đồng mới vừa tạo
-      const newContract = await pool.request()
-        .input('maHDCu', sql.VarChar(10), id)
-        .query(`
-          SELECT TOP 1 MaHD_Moi 
-          FROM HopDongRelation 
-          WHERE MaHD_Goc = @maHDCu AND LoaiQuanHe = 'TAI_TUC'
-          ORDER BY ID DESC
-        `);
+      const maHDMoi = result.output.MaHDMoiOut;
 
-      if (!newContract.recordset || newContract.recordset.length === 0) {
+      if (!maHDMoi) {
         return res.status(500).json({
           success: false,
           message: 'Tái tục thành công nhưng không lấy được mã hợp đồng mới'
         });
       }
-
-      const maHDMoi = newContract.recordset[0].MaHD_Moi;
 
       res.status(201).json({
         success: true,
@@ -495,13 +490,16 @@ class ContractController {
       ngayHetHanMoi.setFullYear(ngayHetHanMoi.getFullYear() + 1);
       
       const result = await pool.request()
-        .input('maHDCu', sql.VarChar(20), id)
-        .input('maKHMoi', sql.VarChar(10), maKHMoi)
-        .input('ngayKyMoi', sql.Date, ngayKyMoi)
-        .input('ngayHetHanMoi', sql.Date, ngayHetHanMoi)
-        .input('phiBaoHiemMoi', sql.Decimal(18, 2), phiBaoHiem)
-        .input('maNV', sql.VarChar(10), maNV)
+        .input('MaHDCu', sql.VarChar(20), id)
+        .input('MaKHMoi', sql.VarChar(10), maKHMoi)
+        .input('NgayKyMoi', sql.Date, ngayKyMoi)
+        .input('NgayHetHanMoi', sql.Date, ngayHetHanMoi)
+        .input('PhiBaoHiemMoi', sql.Decimal(18, 2), phiBaoHiem)
+        .input('MaNV', sql.VarChar(10), maNV)
+        .output('MaHDMoiOut', sql.VarChar(20))
         .execute('sp_ChuyenQuyenHopDong');
+
+      const maHDMoi = result.output.MaHDMoiOut;
 
       // NOTE: Theo yêu cầu, sau khi chuyển quyền cần THẨM ĐỊNH LẠI
       // Tạo hồ sơ thẩm định mới cho khách hàng mới

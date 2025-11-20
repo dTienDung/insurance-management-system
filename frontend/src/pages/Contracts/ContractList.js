@@ -32,6 +32,7 @@ import Button from '../../components/common/Button';
 import SearchBar from '../../components/common/SearchBar';
 import contractService from '../../services/contractService';
 import { formatCurrency, formatDate } from '../../utils/formatters';
+import { CONTRACT_STATUS, CONTRACT_STATUS_TEXT, CONTRACT_STATUS_COLOR } from '../../config';
 
 const ContractList = () => {
   const navigate = useNavigate();
@@ -58,10 +59,10 @@ const ContractList = () => {
       
       if (activeTab === 1) {
         // Phát hành: hợp đồng mới tạo, chưa ký
-        params.trangThai = 'Chờ ký';
+        params.trangThai = CONTRACT_STATUS.DRAFT;
       } else if (activeTab === 2) {
         // Tái tục: hợp đồng đang hiệu lực hoặc hết hạn
-        params.trangThai = 'Hiệu lực,Hết hạn';
+        params.trangThai = `${CONTRACT_STATUS.ACTIVE},${CONTRACT_STATUS.EXPIRED}`;
       }
 
       const response = await contractService.getAll(params);
@@ -74,12 +75,15 @@ const ContractList = () => {
 
       // Calculate stats
       setStats({
-        active: data.filter(c => c.TrangThai === 'Hiệu lực').length,
-        pending: data.filter(c => c.TrangThai === 'Chờ ký' || c.TrangThai === 'Chờ duyệt').length,
+        active: data.filter(c => c.TrangThai === CONTRACT_STATUS.ACTIVE).length,
+        pending: data.filter(c => 
+          c.TrangThai === CONTRACT_STATUS.DRAFT || 
+          c.TrangThai === CONTRACT_STATUS.PENDING_PAYMENT
+        ).length,
         expiring: data.filter(c => {
           if (!c.NgayHetHan) return false;
           const daysLeft = Math.floor((new Date(c.NgayHetHan) - new Date()) / (1000 * 60 * 60 * 24));
-          return daysLeft >= 0 && daysLeft <= 15;
+          return daysLeft >= 0 && daysLeft <= 15 && c.TrangThai === CONTRACT_STATUS.ACTIVE;
         }).length
       });
     } catch (error) {
@@ -122,7 +126,7 @@ const ContractList = () => {
     if (!window.confirm(`Xác nhận tái tục hợp đồng ${row.MaHD}?`)) return;
     try {
       const result = await contractService.renew(row.MaHD);
-      alert(`✅ Đã tạo hợp đồng tái tục: ${result.data.MaHD}`);
+      alert(`✅ Đã tạo hợp đồng tái tục: ${result.data.maHDMoi}`);
       fetchContracts();
     } catch (error) {
       alert('Lỗi: ' + (error.message || error));
@@ -159,15 +163,13 @@ const ContractList = () => {
   };
 
   const getStatusChip = (status) => {
-    const map = {
-      'Hiệu lực': { color: 'success', label: 'Hiệu lực' },
-      'Hết hạn': { color: 'default', label: 'Hết hạn' },
-      'Chờ ký': { color: 'warning', label: 'Chờ ký' },
-      'Chờ duyệt': { color: 'info', label: 'Chờ duyệt' },
-      'Đã hủy': { color: 'error', label: 'Đã hủy' }
-    };
-    const cfg = map[status] || { color: 'default', label: status };
-    return <Chip label={cfg.label} color={cfg.color} size="small" />;
+    return (
+      <Chip 
+        label={CONTRACT_STATUS_TEXT[status] || status} 
+        color={CONTRACT_STATUS_COLOR[status] || 'default'} 
+        size="small" 
+      />
+    );
   };
 
   // Columns for Tab 1: Quản lý hợp đồng

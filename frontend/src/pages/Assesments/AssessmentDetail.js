@@ -92,8 +92,8 @@ const AssessmentDetail = () => {
   const handleCreateContract = async () => {
     try {
       const result = await hosoService.lapHopDong(id);
-      alert('✅ Đã tạo hợp đồng: ' + result.data.MaHD);
-      navigate(`/contracts/${result.data.MaHD}`);
+      alert('✅ Đã tạo hợp đồng: ' + result.data.maHD);
+      navigate(`/contracts/${result.data.maHD}`);
     } catch (err) {
       alert('Lỗi: ' + (err.message || err));
     }

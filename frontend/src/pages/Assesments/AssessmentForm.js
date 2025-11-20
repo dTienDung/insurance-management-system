@@ -5,6 +5,7 @@ import contractService from '../../services/contractService';
 import customerService from '../../services/customerService';
 import vehicleService from '../../services/vehicleService';
 import { CustomerAutocomplete, VehicleAutocomplete, ContractAutocomplete } from '../../components/common/EntityAutocomplete';
+import { CONTRACT_STATUS } from '../../config';
 import {
   Container,
   Box,
@@ -65,7 +66,7 @@ const AssessmentForm = () => {
         else if (contractsRes && Array.isArray(contractsRes.data)) contractList = contractsRes.data;
         else if (contractsRes && Array.isArray(contractsRes.contracts)) contractList = contractsRes.contracts;
         
-        const activeContracts = contractList.filter(c => (c.status === 'active' || c.TrangThai === 'Hiệu lực'));
+        const activeContracts = contractList.filter(c => c.TrangThai === CONTRACT_STATUS.ACTIVE);
         setContracts(activeContracts);
 
         // Normalize customers
